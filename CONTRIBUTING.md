@@ -37,7 +37,7 @@ Work in Progress pull requests are also welcome to get feedback early on, or if 
 
 these are thing and features of the c++ lanuage which are forbidden
 
-- the keyword class is firbidden we adive for the use of structs
+- the keyword class is firbidden we advise for the use of structs
 - the keyword private is forbidden in struct scopes (everthing is public f*** getters and setters)
 - the keyword goto is forbidden
 - the keyword try/catche is forbidden
@@ -49,4 +49,4 @@ these are thing and features of the c++ lanuage which are forbidden
 - [How to Contribute to Open Source](https://opensource.guide/how-to-contribute/)
 - [Using Pull Requests](https://help.github.com/articles/about-pull-requests/)
 - [GitHub Help](https://help.github.com)
-- [Project Structer](https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2018/p1204r0.html)
+- [Project structure](https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2018/p1204r0.html)
