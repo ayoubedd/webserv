@@ -1,7 +1,7 @@
 #pragma once
 
-#include <string>
 #include <map>
+#include <string>
 
 namespace libhttp {
   typedef std::map<std::string, std::string> HeadersMap;
@@ -11,6 +11,6 @@ namespace libhttp {
     HeadersMap headers;
 
     void delHeader(std::string);
-    std::string& operator[](int i);
+    std::string &operator[](std::string);
   };
 } // namespace libhttp
