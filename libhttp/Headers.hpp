@@ -2,6 +2,7 @@
 
 #include <map>
 #include <string>
+#include <iostream>
 
 namespace libhttp {
   typedef std::map<std::string, std::string> HeadersMap;
@@ -14,3 +15,5 @@ namespace libhttp {
     std::string &operator[](std::string);
   };
 } // namespace libhttp
+
+std::ostream& operator<<(std::ostream &os, const libhttp::Headers &h);

@@ -1,6 +1,7 @@
 #pragma once
 
-#include "Headers.hpp"
+#include "libhttp/Headers.hpp"
+#include <iostream>
 
 namespace libhttp {
   struct Request {
@@ -11,3 +12,5 @@ namespace libhttp {
     std::string body;
   };
 } // namespace libhttp
+
+std::ostream& operator<<(std::ostream &os, const libhttp::Request &req);
