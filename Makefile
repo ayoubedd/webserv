@@ -4,10 +4,10 @@ CXXFLAGS+=-Wall -Wextra -Wreorder -std=c++98 -I .
 
 WEBSERV=webserv/main.cpp
 
-LIBHTTP=libhttp/Headers.cpp 
-LIBHTTP_TEST=libhttp/Headers_test.cpp
+LIBHTTP=libhttp/Headers.cpp libhttp/Request.cpp libhttp/Reader.cpp
+LIBHTTP_TEST=libhttp/Headers_test.cpp libhttp/Reader_test.cpp
 
-CXXFILES=$(WEBSERV) $(LIBHTTP)
+CXXFILES=$(WEBSERV) $(LIBHTTP) $(LIBHTTP_TEST)
 OBJFILES=$(patsubst %.cpp, %.o, $(CXXFILES))
 
 
