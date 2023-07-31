@@ -1,6 +1,6 @@
 #pragma once
 
-#include "libhttp/Request.hpp"
+#include "libhttp/Message.hpp"
 #include <string>
 #include <vector>
 
@@ -14,7 +14,7 @@ namespace libhttp {
     int fd;
     std::vector<char> raw;
     std::vector<char>::size_type current;
-    Request req;
+    Message msg;
 
     Reader(int);
     enum error {

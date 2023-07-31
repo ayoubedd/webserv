@@ -20,7 +20,7 @@ libhttp::Reader::error libhttp::Reader::buildRequestLine() {
   if (raw[current] != SP) {
     return WRONG_TOK_AFTER_METHOD;
   }
-  this->req.method.assign(this->raw.begin(), this->raw.begin() + current);
+  this->msg.req.method.assign(this->raw.begin(), this->raw.begin() + current);
 
   i = ++current;
   while (raw[current] && raw[current] != SP)
@@ -31,7 +31,7 @@ libhttp::Reader::error libhttp::Reader::buildRequestLine() {
   if (raw[current] != SP) {
     return WRONG_TOK_AFTER_URI;
   }
-  this->req.path.assign(this->raw.begin() + i, this->raw.begin() + current);
+  this->msg.req.reqTarget.assign(this->raw.begin() + i, this->raw.begin() + current);
   j = ++current;
   while (raw[current] && raw[current + 1] && raw[current] != CR && raw[current + 1] != LF)
     current++;
@@ -41,7 +41,7 @@ libhttp::Reader::error libhttp::Reader::buildRequestLine() {
   if (raw[current] != CR || raw[current + 1] != LF) {
     return MISSING_HTTP_V;
   }
-  this->req.version.assign(this->raw.begin() + j, this->raw.begin() + current);
+  this->msg.req.version.assign(this->raw.begin() + j, this->raw.begin() + current);
   current += 2;
   return OK;
 }
