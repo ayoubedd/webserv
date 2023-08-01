@@ -2,6 +2,7 @@
 
 #include "libhttp/Headers.hpp"
 #include <iostream>
+#include <vector>
 
 namespace libhttp {
   struct Request {
@@ -9,8 +10,8 @@ namespace libhttp {
     std::string path;
     std::string version;
     Headers headers;
-    std::string body;
+    std::vector<char> body;
   };
 } // namespace libhttp
 
-std::ostream& operator<<(std::ostream &os, const libhttp::Request &req);
+std::ostream &operator<<(std::ostream &os, const libhttp::Request &req);

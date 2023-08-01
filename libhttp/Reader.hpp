@@ -10,6 +10,7 @@ namespace libhttp {
   const char LF = '\n';
   const char SP = ' ';
   const char HT = '\t';
+  const char COLON = ':';
   struct Reader {
     int fd;
     std::vector<char> raw;
@@ -17,16 +18,11 @@ namespace libhttp {
     Request req;
 
     Reader(int);
-    enum error {
-      OK,
-      EMPTY_REQ,
-      MISSING_METHOD,
-      WRONG_TOK_AFTER_METHOD,
-      MISSING_URI,
-      WRONG_TOK_AFTER_URI,
-      MISSING_HTTP_V,
-      WRONG_TOK_AFTER_HTTP_V
-    };
+    enum error { OK, EMPTY_REQ, REQUEST_LINE_EMPTY, REQUEST_MISSING_CRLF, HEADER_REPEATED };
+
+    std::string getRequestLineFromRawData();
+    std::string getHeaderstLinesFromRawData();
+
     error build();
     error buildRequestLine();
     error buildRequestHeaders();
@@ -34,4 +30,10 @@ namespace libhttp {
   };
 
   bool TestReaderBuildRequestLine();
+  bool TestReaderBuildRequestHeaders();
 } // namespace libhttp
+
+// these need to be places in some libutils module
+void stdStringTrim(std::string &str, std::string del);
+void stdStringTrimRight(std::string &str, std::string del);
+void stdStringTrimLeft(std::string &str, std::string del);
