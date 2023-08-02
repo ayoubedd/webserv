@@ -18,7 +18,14 @@ namespace libhttp {
     Request req;
 
     Reader(int);
-    enum error { OK, EMPTY_REQ, REQUEST_LINE_EMPTY, REQUEST_MISSING_CRLF, HEADER_REPEATED };
+    enum error {
+      OK,
+      EMPTY_REQ,
+      REQUEST_LINE_EMPTY,
+      REQUEST_MISSING_CRLF,
+      REQUEST_LINE_WRONG_SP_COUNT,
+      HEADER_REPEATED
+    };
 
     std::string getRequestLineFromRawData();
     std::string getHeaderstLinesFromRawData();

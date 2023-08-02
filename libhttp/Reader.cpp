@@ -1,4 +1,5 @@
 #include "libhttp/Reader.hpp"
+#include <algorithm>
 #include <cstdio>
 #include <sstream>
 
@@ -82,7 +83,9 @@ libhttp::Reader::error libhttp::Reader::buildRequestLine() {
     return REQUEST_LINE_EMPTY;
   if (reqline[reqline.size() - 1] != LF || reqline[reqline.size() - 2] != CR)
     return REQUEST_MISSING_CRLF;
-
+  if (std::count(reqline.begin(), reqline.end(), ' ') != 2) {
+    return REQUEST_LINE_WRONG_SP_COUNT;
+  }
   std::stringstream s(reqline);
   std::getline(s, req.method, SP);
   std::getline(s, req.path, SP);
