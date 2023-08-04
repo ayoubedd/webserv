@@ -10,6 +10,8 @@ namespace libnet {
     std::vector<int> readReadyClients;
     std::vector<int> exptReadyFds;
 
+    void setupSockets(libparse::Domains &domains);
+
   private:
     fd_set fdReadSet;
     fd_set fdWriteSet;
