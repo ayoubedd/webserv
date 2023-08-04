@@ -8,6 +8,7 @@
 #include <netdb.h>
 #include <sys/select.h>
 #include <sys/socket.h>
+#include <unistd.h>
 #include <vector>
 
 static int openSocket(std::string &port) {
@@ -136,3 +137,24 @@ void libnet::Netenv::acceptNewClients(void) {
     begin++;
   }
 }
+
+void libnet::Netenv::dropFd(int fd) {
+  typedef std::vector<int>::iterator iter;
+
+  // Droping the fd from clients pool
+  iter client = std::find(clients.begin(), clients.end(), fd);
+  if (client != clients.end())
+    clients.erase(client);
+
+  // Droping the fd from sockets pool
+  iter socket = std::find(sockets.begin(), sockets.end(), fd);
+  if (socket != sockets.end())
+    sockets.erase(socket);
+
+  // If the fd in neither in cliens or sockets, skip closing it.
+  if (client == clients.end() && socket == sockets.end())
+    return ;
+
+  close(fd);
+}
+

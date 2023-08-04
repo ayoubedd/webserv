@@ -13,6 +13,7 @@ namespace libnet {
     void prepFdSets(void);
     void awaitEvents(void);
     void acceptNewClients(void);
+    void dropFd(int fd);
 
   private:
     fd_set fdReadSet;
