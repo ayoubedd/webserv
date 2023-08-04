@@ -71,15 +71,10 @@ void libnet::Netenv::prepFdSets(void) {
   // Clear Sets for a new round
   FD_ZERO(&fdReadSet);
   FD_ZERO(&fdWriteSet);
-  FD_ZERO(&fdExptSet);
 
   // Add Clients & Sockets fds to ReadSet
   insert_fds_into_fdset(clients, &fdReadSet);
   insert_fds_into_fdset(sockets, &fdReadSet);
-
-  // Add Clients & Sockets fd to ExptSet
-  insert_fds_into_fdset(clients, &fdExptSet);
-  insert_fds_into_fdset(sockets, &fdExptSet);
 }
 
 int libnet::Netenv::largestFd(void) {
@@ -109,7 +104,7 @@ static void extract_matching_fds(std::vector<int> &src, std::vector<int> &dst, f
 }
 
 void libnet::Netenv::awaitEvents(void) {
-  int err = select(largestFd() + 1, &fdReadSet, &fdWriteSet, &fdExptSet, NULL);
+  int err = select(largestFd() + 1, &fdReadSet, &fdWriteSet, NULL, NULL);
   if (err == -1) {
     std::cerr << "select" << strerror(errno)  << std::endl;
     exit(EXIT_FAILURE);
@@ -118,14 +113,10 @@ void libnet::Netenv::awaitEvents(void) {
   // Clear Ready pools
   readReadySockets.clear();
   readReadyClients.clear();
-  exptReadyFds.clear();
 
   // Extracing ready client & sockets into readyFdsPool
   extract_matching_fds(clients, readReadyClients, &fdReadSet);
   extract_matching_fds(sockets, readReadySockets, &fdReadSet);
-
-  extract_matching_fds(clients, exptReadyFds, &fdExptSet);
-  extract_matching_fds(sockets, exptReadyFds, &fdExptSet);
 }
 
 void libnet::Netenv::acceptNewClients(void) {

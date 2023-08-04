@@ -8,7 +8,6 @@ namespace libnet {
   struct Netenv {
     std::vector<int> readReadySockets;
     std::vector<int> readReadyClients;
-    std::vector<int> exptReadyFds;
 
     void setupSockets(libparse::Domains &domains);
     void prepFdSets(void);
@@ -18,7 +17,6 @@ namespace libnet {
   private:
     fd_set fdReadSet;
     fd_set fdWriteSet;
-    fd_set fdExptSet;
 
     std::vector<int> sockets;
     std::vector<int> clients;
