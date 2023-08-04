@@ -13,6 +13,7 @@ namespace libnet {
     void setupSockets(libparse::Domains &domains);
     void prepFdSets(void);
     void awaitEvents(void);
+    void acceptNewClients(void);
 
   private:
     fd_set fdReadSet;

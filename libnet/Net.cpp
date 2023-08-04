@@ -127,3 +127,21 @@ void libnet::Netenv::awaitEvents(void) {
   extract_matching_fds(clients, exptReadyFds, &fdExptSet);
   extract_matching_fds(sockets, exptReadyFds, &fdExptSet);
 }
+
+void libnet::Netenv::acceptNewClients(void) {
+  std::vector<int>::iterator begin = readReadySockets.begin();
+  std::vector<int>::iterator end = readReadySockets.end();
+
+  int fd;
+  while (begin != end) {
+    if ((fd = accept(*begin, NULL, 0)) == -1) {
+      std::cerr << "accept" << strerror(errno)  << std::endl;
+      return;
+    }
+
+    // add the new client to clients pool
+    clients.push_back(fd);
+
+    begin++;
+  }
+}
