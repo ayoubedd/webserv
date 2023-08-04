@@ -55,3 +55,29 @@ void libnet::Netenv::setupSockets(libparse::Domains &domains) {
     begin++;
   }
 }
+
+static void insert_fds_into_fdset(std::vector<int> &vec, fd_set *set) {
+  std::vector<int>::iterator begin = vec.begin();
+  std::vector<int>::iterator end = vec.end();
+
+  while (begin != end) {
+    FD_SET(*begin, set);
+    begin++;
+  }
+}
+
+void libnet::Netenv::prepFdSets(void) {
+  // Clear Sets for a new round
+  FD_ZERO(&fdReadSet);
+  FD_ZERO(&fdWriteSet);
+  FD_ZERO(&fdExptSet);
+
+  // Add Clients & Sockets fds to ReadSet
+  insert_fds_into_fdset(clients, &fdReadSet);
+  insert_fds_into_fdset(sockets, &fdReadSet);
+
+  // Add Clients & Sockets fd to ExptSet
+  insert_fds_into_fdset(clients, &fdExptSet);
+  insert_fds_into_fdset(sockets, &fdExptSet);
+}
+
