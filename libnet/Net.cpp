@@ -1,5 +1,6 @@
 #include "libnet/Net.hpp"
 #include <stdlib.h>
+#include <algorithm>
 #include <cerrno>
 #include <iostream>
 #include <string.h>
@@ -81,3 +82,48 @@ void libnet::Netenv::prepFdSets(void) {
   insert_fds_into_fdset(sockets, &fdExptSet);
 }
 
+int libnet::Netenv::largestFd(void) {
+  std::vector<int>::iterator clientsLargestFd = std::max_element(clients.begin(), clients.end());
+  std::vector<int>::iterator socketsLargestFd = std::max_element(sockets.begin(), sockets.end());
+
+  if (clientsLargestFd == clients.end() && socketsLargestFd != sockets.end())
+    return *socketsLargestFd;
+
+  if (*clientsLargestFd > *socketsLargestFd)
+    return *clientsLargestFd;
+  else
+    return *socketsLargestFd;
+
+  return -1;
+}
+
+static void extract_matching_fds(std::vector<int> &src, std::vector<int> &dst, fd_set *set) {
+  std::vector<int>::iterator begin = src.begin();
+  std::vector<int>::iterator end = src.end();
+
+  while (begin != end) {
+    if (FD_ISSET(*begin, set))
+      dst.push_back(*begin);
+    begin++;
+  }
+}
+
+void libnet::Netenv::awaitEvents(void) {
+  int err = select(largestFd() + 1, &fdReadSet, &fdWriteSet, &fdExptSet, NULL);
+  if (err == -1) {
+    std::cerr << "select" << strerror(errno)  << std::endl;
+    exit(EXIT_FAILURE);
+  }
+
+  // Clear Ready pools
+  readReadySockets.clear();
+  readReadyClients.clear();
+  exptReadyFds.clear();
+
+  // Extracing ready client & sockets into readyFdsPool
+  extract_matching_fds(clients, readReadyClients, &fdReadSet);
+  extract_matching_fds(sockets, readReadySockets, &fdReadSet);
+
+  extract_matching_fds(clients, exptReadyFds, &fdExptSet);
+  extract_matching_fds(sockets, exptReadyFds, &fdExptSet);
+}

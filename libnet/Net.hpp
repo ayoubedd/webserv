@@ -12,6 +12,7 @@ namespace libnet {
 
     void setupSockets(libparse::Domains &domains);
     void prepFdSets(void);
+    void awaitEvents(void);
 
   private:
     fd_set fdReadSet;
@@ -20,6 +21,8 @@ namespace libnet {
 
     std::vector<int> sockets;
     std::vector<int> clients;
+
+    int largestFd(void);
   };
 
 } // namespace libnet
