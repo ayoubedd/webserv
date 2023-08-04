@@ -7,7 +7,9 @@ WEBSERV=webserv/main.cpp
 LIBHTTP=libhttp/Headers.cpp 
 LIBHTTP_TEST=libhttp/Headers_test.cpp
 
-CXXFILES=$(WEBSERV) $(LIBHTTP)
+LIBNET=libnet/Net.cpp
+
+CXXFILES=$(WEBSERV) $(LIBHTTP) $(LIBNET)
 OBJFILES=$(patsubst %.cpp, %.o, $(CXXFILES))
 
 
