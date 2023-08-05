@@ -19,8 +19,6 @@ static int openSocket(std::string &port) {
   hints.ai_socktype = SOCK_STREAM; // TCP
   hints.ai_flags = AI_PASSIVE; // Listening on all interfaces
 
-  std::cerr << errno  << std::endl;
-
   struct addrinfo *addrinfo;
   if (getaddrinfo(NULL, port.c_str(), &hints, &addrinfo)) {
     std::cerr << "getaddrinfo" << strerror(errno)  << std::endl;
@@ -49,7 +47,7 @@ void libnet::Netenv::setupSockets(libparse::Domains &domains) {
   libparse::Domains::iterator end = domains.end();
 
   while (begin != end) {
-    libparse::Domain domain = (*begin).second;
+    libparse::Domain domain = begin->second;
 
     // Opening / Pushing socket fd to sockets pool
     sockets.push_back(openSocket(domain.port));
@@ -58,9 +56,9 @@ void libnet::Netenv::setupSockets(libparse::Domains &domains) {
   }
 }
 
-static void insert_fds_into_fdset(std::vector<int> &vec, fd_set *set) {
-  std::vector<int>::iterator begin = vec.begin();
-  std::vector<int>::iterator end = vec.end();
+static void insert_fds_into_fdset(libnet::Sockets &sockets, fd_set *set) {
+  libnet::Sockets::iterator begin = sockets.begin();
+  libnet::Sockets::iterator end = sockets.end();
 
   while (begin != end) {
     FD_SET(*begin, set);
@@ -68,34 +66,46 @@ static void insert_fds_into_fdset(std::vector<int> &vec, fd_set *set) {
   }
 }
 
+static void insert_fds_into_fdset(libnet::Sessions &sessions, fd_set *set) {
+  libnet::Sessions::iterator begin = sessions.begin();
+  libnet::Sessions::iterator end = sessions.end();
+
+  while (begin != end) {
+    FD_SET(begin->first, set);
+    begin++;
+  }
+}
 void libnet::Netenv::prepFdSets(void) {
   // Clear Sets for a new round
   FD_ZERO(&fdReadSet);
   FD_ZERO(&fdWriteSet);
 
   // Add Clients & Sockets fds to ReadSet
-  insert_fds_into_fdset(clients, &fdReadSet);
+	insert_fds_into_fdset(sessions, &fdReadSet);
   insert_fds_into_fdset(sockets, &fdReadSet);
 }
 
 int libnet::Netenv::largestFd(void) {
-  std::vector<int>::iterator clientsLargestFd = std::max_element(clients.begin(), clients.end());
-  std::vector<int>::iterator socketsLargestFd = std::max_element(sockets.begin(), sockets.end());
+	libnet::Sessions::iterator sessionsLargestFd = std::max_element(sessions.begin(), sessions.end());
+	libnet::Sockets::iterator socketsLargestFd = std::max_element(sockets.begin(), sockets.end());
 
-  if (clientsLargestFd == clients.end() && socketsLargestFd != sockets.end())
-    return *socketsLargestFd;
-
-  if (*clientsLargestFd > *socketsLargestFd)
-    return *clientsLargestFd;
-  else
-    return *socketsLargestFd;
-
-  return -1;
+	return std::max(sessionsLargestFd->first, *socketsLargestFd);
 }
 
-static void extract_matching_fds(std::vector<int> &src, std::vector<int> &dst, fd_set *set) {
-  std::vector<int>::iterator begin = src.begin();
-  std::vector<int>::iterator end = src.end();
+static void extract_matching_fds(libnet::Sessions &src, std::map<int, libnet::Session*> &dst, fd_set *set) {
+	libnet::Sessions::iterator begin = src.begin();
+	libnet::Sessions::iterator end = src.end();
+
+  while (begin != end) {
+    if (FD_ISSET(begin->first, set))
+      dst.insert(std::make_pair(begin->first, &(begin->second)));
+    begin++;
+  }
+}
+
+static void extract_matching_fds(libnet::Sockets &src, libnet::Sockets &dst, fd_set *set) {
+	libnet::Sockets::iterator begin = src.begin();
+	libnet::Sockets::iterator end = src.end();
 
   while (begin != end) {
     if (FD_ISSET(*begin, set))
@@ -113,16 +123,16 @@ void libnet::Netenv::awaitEvents(void) {
 
   // Clear Ready pools
   readReadySockets.clear();
-  readReadyClients.clear();
+  readyClients.clear();
 
   // Extracing ready client & sockets into readyFdsPool
-  extract_matching_fds(clients, readReadyClients, &fdReadSet);
+  extract_matching_fds(sessions, readyClients, &fdReadSet);
   extract_matching_fds(sockets, readReadySockets, &fdReadSet);
 }
 
 void libnet::Netenv::acceptNewClients(void) {
-  std::vector<int>::iterator begin = readReadySockets.begin();
-  std::vector<int>::iterator end = readReadySockets.end();
+	libnet::Sockets::iterator begin = readReadySockets.begin();
+  libnet::Sockets::iterator end = readReadySockets.end();
 
   int fd;
   while (begin != end) {
@@ -131,30 +141,20 @@ void libnet::Netenv::acceptNewClients(void) {
       return;
     }
 
-    // add the new client to clients pool
-    clients.push_back(fd);
+    // add the new client to sessions pool
+		sessions.insert(std::make_pair(fd, libnet::Session(fd)));
 
     begin++;
   }
 }
 
-void libnet::Netenv::dropFd(int fd) {
-  typedef std::vector<int>::iterator iter;
+void libnet::Netenv::destroySession(libnet::Session& session) {
+	libnet::Sessions::iterator iter = std::find(sessions.begin(), sessions.end(), session);
+	
+	if (iter == sessions.end())
+		return ;
 
-  // Droping the fd from clients pool
-  iter client = std::find(clients.begin(), clients.end(), fd);
-  if (client != clients.end())
-    clients.erase(client);
+	close(iter->first);
 
-  // Droping the fd from sockets pool
-  iter socket = std::find(sockets.begin(), sockets.end(), fd);
-  if (socket != sockets.end())
-    sockets.erase(socket);
-
-  // If the fd in neither in cliens or sockets, skip closing it.
-  if (client == clients.end() && socket == sockets.end())
-    return ;
-
-  close(fd);
+	sessions.erase(iter);
 }
-

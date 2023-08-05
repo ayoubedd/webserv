@@ -27,4 +27,7 @@ namespace libnet {
     sessionStat status;
     libhttp::Reader Reader;
   };
+
+  bool operator<(const libnet::Session &, const libnet::Session &);
+  bool operator==(std::pair<const int, libnet::Session> pair, const libnet::Session &);
 } // namespace libnet
