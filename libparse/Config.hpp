@@ -65,7 +65,7 @@ typedef struct token{
 }tokens;
 
 std::vector<tokens>  lexer(std::string content);
-libparse::Domains parser(std::vector<tokens> tokens);
+libparse::Domains parser(std::string filename);
 std::string readFile(std::string filename);
 token::t_type getTypeFromString(std::string typeStr);
 std::vector<tokens>  lexer(std::string content);

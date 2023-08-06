@@ -5,7 +5,7 @@
 
 std::string readFile(std::string filename)
 { 
-  std::ifstream inputFile(filename);
+  std::ifstream inputFile(filename.c_str());
   std::stringstream buffer;
   std::string fileContent;
 

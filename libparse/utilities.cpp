@@ -102,15 +102,10 @@ std::string consumeRouteProps(libparse::RouteProps &routeProps, std::vector<toke
     tokens.erase(tokens.begin());
   }
   if(tokens[0].type == token::CURLYBARCKETRIGTH)
-    tokens.erase(tokens.begin()); 
+    tokens.erase(tokens.begin());
+
   while (tokens[0].type != token::CURLYBARCKETLEFT)
   {
-    if(tokens[0].type == token::PATH)
-    {
-      routeProps.path = tokens[0].lexeme;
-      tokens.erase(tokens.begin());
-      continue;
-    }
     if(tokens[0].type == token::ROOT)
     {
       routeProps.root = tokens[0].lexeme;
@@ -156,6 +151,12 @@ std::string consumeRouteProps(libparse::RouteProps &routeProps, std::vector<toke
       tokens.erase(tokens.begin());
       continue;
     }
+    else
+    {
+      throwError(tokens[0].lexeme, "Error:unexpected token");
+      tokens.erase(tokens.begin());
+      continue;
+    }
   } 
   if(token::CURLYBARCKETLEFT == tokens[0].type)
   {
@@ -171,6 +172,8 @@ std::string consumeRouteProps(libparse::RouteProps &routeProps, std::vector<toke
 
 void consume(libparse::Domain& domain,std::vector<tokens> &tokens)
 {
+    std::stringstream str;
+    int maxBodySize;
     if(tokens[0].type == token::ERROR)
       {
         domain.error = tokens[0].lexeme;
@@ -178,7 +181,9 @@ void consume(libparse::Domain& domain,std::vector<tokens> &tokens)
       }
       if(tokens[0].type == token::MAXBODYSIZE)
       {
-        domain.max_body_size = std::stoi(tokens[0].lexeme);
+        str << tokens[0].lexeme.c_str();
+       str  >> maxBodySize;
+        domain.max_body_size = maxBodySize;
         tokens.erase(tokens.begin());
       }
         if(tokens[0].type == token::ROOT)

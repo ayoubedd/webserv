@@ -5,7 +5,6 @@ std::vector<tokens>  lexer(std::string content)
   std::vector<std::string> vecTokens;
   std::vector<tokens> tokens;
   std::string token;
-  size_t i= 0;
 
   addSpace(content);
   vecTokens = split(content);
@@ -68,10 +67,31 @@ std::vector<tokens>  lexer(std::string content)
         vecTokens.erase(vecTokens.begin());
         continue;
       }
-      setNewToken(getTypeFromString(vecTokens[0]),vecTokens[1],tokens);
-      vecTokens.erase(vecTokens.begin());
-      vecTokens.erase(vecTokens.begin());
-      continue;
+      else if(getTypeFromString(vecTokens[0]) == token::METHODS)
+      {
+        if(vecTokens[2] == "|")
+        {
+          vecTokens[1].append(" ").append(vecTokens[3]);
+          setNewToken(getTypeFromString(vecTokens[0]),vecTokens[1],tokens);
+          vecTokens.erase(vecTokens.begin());
+                  vecTokens.erase(vecTokens.begin());
+        }
+        else
+        {
+          setNewToken(getTypeFromString(vecTokens[0]),vecTokens[1],tokens);
+        }
+        vecTokens.erase(vecTokens.begin());
+        vecTokens.erase(vecTokens.begin());
+        continue;
+      }
+      else
+      {
+        setNewToken(getTypeFromString(vecTokens[0]),vecTokens[1],tokens);
+        vecTokens.erase(vecTokens.begin());
+        vecTokens.erase(vecTokens.begin());
+        continue;
+      }
+
     }
   }
   setNewToken(token::ENDFILE," ", tokens);

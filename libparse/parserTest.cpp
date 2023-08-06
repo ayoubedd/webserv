@@ -21,9 +21,7 @@ std::string getTypeFromInt(int type) {
         case 13: return "DOMAINS";
         case 14: return "PORT";
         case 15: return "ENDFILE";
-        case 16: return "ENDROUTE";
-        case 17: return "ENDDOMAIN";
-        case 18: return "PATH";
+        case 16: return "PATH";
         default: return "NONO";
     }
 }

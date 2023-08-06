@@ -1,7 +1,8 @@
 #include "Config.hpp"
 
-libparse::Domains parser(std::vector<tokens> tokens)
+libparse::Domains parser(std::string filename)
 {
+  std::vector<tokens> tokens;
   libparse::Domains domains;
   libparse::Domains tmp;
   libparse::Routes routes;
@@ -9,6 +10,10 @@ libparse::Domains parser(std::vector<tokens> tokens)
   struct libparse::RouteProps routeProps ;
   std::string strDomain;
   std::string strRoute;
+  std::string contentFile;
+  
+  contentFile =  readFile(filename);
+  tokens = lexer(contentFile);
 
   while(tokens[0].type != token::ENDFILE)
   {
