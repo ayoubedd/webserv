@@ -1,7 +1,9 @@
 #pragma once
 
 #include "libhttp/Reader.hpp"
+#include "libhttp/Request.hpp"
 #include "libnet/SessionState.hpp"
+#include <queue>
 
 namespace libnet {
   struct Session {
@@ -9,7 +11,8 @@ namespace libnet {
 
     int fd;
 
-		libnet::SessionState status;
+    std::queue<libhttp::Request> requests;
+    libnet::SessionState status;
     libhttp::Reader Reader;
   };
 
