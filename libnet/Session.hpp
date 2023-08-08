@@ -9,7 +9,7 @@ namespace libnet {
 
     int fd;
 
-		libnet::sessionState status;
+		libnet::SessionState status;
     libhttp::Reader Reader;
   };
 

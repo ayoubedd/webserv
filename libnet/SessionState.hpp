@@ -1,7 +1,7 @@
 #pragma once
 
 namespace libnet {
-  enum sessionState {
+  enum SessionState {
     READING_HEADERS,
     READING_BODY,
     READING_ERR,
