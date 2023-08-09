@@ -16,6 +16,7 @@ namespace libparse {
     std::string path;
     std::string root;
     std::string index;
+    std::string redir;
     std::vector<std::string> methods;
     bool dirListening;
     std::pair<bool, std::string> upload;
