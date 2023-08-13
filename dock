@@ -1,0 +1,7 @@
+#!/bin/sh
+docker run \
+  -it \
+  --mount type=bind,source="$(pwd)",target=/webserv \
+  -p 80:80 \
+  -p 5550:5550 \
+  webserv
