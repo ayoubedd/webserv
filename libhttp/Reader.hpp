@@ -15,9 +15,9 @@ namespace libhttp {
     int fd;
     std::vector<char> raw;
     std::vector<char>::size_type current;
-    Request req;
+    Request &req;
 
-    Reader(int);
+    Reader(int fd, libhttp::Request &r);
     enum error {
       OK,
       EMPTY_REQ,
