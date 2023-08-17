@@ -158,3 +158,14 @@ void libnet::Netenv::destroySession(libnet::Session& session) {
 
 	sessions.erase(iter);
 }
+
+void libnet::destroySession(int fd, Sessions& sessions) {
+  libnet::Sessions::iterator sessionIter;
+
+  sessionIter = sessions.find(fd);
+  if (sessionIter == sessions.end())
+    return ;
+
+  sessions.erase(sessionIter);
+  close(sessionIter->second.fd);
+}
