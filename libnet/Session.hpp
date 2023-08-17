@@ -12,8 +12,9 @@ namespace libnet {
     int fd;
 
     std::queue<libhttp::Request> requests;
+    libhttp::Request request;
     libnet::SessionState status;
-    libhttp::Reader Reader;
+    libhttp::Reader reader;
   };
 
   bool operator<(const libnet::Session &, const libnet::Session &);

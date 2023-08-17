@@ -3,7 +3,7 @@
 #include <cstdio>
 #include <sstream>
 
-libhttp::Reader::Reader(int fd) : fd(fd), current(0){};
+libhttp::Reader::Reader(int fd, libhttp::Request &r) : fd(fd), current(0), req(r){};
 
 libhttp::Reader::error libhttp::Reader::build() {
   error err;
