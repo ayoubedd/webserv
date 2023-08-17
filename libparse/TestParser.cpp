@@ -47,22 +47,27 @@ std::string getTypeFromInt(int type) {
 void printVector(std::vector<std::string> v) {
   std::vector<std::string>::iterator it;
   it = v.begin();
-  for (; it < v.end(); it++) {
+  while (it != v.end()) {
     std::cout << *it << std::endl;
+    it++;
   }
 }
 
 void printVectorToken(std::vector<libparse::tokens> v) {
-  for (auto elem : v) {
-    std::cout << getTypeFromInt(elem.type) << " | \'" << elem.lexeme << "\'" << std::endl;
-    if (elem.type == libparse::token::NONO)
-      std::cout << "====> " << elem.type << "  " << elem.lexeme << std::endl;
-    if (elem.type == libparse::token::ROUTE)
+
+  std::vector<libparse::tokens>::iterator it = v.begin();
+
+  while (it != v.end()) {
+    std::cout << getTypeFromInt(it->type) << " | \'" << it->lexeme << "\'" << std::endl;
+    if (it->type == libparse::token::NONO)
+      std::cout << "====> " << it->type << "  " << it->lexeme << std::endl;
+    if (it->type == libparse::token::ROUTE)
       std::cout << "\n";
-    if (elem.type == libparse::token::DOMAINS)
+    if (it->type == libparse::token::DOMAINS)
       std::cout << "\n\n\n";
     else
       std::cout << "\t\t\t";
+    it++;
   }
 }
 
@@ -82,13 +87,11 @@ void printConfig(libparse::Domains d) {
     while (itR != itD->second.routes.end()) {
       std::cout << "\t\t\t\troute: " << itR->first << std::endl;
       std::cout << "\t\t\t\tpath: " << itD->second.routes[itR->first].path << std::endl;
-      ;
       std::cout << "\t\t\t\troot: " << itD->second.routes[itR->first].root << std::endl;
       std::cout << "\t\t\t\tindex: " << itD->second.routes[itR->first].index << std::endl;
       std::cout << "\t\t\t\tmethods: " << itD->second.routes[itR->first].methods[0] << "|"
                 << std::endl;
       std::cout << "\t\t\t\tredir: " << itD->second.routes[itR->first].redir << std::endl;
-      ;
       std::cout << "\t\t\t\tdirListing: " << itD->second.routes[itR->first].dirListening
                 << std::endl;
       std::cout << "\t\t\t\tupload: " << itD->second.routes[itR->first].upload.first << "|"

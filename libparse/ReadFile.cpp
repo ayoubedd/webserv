@@ -10,7 +10,7 @@ void ft_replace(std::string &str, const std::string &old_value, const std::strin
 }
 
 std::string libparse::readFile(std::string filename) {
-  std::ifstream inputFile(filename);
+  std::ifstream inputFile(filename.c_str());
   std::stringstream buffer;
   std::string fileContent;
 

@@ -1,5 +1,6 @@
 #include "Config.hpp"
-
+#include <cstddef>
+#include <string>
 std::vector<std::string > split(const std::string input) {
   std::vector<std::string > tokens;
   std::stringstream sstream(input);
@@ -13,7 +14,7 @@ std::vector<std::string > split(const std::string input) {
 }
 
 void check(std::string &str) {
-  for (int i = 0; i < str.length(); i++) {
+  for (size_t i = 0; i < str.length(); i++) {
     if (str[i] == '{') {
       str.insert(i, " ");
       i++;
@@ -69,6 +70,8 @@ void skipEndLine(std::vector<std::string> content, size_t &i) {
 
 bool checkDomain(std::string domain) {
   // impleant alowed char in domain
+  if (domain.empty())
+    return false;
   return true;
 }
 
@@ -102,8 +105,8 @@ bool checkValidKeyOfRoute(std::string key) {
 
 int methodes(std::vector<libparse::tokens> &tokens, std::vector<std::string> content, size_t &i) {
   int error = 0;
-  int j = i;
-  int k = j;
+  size_t j = i;
+  size_t k = j;
   while (content[i] != "endline") {
     if (checkValueOfMethode(content[i]))
       i++;
@@ -132,8 +135,8 @@ int checkValue(std::string value) {
 int consumeToken(std::vector<libparse::tokens> &tokens, std::vector<std::string> &content,
                  size_t &i) {
   std::string token = content[i];
-  int j = ++i;
-  int k = j;
+  size_t j = ++i;
+  size_t k = j;
   int error = 0;
 
   if (content[j - 1] == "methods") {
@@ -219,8 +222,8 @@ int configRout(std::vector<libparse::tokens> &tokens, std::vector<std::string> &
 int configOutRout(std::vector<libparse::tokens> &tokens, std::vector<std::string> &content,
                   size_t &i) {
   int error = 0;
-  int j = ++i;
-  int k = j;
+  size_t j = ++i;
+  size_t k = j;
 
   while (content[i] != "endline")
     checkValue(content[i]), i++;
@@ -261,36 +264,10 @@ int config(std::vector<libparse::tokens> &tokens, std::vector<std::string> &cont
 }
 
 void cleanUp(std::vector<libparse::tokens> &tokens) {
-  int i = 0;
   while (tokens[tokens.size() - 1].type != libparse::token::DOMAINS)
     tokens.pop_back();
   tokens.pop_back();
 }
-
-// std::string getTypeFromInt(int type) {
-//     switch (type) {
-//         case 0: return "CURLYBARCKETLEF";
-//         case 1: return "CURLYBARCKETRIGTH";
-//         case 2: return "KEYWORD";
-//         case 3: return "ROOT";
-//         case 4: return "ROUTE";
-//         case 5: return "METHODS";
-//         case 6: return "REDIR";
-//         case 7: return "INDEX";
-//         case 8: return "ERROR";
-//         case 9: return "MAXBODYSIZE";
-//         case 10: return "DIRLISTENING";
-//         case 11: return "UPLOAD";
-//         case 12: return "CGI";
-//         case 13: return "DOMAINS";
-//         case 14: return "PORT";
-//         case 15: return "ENDFILE";
-//         case 16: return "ENDROUTE";
-//         case 17: return "ENDDOMAIN";
-//         case 18: return "PATH";
-//         default: return "NONO";
-//     }
-// }
 
 bool convertStrToBool(std::string str) {
   if (str == "on")
@@ -347,14 +324,33 @@ std::string SetDomain(std::vector<libparse::tokens> &tokens, libparse::Domain &d
   return strDomain;
 }
 
+int converToInt(std::string str) {
+  int num;
+  std::stringstream ss;
+  ss << str;
+  ss >> num;
+  return num;
+}
+
+bool isNumber(std::string s) {
+  for (size_t i = 0; i < s.length(); i++) {
+    if (std::isdigit(s[i]) == 0)
+      return false;
+  }
+  return true;
+}
+
 void SetRoute(std::vector<libparse::tokens> &tokens, libparse::Domain &domain) {
   if (tokens[0].type == libparse::token::ERROR) {
     domain.error = tokens[0].lexeme;
     tokens.erase(tokens.begin());
   }
   if (tokens[0].type == libparse::token::MAXBODYSIZE) {
-    domain.max_body_size = std::stoi(tokens[0].lexeme);
-    tokens.erase(tokens.begin());
+    if (isNumber(tokens[0].lexeme)) {
+      domain.max_body_size = converToInt(tokens[0].lexeme);
+      tokens.erase(tokens.begin());
+    } else
+      std::cout << "error is not number \n";
   }
   if (tokens[0].type == libparse::token::ROOT) {
     domain.root = tokens[0].lexeme;

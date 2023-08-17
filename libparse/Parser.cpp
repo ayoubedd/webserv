@@ -8,7 +8,6 @@ void libparse::parser(std::string filename, libparse::Domains &domains,
 
   contentFile = readFile(filename);
   check(contentFile);
-
   content = split(contentFile);
   content.push_back("endifle");
   lexer(tokens, content);
