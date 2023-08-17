@@ -1,10 +1,10 @@
 #include "Config.hpp"
 #include "utilities.hpp"
 
-void libparse::parser(std::string filename, libparse::Domains &domains,
-                      std::vector<libparse::tokens> &tokens) {
+void libparse::parser(std::string filename, libparse::Domains &domains) {
   std::vector<std::string> content;
   std::string contentFile;
+  std::vector<libparse::tokens> tokens;
 
   contentFile = readFile(filename);
   check(contentFile);
