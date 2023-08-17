@@ -1,14 +1,16 @@
 #pragma once
 
+#include <cstdlib>
+#include <fstream>
+#include <iostream>
 #include <map>
+#include <sstream>
 #include <string>
 #include <vector>
 
-// initDomains
 namespace libparse {
   struct RouteProps;
   struct Domain;
-
   typedef std::map<std::string, RouteProps> Routes;
   typedef std::map<std::string, Domain> Domains;
 
@@ -16,11 +18,11 @@ namespace libparse {
     std::string path;
     std::string root;
     std::string index;
-    std::string redir;
     std::vector<std::string> methods;
     bool dirListening;
     std::pair<bool, std::string> upload;
     std::pair<std::string, std::string> cgi;
+    std::string redir;
   };
 
   struct Domain {
@@ -31,4 +33,35 @@ namespace libparse {
     std::string port;
     Routes routes;
   };
+
+  typedef struct token {
+
+    enum t_type {
+      CURLYBARCKETLEFT,
+      CURLYBARCKETRIGTH,
+      KEYWORD,
+      ROOT,
+      ROUTE,
+      METHODS,
+      REDIR,
+      INDEX,
+      ERROR,
+      MAXBODYSIZE,
+      DIRLISTENING,
+      UPLOAD,
+      CGI,
+      DOMAINS,
+      PORT,
+      ENDFILE,
+      ENDROUTE,
+      ENDDOMAIN,
+      PATH,
+      NONO
+    } type;
+    std::string lexeme;
+  } tokens;
+
+  void lexer(std::vector<tokens> &tokens, std::vector<std::string> content);
+  std::string readFile(std::string filename);
+  void parser(std::string filename, libparse::Domains &domains);
 }; // namespace libparse

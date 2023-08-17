@@ -7,9 +7,12 @@ WEBSERV=webserv/main.cpp
 LIBHTTP=libhttp/Headers.cpp libhttp/Request.cpp libhttp/Reader.cpp libhttp/Uri.cpp
 LIBHTTP_TEST=libhttp/Headers_test.cpp libhttp/Reader_test.cpp
 
+LIBPARSE=libparse/TestParser.cpp libparse/ReadFile.cpp \
+				 libparse/utilities.cpp libparse/Lexer.cpp libparse/Parser.cpp
+
 LIBNET=libnet/Net.cpp libnet/Session.cpp
 
-CXXFILES=$(WEBSERV) $(LIBHTTP) $(LIBHTTP_TEST) $(LIBNET)
+CXXFILES=$(WEBSERV) $(LIBHTTP) $(LIBHTTP_TEST) $(LIBPARSE) $(LIBNET)
 OBJFILES=$(patsubst %.cpp, %.o, $(CXXFILES))
 
 
