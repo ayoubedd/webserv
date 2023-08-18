@@ -2,6 +2,7 @@
 
 #include "libhttp/Request.hpp"
 #include "libnet/SessionState.hpp"
+#include <cstdlib>
 #include <string>
 #include <utility>
 #include <vector>
@@ -38,10 +39,14 @@ namespace libhttp {
     error buildRequestBody();
 
     std::pair<error, libnet::SessionState> read(libnet::SessionState state);
-    std::pair<error, bool> readingRequestHeaderHundler(const char *buff, unsigned int len);
-    std::pair<error, bool> readingBodyHundler(const char *buff, unsigned int len);
     std::pair<error, libnet::SessionState> processReadBuffer(libnet::SessionState state,
                                                              const char *buff, ssize_t buffLen);
+    std::pair<error, bool> readingRequestHeaderHundler(const char *buff, unsigned int len);
+    std::pair<error, bool> readingBodyHundler(const char *buff, unsigned int len);
+
+    std::pair<error, bool> processChunkedEncoding(const char *buff, unsigned int len);
+    std::pair<error, bool> processMultiPartFormData(const char *buff, unsigned int len);
+    std::pair<error, bool> processContentLength();
   };
 
   bool TestReaderBuildRequestLine();
