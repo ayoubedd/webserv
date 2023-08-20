@@ -1,6 +1,6 @@
 NAME=webserv
 CXX=g++
-CXXFLAGS+=-Wall -Wextra -Wreorder -std=c++98 -I .
+CXXFLAGS+=-Wall -Wextra -Wreorder -I .
 
 WEBSERV=webserv/main.cpp
 
@@ -10,7 +10,7 @@ LIBHTTP_TEST=libhttp/Headers_test.cpp libhttp/Reader_test.cpp
 LIBPARSE=libparse/TestParser.cpp libparse/ReadFile.cpp \
 				 libparse/utilities.cpp libparse/Lexer.cpp libparse/Parser.cpp
 
-LIBNET=libnet/Net.cpp libnet/Session.cpp
+LIBNET=libnet/Net.cpp libnet/Session.cpp libnet/SessionState.cpp
 
 CXXFILES=$(WEBSERV) $(LIBHTTP) $(LIBHTTP_TEST) $(LIBPARSE) $(LIBNET)
 OBJFILES=$(patsubst %.cpp, %.o, $(CXXFILES))
@@ -22,7 +22,7 @@ $(NAME): $(OBJFILES)
 	@mkdir -p build
 	$(CXX) $(CXXFLAGS) $(OBJFILES) -o build/$(NAME)
 
-debug: CXXFLAGS += -g
+debug: CXXFLAGS += -ggdb
 debug: $(NAME)
 
 fsanitize: CXXFLAGS += -fsanitize=address

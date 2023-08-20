@@ -1,9 +1,17 @@
 #include "libhttp/Reader.hpp"
+#include "libhttp/constants.hpp"
 #include <algorithm>
+#include <climits>
 #include <cstdio>
+#include <cstdlib>
 #include <sstream>
+#include <string>
+#include <sys/socket.h>
+#include <unistd.h>
+#include <utility>
 
-libhttp::Reader::Reader(int fd, libhttp::Request &r) : fd(fd), current(0), req(r){};
+libhttp::Reader::Reader(int fd, libhttp::Request &req, unsigned int readBuffSize)
+    : fd(fd), req(req), readBuffSize(readBuffSize), reqLineEnd(0), headerEnd(0), bodyEnd(0){};
 
 libhttp::Reader::error libhttp::Reader::build() {
   error err;
@@ -28,53 +36,21 @@ libhttp::Reader::error libhttp::Reader::build() {
   check the return value if it does not have \\r\\n in the end something went wrong
 */
 std::string libhttp::Reader::getRequestLineFromRawData() {
-  std::string::size_type i;
-  std::string res;
+  std::string reqLine;
 
-  i = 0;
-  while (i < this->raw.size() && this->raw[i] != CR) {
-    if (this->raw[i + 1] == LF)
-      break;
-    i++;
-  }
-  if (this->raw[i] == CR && this->raw[i + 1] == LF)
-    i += 2;
-  res.assign(this->raw.begin(), this->raw.begin() + i);
-  return res;
+  reqLine.assign(this->raw.begin(), this->raw.begin() + reqLineEnd + 2);
+  return reqLine;
 }
 
 std::string libhttp::Reader::getHeaderstLinesFromRawData() {
-  std::string::size_type i, j;
-  std::string res;
+  std::string headers;
 
-  i = 0;
-  while (i < this->raw.size() && this->raw[i] != CR) {
-    if (this->raw[i + 1] == LF)
-      break;
-    i++;
-  }
-  if (this->raw[i] == CR && this->raw[i + 1] == LF)
-    i += 2;
-  if (i >= this->raw.size())
+  if (this->reqLineEnd + 2 == headerEnd)
     return "";
-  if (raw[i] == CR && raw[i] == LF)
-    return "";
-  j = i + 1;
-  while (j < raw.size()) {
-    if (raw[j] == CR && raw[j + 1] == LF && raw[j + 2] == CR && raw[j + 3] == LF)
-      break;
-    j++;
-  }
-  if (j >= raw.size())
-    return res.assign(this->raw.begin() + i, this->raw.begin() + j);
-  return res.assign(this->raw.begin() + i, this->raw.begin() + j + 4);
+  headers.assign(this->raw.begin() + reqLineEnd + 2, this->raw.begin() + headerEnd);
+  return headers;
 }
 
-// request-line   = method SP request-target SP HTTP-version
-// https://datatracker.ietf.org/doc/html/rfc9112#name-request-line
-/*
-  if method or path or version is not set probably the sender did not send spaces delimiters
-*/
 libhttp::Reader::error libhttp::Reader::buildRequestLine() {
   std::string reqline;
 
@@ -164,4 +140,172 @@ void stdStringTrimRight(std::string &str, std::string del) {
 void stdStringTrim(std::string &str, std::string del) {
   stdStringTrimLeft(str, del);
   stdStringTrimRight(str, del);
+}
+
+std::pair<libhttp::Reader::error, bool> libhttp::Reader::readingRequestHeaderHundler() {
+  bool found;
+  unsigned int i;
+
+  found = false;
+  for (i = 0; i < raw.size(); i++) {
+    if (!this->reqLineEnd && raw[i] == CR && raw[i + 1] == LF) // segfult
+      this->reqLineEnd = i;
+    if (raw[i] == CR && raw[i + 1] == LF && raw[i + 2] == CR && raw[i + 3] == LF) { // segfult
+      found = true;
+      break;
+    }
+  }
+  if (!found)
+    return std::make_pair(OK, found);
+  this->headerEnd = i + 2; // 2 for the /r/n for the last header file
+  return std::make_pair(OK, found);
+}
+
+std::string getBoundary(std::string &s) {
+  std::string sub;
+  std::string::size_type start, end;
+
+  start = s.find("\"", s.find("boundary"));
+  end = s.find("\"", start + 1);
+  if (start == std::string::npos || start == std::string::npos)
+    return "";
+  sub = s.substr(start + 1, end - start - 1);
+  sub = "--" + sub + "--";
+  return sub;
+}
+
+/*
+ * carefull of passing a buffer smaller than the str
+ * */
+bool isStrEqualBuff(std::vector<char>::const_iterator it, std::string &str) {
+  for (unsigned int i = 0; i < str.size(); i++) {
+    if (str[i] != *it)
+      return false;
+    it++;
+  }
+  return true;
+}
+
+static std::pair<bool, unsigned int> getLastBoundry(const std::vector<char> &data,
+                                                    std::string &boundry) {
+  unsigned int i;
+
+  for (i = 0; i <= data.size() - boundry.size(); i++) {
+    if (isStrEqualBuff(data.begin() + i, boundry))
+      return std::make_pair(true, i);
+  }
+  return std::make_pair(false, 0);
+}
+
+std::pair<libhttp::Reader::error, bool> libhttp::Reader::processChunkedEncoding() {
+  std::vector<char>::size_type i;
+  std::string del = "0\r\n\r\n";
+  bool found;
+
+  found = false;
+  for (i = 0; i < raw.size() - 3; i++) {
+    if (isStrEqualBuff(raw.begin() + i, del)) { // possible sigfult
+      found = true;
+      break;
+    }
+  }
+  if (!found) {
+    return std::make_pair(OK, false);
+  }
+  this->bodyEnd = i;
+  return std::make_pair(OK, true);
+}
+
+std::pair<libhttp::Reader::error, bool> libhttp::Reader::processContentLength() {
+  unsigned int cl = std::atoi(this->req.headers["Content-Length"].c_str()); // handle the error case
+  if (!this->bodyEnd) {
+    this->bodyEnd = this->headerEnd + cl + 2; // 2 for the /r/n of header delimiter
+  }
+  if (this->raw.size() - this->headerEnd - 2 >= cl) {
+    return std::make_pair(OK, true);
+  }
+  return std::make_pair(OK, false);
+}
+
+std::pair<libhttp::Reader::error, bool> libhttp::Reader::processMultiPartFormData() {
+  std::string boundry;
+  std::pair<bool, unsigned int> bodyEndIdx;
+
+  boundry = getBoundary(this->req.headers["Content-Type"]);
+  if (!boundry.size()) {
+    return std::make_pair(CANT_FIND_BOUNDRY, false);
+  }
+  bodyEndIdx = getLastBoundry(this->raw, boundry);
+  if (!bodyEndIdx.first) {
+    return std::make_pair(OK, false);
+  }
+  this->bodyEnd = bodyEndIdx.second + boundry.size();
+  return std::make_pair(OK, true);
+}
+
+std::pair<libhttp::Reader::error, bool > libhttp::Reader::readingBodyHundler() {
+  if (this->req.headers.headers.find("Transfer-Encoding") != this->req.headers.headers.end()) {
+    return processChunkedEncoding();
+  }
+  if (this->req.headers.headers.find("Content-Length") != this->req.headers.headers.end()) {
+    return processContentLength();
+  }
+  if (this->req.headers.headers.find("Content-Type") != this->req.headers.headers.end()) {
+    return processMultiPartFormData();
+  }
+  return std::make_pair(OK, true); // there is no body
+}
+
+std::pair<libhttp::Reader::error, libnet::SessionState>
+libhttp::Reader::processReadBuffer(libnet::SessionState state) {
+  std::pair<error, bool> complete;
+  error err;
+
+  if (state == libnet::READING_HEADERS) {
+    err = OK;
+    complete = readingRequestHeaderHundler();
+    if (complete.first != OK) {
+      return std::make_pair(complete.first, state);
+    }
+    if (!complete.second) {
+      return std::make_pair(OK, libnet::READING_HEADERS);
+    }
+    err = buildRequestLine(); // this need to be moved
+    if (err != OK) {
+      return std::make_pair(err, state);
+    }
+    err = buildRequestHeaders(); // this need to be moved
+    if (err != OK) {
+      return std::make_pair(err, state);
+    }
+  }
+  complete = readingBodyHundler();
+  if (complete.first != OK) {
+    return std::make_pair(complete.first, state);
+  }
+  if (!complete.second) {
+    return std::make_pair(OK, libnet::READING_BODY);
+  }
+  err = buildRequestBody();
+  return std::make_pair(err, libnet::READING_FIN);
+}
+
+std::pair<libhttp::Reader::error, libnet::SessionState>
+libhttp::Reader::read(libnet::SessionState state) {
+  char buff[this->readBuffSize];
+  ssize_t buffLen;
+  std::pair<error, libnet::SessionState> futureState;
+
+  buffLen = recv(this->fd, buff, readBuffSize, 0);
+  // buffLen = ::read(this->fd, buff, readBuffSize);
+
+  if (buffLen < 0) {
+    return std::make_pair(REQUEST_READ_FAILED, state);
+  }
+  if (!buffLen)
+    return std::make_pair(OK, libnet::READING_FIN); // socket closed
+
+  this->raw.insert(this->raw.end(), buff, buff + buffLen);
+  futureState = processReadBuffer(state);
+  return futureState;
 }

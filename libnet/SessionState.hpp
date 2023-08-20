@@ -1,5 +1,7 @@
 #pragma once
 
+#include <iostream>
+
 namespace libnet {
   enum SessionState {
     READING_HEADERS,
@@ -18,3 +20,5 @@ namespace libnet {
   };
 
 } // namespace libnet
+
+std::ostream &operator<<(std::ostream &os, const libnet::SessionState s);
