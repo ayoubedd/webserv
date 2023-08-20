@@ -1,13 +1,13 @@
-NAME=w
-CXX=g++-11
-CXXFLAGS+=-Wall -Wextra -Wreorder -I . -I/usr/include/c++/11 -I/usr/include/x86_64-linux-gnu/c++/11 -L /usr/lib/gcc/x86_64-linux-gnu/11
+NAME=webserv
+CXX=g++
+CXXFLAGS+=-Wall -Wextra -Wreorder -std=c++98 -I .
 
 WEBSERV=webserv/main.cpp
 
 LIBHTTP=libhttp/Headers.cpp libhttp/Request.cpp libhttp/Reader.cpp libhttp/Uri.cpp
 LIBHTTP_TEST=libhttp/Headers_test.cpp libhttp/Reader_test.cpp
 
-LIBNET=libnet/Net.cpp libnet/Session.cpp libnet/SessionState.cpp
+LIBNET=libnet/Net.cpp libnet/Session.cpp
 
 CXXFILES=$(WEBSERV) $(LIBHTTP) $(LIBHTTP_TEST) $(LIBNET)
 OBJFILES=$(patsubst %.cpp, %.o, $(CXXFILES))
@@ -17,9 +17,9 @@ all: $(NAME)
 
 $(NAME): $(OBJFILES)
 	@mkdir -p build
-	$(CXX) $(CXXFLAGS) $(OBJFILES) -o $(NAME)
+	$(CXX) $(CXXFLAGS) $(OBJFILES) -o build/$(NAME)
 
-debug: CXXFLAGS += -ggdb
+debug: CXXFLAGS += -g
 debug: $(NAME)
 
 fsanitize: CXXFLAGS += -fsanitize=address
@@ -34,7 +34,7 @@ clean:
 	rm -rf $(OBJFILES)
 
 fclean: clean
-	rm -rf $(NAME)
+	rm -rf build/$(NAME)
 
 build: all clean
 
