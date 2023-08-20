@@ -39,13 +39,12 @@ namespace libhttp {
     error buildRequestBody();
 
     std::pair<error, libnet::SessionState> read(libnet::SessionState state);
-    std::pair<error, libnet::SessionState> processReadBuffer(libnet::SessionState state,
-                                                             const char *buff, ssize_t buffLen);
-    std::pair<error, bool> readingRequestHeaderHundler(const char *buff, unsigned int len);
-    std::pair<error, bool> readingBodyHundler(const char *buff, unsigned int len);
+    std::pair<error, libnet::SessionState> processReadBuffer(libnet::SessionState state);
+    std::pair<error, bool> readingRequestHeaderHundler();
+    std::pair<error, bool> readingBodyHundler();
 
-    std::pair<error, bool> processChunkedEncoding(const char *buff, unsigned int len);
-    std::pair<error, bool> processMultiPartFormData(const char *buff, unsigned int len);
+    std::pair<error, bool> processChunkedEncoding();
+    std::pair<error, bool> processMultiPartFormData();
     std::pair<error, bool> processContentLength();
   };
 
