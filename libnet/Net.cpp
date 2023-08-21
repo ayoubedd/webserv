@@ -1,11 +1,11 @@
 #include "libnet/Net.hpp"
-#include <stdlib.h>
 #include <algorithm>
+#include <arpa/inet.h>
 #include <cerrno>
 #include <iostream>
-#include <string.h>
-#include <arpa/inet.h>
 #include <netdb.h>
+#include <stdlib.h>
+#include <string.h>
 #include <sys/select.h>
 #include <sys/socket.h>
 #include <unistd.h>
@@ -15,24 +15,24 @@ static int openSocket(std::string &port) {
   struct addrinfo hints;
   memset(&hints, 0, sizeof(struct addrinfo));
 
-  hints.ai_family = AF_INET; // IPv4
+  hints.ai_family = AF_INET;       // IPv4
   hints.ai_socktype = SOCK_STREAM; // TCP
-  hints.ai_flags = AI_PASSIVE; // Listening on all interfaces
+  hints.ai_flags = AI_PASSIVE;     // Listening on all interfaces
 
   struct addrinfo *addrinfo;
   if (getaddrinfo(NULL, port.c_str(), &hints, &addrinfo)) {
-    std::cerr << "getaddrinfo" << strerror(errno)  << std::endl;
+    std::cerr << "getaddrinfo" << strerror(errno) << std::endl;
     exit(EXIT_FAILURE);
   }
 
   int sockfd = socket(addrinfo->ai_family, addrinfo->ai_socktype, addrinfo->ai_protocol);
   if (sockfd == -1) {
-    std::cerr << "socket" << strerror(errno)  << std::endl;
+    std::cerr << "socket" << strerror(errno) << std::endl;
     exit(EXIT_FAILURE);
   }
 
   if (bind(sockfd, addrinfo->ai_addr, addrinfo->ai_addrlen)) {
-    std::cerr << "bind" << strerror(errno)  << std::endl;
+    std::cerr << "bind" << strerror(errno) << std::endl;
     exit(EXIT_FAILURE);
   }
 
@@ -81,31 +81,32 @@ void libnet::Netenv::prepFdSets(void) {
   FD_ZERO(&fdWriteSet);
 
   // Add Clients & Sockets fds to ReadSet
-	insert_fds_into_fdset(sessions, &fdReadSet);
+  insert_fds_into_fdset(sessions, &fdReadSet);
   insert_fds_into_fdset(sockets, &fdReadSet);
 }
 
 int libnet::Netenv::largestFd(void) {
-	libnet::Sessions::iterator sessionsLargestFd = std::max_element(sessions.begin(), sessions.end());
-	libnet::Sockets::iterator socketsLargestFd = std::max_element(sockets.begin(), sockets.end());
+  libnet::Sessions::iterator sessionsLargestFd = std::max_element(sessions.begin(), sessions.end());
+  libnet::Sockets::iterator socketsLargestFd = std::max_element(sockets.begin(), sockets.end());
 
-	return std::max(sessionsLargestFd->first, *socketsLargestFd);
+  return std::max(sessionsLargestFd->first, *socketsLargestFd);
 }
 
-static void extract_matching_fds(libnet::Sessions &src, std::map<int, libnet::Session*> &dst, fd_set *set) {
-	libnet::Sessions::iterator begin = src.begin();
-	libnet::Sessions::iterator end = src.end();
+static void extract_matching_fds(libnet::Sessions &src, std::map<int, libnet::Session *> &dst,
+                                 fd_set *set) {
+  libnet::Sessions::iterator begin = src.begin();
+  libnet::Sessions::iterator end = src.end();
 
   while (begin != end) {
     if (FD_ISSET(begin->first, set))
-      dst.insert(std::make_pair(begin->first, &(begin->second)));
+      dst.insert(std::make_pair(begin->first, begin->second));
     begin++;
   }
 }
 
 static void extract_matching_fds(libnet::Sockets &src, libnet::Sockets &dst, fd_set *set) {
-	libnet::Sockets::iterator begin = src.begin();
-	libnet::Sockets::iterator end = src.end();
+  libnet::Sockets::iterator begin = src.begin();
+  libnet::Sockets::iterator end = src.end();
 
   while (begin != end) {
     if (FD_ISSET(*begin, set))
@@ -117,7 +118,7 @@ static void extract_matching_fds(libnet::Sockets &src, libnet::Sockets &dst, fd_
 void libnet::Netenv::awaitEvents(void) {
   int err = select(largestFd() + 1, &fdReadSet, &fdWriteSet, NULL, NULL);
   if (err == -1) {
-    std::cerr << "select" << strerror(errno)  << std::endl;
+    std::cerr << "select" << strerror(errno) << std::endl;
     exit(EXIT_FAILURE);
   }
 
@@ -131,41 +132,31 @@ void libnet::Netenv::awaitEvents(void) {
 }
 
 void libnet::Netenv::acceptNewClients(void) {
-	libnet::Sockets::iterator begin = readReadySockets.begin();
+  libnet::Sockets::iterator begin = readReadySockets.begin();
   libnet::Sockets::iterator end = readReadySockets.end();
 
   int fd;
   while (begin != end) {
     if ((fd = accept(*begin, NULL, 0)) == -1) {
-      std::cerr << "accept" << strerror(errno)  << std::endl;
+      std::cerr << "accept" << strerror(errno) << std::endl;
       return;
     }
 
     // add the new client to sessions pool
-		sessions.insert(std::make_pair(fd, libnet::Session(fd)));
+    sessions.insert(std::make_pair(fd, new libnet::Session(fd)));
 
     begin++;
   }
 }
 
-void libnet::Netenv::destroySession(libnet::Session& session) {
-	libnet::Sessions::iterator iter = std::find(sessions.begin(), sessions.end(), session);
-	
-	if (iter == sessions.end())
-		return ;
-
-	close(iter->first);
-
-	sessions.erase(iter);
-}
-
-void libnet::destroySession(int fd, Sessions& sessions) {
+void libnet::Netenv::destroySession(Session *session) {
   libnet::Sessions::iterator sessionIter;
 
-  sessionIter = sessions.find(fd);
+  sessionIter = this->sessions.find(session->fd);
   if (sessionIter == sessions.end())
-    return ;
+    return;
 
   sessions.erase(sessionIter);
-  close(sessionIter->second.fd);
+  close(sessionIter->second->fd);
+  delete sessionIter->second;
 }
