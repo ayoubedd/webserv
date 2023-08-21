@@ -6,29 +6,28 @@
 #include <vector>
 
 namespace libnet {
-	typedef std::map<int, Session> Sessions;
-	typedef std::vector<int> Sockets;
-  typedef std::map<int, Session*> ReadyClients;
+  typedef std::map<int, Session *> Sessions;
+  typedef std::vector<int> Sockets;
 
   struct Netenv {
     Sockets readReadySockets;
-		ReadyClients readyClients;
-		Sessions sessions;
+    Sessions readyClients;
+    Sessions sessions;
 
     void setupSockets(libparse::Domains &domains);
     void prepFdSets(void);
     void awaitEvents(void);
     void acceptNewClients(void);
-		void destroySession(libnet::Session& session);
+    void destroySession(libnet::Session *session);
 
   private:
     fd_set fdReadSet;
     fd_set fdWriteSet;
 
-		Sockets sockets;
+    Sockets sockets;
 
     int largestFd(void);
   };
 
-void destroySession(int fd, Sessions& sessions);
+  // void destroySession(int fd, Sessions *sessions);
 } // namespace libnet
