@@ -2,12 +2,13 @@
 #include "libparse/Config.hpp"
 #include "libparse/utilities.hpp"
 
-void sessionsHandler(libnet::Sessions &sessionsPool, libnet::ReadyClients &readySessions) {
-  std::map<int, libnet::Session *>::iterator it;
+void sessionsHandler(libnet::Netenv &net) {
+  libnet::Sessions::iterator session;
+  libnet::Sessions &readySessions = net.readyClients;
 
-  it = readySessions.begin();
-  while (it != readySessions.end()) {
-    it++;
+  session = readySessions.begin();
+  while (session != readySessions.end()) {
+    session++;
   };
 }
 
@@ -31,7 +32,7 @@ int main(int argc, char *argv[]) {
     if (!net.readReadySockets.empty())
       net.acceptNewClients();
 
-    sessionsHandler(net.sessions, net.readyClients);
+    sessionsHandler(net);
   };
 
   return 0;
