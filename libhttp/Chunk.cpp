@@ -53,6 +53,10 @@ static void insertIterRangeIntoVec(std::vector<char> &dst,
   }
 }
 
+static void insertStringIntoVec(std::vector<char> &vec, const std::string &str) {
+  vec.insert(vec.end(), str.begin(), str.end());
+}
+
 std::vector<char> libhttp::Chunk::decode(const std::vector<char> &src) {
   std::vector<char> buff;
   std::vector<char>::const_iterator it = src.begin();
@@ -87,4 +91,28 @@ std::vector<char> libhttp::Chunk::decode(const std::vector<char> &src) {
   return buff;
 }
 
-std::vector<char> libhttp::Chunk::encode(const std::vector<char> &src) {}
+std::vector<char> libhttp::Chunk::encode(const std::vector<char> &src, ssize_t chunkSize) {
+  std::vector<char>::const_iterator it = src.begin();
+  std::vector<char> buff;
+
+  while (it != src.end()) {
+    // Falling back to remainning bytes instead of chunkSize
+    // in case of left bytes less than chunkSize
+    chunkSize = chunkSize < (src.end() - it) ? chunkSize : (src.end() - it);
+
+    // Inserting chunk size line
+    insertStringIntoVec(buff, std::to_string(chunkSize) + "\r\n");
+
+    // Inserting chunk body
+    insertIterRangeIntoVec(buff, it, chunkSize);
+    insertStringIntoVec(buff, "\r\n");
+
+    // Advance iterator by chunkSize
+    it += chunkSize;
+  };
+
+  // Zero-Sized chunk
+  insertStringIntoVec(buff, "0\r\n\r\n");
+
+  return buff;
+}
