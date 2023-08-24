@@ -64,4 +64,5 @@ namespace libparse {
   void lexer(std::vector<tokens> &tokens, std::vector<std::string> content);
   std::string readFile(std::string filename);
   void parser(std::string filename, libparse::Domains &domains);
+  std::string matching(libparse::Domain domain, std::string location);
 }; // namespace libparse
