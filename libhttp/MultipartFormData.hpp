@@ -1,6 +1,7 @@
 #pragma once
 
 #include "libhttp/Headers.hpp"
+#include <utility>
 #include <vector>
 
 namespace libhttp {
@@ -9,11 +10,14 @@ namespace libhttp {
       OK,
       MALFORMED,
       END,
-      PART_HEADERS_MISSING,
+      MISSING_HEADERS,
+      CONTENT_DISPOSITION_MISSING,
     };
     libhttp::HeadersMap headers;
     std::vector<char> body;
     static std::vector<libhttp::MutlipartFormDataEntity> decode(const std::vector<char> &src,
                                                                 const std::string &del);
+    static libhttp::MutlipartFormDataEntity::error
+    sanityCheck(const libhttp::MutlipartFormDataEntity &);
   };
 } // namespace libhttp

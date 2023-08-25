@@ -45,6 +45,8 @@ static PartRange findPartRange(std::vector<char>::const_iterator begin,
   // Advance iter by delimiter length
   begin = partBegin;
 
+  bool foundHeadersBodySep = false;
+
   // Searching for ending
   while (begin != end) {
     if (isStringMatchVec(begin, end, del + "\r\n") ||
@@ -71,7 +73,7 @@ findHeaderRange(std::vector<char>::const_iterator begin, std::vector<char>::cons
   std::vector<char>::const_iterator headerStart;
 
   // Skip CRLFs
-  while (*begin == '\r' || *begin == '\n')
+  while (begin != end && (*begin == '\r' || *begin == '\n'))
     begin++;
 
   headerStart = begin;
@@ -84,7 +86,7 @@ findHeaderRange(std::vector<char>::const_iterator begin, std::vector<char>::cons
     begin++;
   };
 
-  if (!foundColumn)
+  if (foundColumn == false)
     return std::make_pair(end, end);
 
   return (std::make_pair(headerStart, begin));
@@ -149,19 +151,20 @@ static std::vector<char> extractBody(std::vector<char>::const_iterator begin,
   return std::vector(begin, end);
 }
 
-static std::pair<libhttp::MutlipartFormDataEntity::error, libhttp::HeadersMap>
-extractHeaders(std::vector<char>::const_iterator begin, std::vector<char>::const_iterator end) {
+static libhttp::HeadersMap extractHeaders(std::vector<char>::const_iterator begin,
+                                          std::vector<char>::const_iterator end) {
   libhttp::HeadersMap headers;
   HeaderRange headerRange;
 
   while (begin != end) {
-    if (isStringMatchVec(begin, end, "\r\n\r\n"))
+    // Break if found CRLS (the one in between headers and the body)
+    if (isStringMatchVec(begin, end, "\r\n"))
       break;
 
     headerRange = findHeaderRange(begin, end);
 
-    if (headerRange.first == end || headerRange.second == end) {
-      // headers.clear();
+    if (headerRange.first == end && headerRange.second == end) {
+      headers.clear();
       break;
     }
 
@@ -170,12 +173,10 @@ extractHeaders(std::vector<char>::const_iterator begin, std::vector<char>::const
     headers.insert(headrPair);
 
     // add two for CRLFs
-    begin = headerRange.second + 2;
+    begin = headerRange.second + 2; // might be dangerous
   }
-  if (headers.size() == 0)
-    return std::make_pair(libhttp::MutlipartFormDataEntity::PART_HEADERS_MISSING, headers);
 
-  return std::make_pair(libhttp::MutlipartFormDataEntity::OK, headers);
+  return headers;
 }
 
 std::vector<libhttp::MutlipartFormDataEntity>
@@ -208,17 +209,20 @@ libhttp::MutlipartFormDataEntity::decode(const std::vector<char> &src, const std
     if (partRangeErrPair.first != libhttp::MutlipartFormDataEntity::OK) {
       entities.clear();
       break;
-    };
+    }
 
     // Extracting headers out of range
-    headersErrPair = extractHeaders(partRangeErrPair.second.first, partRangeErrPair.second.second);
-    if (headersErrPair.first != libhttp::MutlipartFormDataEntity::OK)
-      break;
-
-    entity.headers = headersErrPair.second;
+    entity.headers = extractHeaders(partRangeErrPair.second.first, partRangeErrPair.second.second);
 
     // Extracting body out of range
     entity.body = extractBody(partRangeErrPair.second.first, partRangeErrPair.second.second);
+
+    // Sanity Check
+    if (libhttp::MutlipartFormDataEntity::sanityCheck(entity) !=
+        libhttp::MutlipartFormDataEntity::OK) {
+      entities.clear();
+      break;
+    };
 
     // Adding entity to entities vector
     entities.push_back(entity);
@@ -228,4 +232,17 @@ libhttp::MutlipartFormDataEntity::decode(const std::vector<char> &src, const std
   };
 
   return entities;
+}
+
+libhttp::MutlipartFormDataEntity::error
+libhttp::MutlipartFormDataEntity::sanityCheck(const libhttp::MutlipartFormDataEntity &part) {
+  // At least one header should be present
+  if (part.headers.size() == 0)
+    return libhttp::MutlipartFormDataEntity::MISSING_HEADERS;
+
+  // check if the Content-Disposition header is not missing
+  if (part.headers.find("Content-Disposition") == part.headers.end())
+    return libhttp::MutlipartFormDataEntity::CONTENT_DISPOSITION_MISSING;
+
+  return libhttp::MutlipartFormDataEntity::OK;
 }
