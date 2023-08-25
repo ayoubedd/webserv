@@ -8,6 +8,8 @@ void sessionsHandler(libnet::Netenv &net) {
 
   session = readySessions.begin();
   while (session != readySessions.end()) {
+    session->second->reader.read(session->second->status);
+    std::cout << session->second->request << std::endl;
     session++;
   };
 }
