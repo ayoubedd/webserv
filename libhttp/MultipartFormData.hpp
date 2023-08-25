@@ -9,6 +9,7 @@ namespace libhttp {
       OK,
       MALFORMED,
       END,
+      PART_HEADERS_MISSING,
     };
     libhttp::HeadersMap headers;
     std::vector<char> body;
