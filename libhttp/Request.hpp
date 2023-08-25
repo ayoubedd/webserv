@@ -1,13 +1,14 @@
 #pragma once
 
 #include "libhttp/Headers.hpp"
+#include "libhttp/Request-target.hpp"
 #include <iostream>
 #include <vector>
 
 namespace libhttp {
   struct Request {
     std::string method;
-    std::string path;
+    RequestTarget reqTarget;
     std::string version;
     Headers headers;
     std::vector<char> body;
