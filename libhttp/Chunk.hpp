@@ -10,6 +10,7 @@ namespace libhttp {
       INVALID_INPUT,
     };
     static std::vector<char> encode(const std::vector<char> &src, ssize_t chunkSize);
-    static std::vector<char> decode(const std::vector<char> &src);
+    static std::pair<libhttp::Chunk::error, std::vector<char> >
+    decode(const std::vector<char> &src);
   };
 } // namespace libhttp
