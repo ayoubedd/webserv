@@ -8,7 +8,7 @@ LIBHTTP=libhttp/Headers.cpp libhttp/Request.cpp libhttp/Reader.cpp libhttp/Reque
 LIBHTTP_TEST=libhttp/Headers_test.cpp libhttp/Reader_test.cpp
 
 LIBPARSE=libparse/TestParser.cpp libparse/ReadFile.cpp \
-				 libparse/utilities.cpp libparse/Lexer.cpp libparse/Parser.cpp libparse/MatchingLocation.cpp
+				 libparse/utilities.cpp libparse/Lexer.cpp libparse/Parser.cpp libparse/matching-location.cpp
 
 LIBNET=libnet/Net.cpp libnet/Session.cpp libnet/SessionState.cpp
 
