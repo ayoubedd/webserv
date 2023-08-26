@@ -45,8 +45,6 @@ static PartRange findPartRange(std::vector<char>::const_iterator begin,
   // Advance iter by delimiter length
   begin = partBegin;
 
-  bool foundHeadersBodySep = false;
-
   // Searching for ending
   while (begin != end) {
     if (isStringMatchVec(begin, end, del + "\r\n") ||
@@ -179,7 +177,7 @@ static libhttp::HeadersMap extractHeaders(std::vector<char>::const_iterator begi
   return headers;
 }
 
-std::vector<libhttp::MutlipartFormDataEntity>
+std::pair<libhttp::MutlipartFormDataEntity::error, std::vector<libhttp::MutlipartFormDataEntity> >
 libhttp::MutlipartFormDataEntity::decode(const std::vector<char> &src, const std::string &del) {
   std::vector<char>::const_iterator begin = src.begin();
   std::vector<char>::const_iterator end = src.end();
@@ -187,15 +185,6 @@ libhttp::MutlipartFormDataEntity::decode(const std::vector<char> &src, const std
   libhttp::MutlipartFormDataEntity entity;
   PartRange partRangeErrPair;
   std::pair<libhttp::MutlipartFormDataEntity::error, libhttp::HeadersMap> headersErrPair;
-
-  // Skip first two CRLFs
-  ssize_t i = 0;
-  while (begin != end && (*begin == '\r' || *begin == '\n'))
-    begin++, i++;
-
-  // in case of a part missing headers return immediately
-  if (i != 2)
-    return entities;
 
   while (begin != end) {
     // Find part range
@@ -208,7 +197,7 @@ libhttp::MutlipartFormDataEntity::decode(const std::vector<char> &src, const std
     // in case of a malformed part clean and break
     if (partRangeErrPair.first != libhttp::MutlipartFormDataEntity::OK) {
       entities.clear();
-      break;
+      return std::make_pair(partRangeErrPair.first, entities);
     }
 
     // Extracting headers out of range
@@ -217,11 +206,13 @@ libhttp::MutlipartFormDataEntity::decode(const std::vector<char> &src, const std
     // Extracting body out of range
     entity.body = extractBody(partRangeErrPair.second.first, partRangeErrPair.second.second);
 
+    libhttp::MutlipartFormDataEntity::error err;
+
     // Sanity Check
-    if (libhttp::MutlipartFormDataEntity::sanityCheck(entity) !=
-        libhttp::MutlipartFormDataEntity::OK) {
+    err = libhttp::MutlipartFormDataEntity::sanityCheck(entity);
+    if (err != libhttp::MutlipartFormDataEntity::OK) {
       entities.clear();
-      break;
+      return std::make_pair(err, entities);
     };
 
     // Adding entity to entities vector
@@ -231,7 +222,7 @@ libhttp::MutlipartFormDataEntity::decode(const std::vector<char> &src, const std
     begin = partRangeErrPair.second.second;
   };
 
-  return entities;
+  return std::make_pair(libhttp::MutlipartFormDataEntity::OK, entities);
 }
 
 libhttp::MutlipartFormDataEntity::error

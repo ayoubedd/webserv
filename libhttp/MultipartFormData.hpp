@@ -15,8 +15,10 @@ namespace libhttp {
     };
     libhttp::HeadersMap headers;
     std::vector<char> body;
-    static std::vector<libhttp::MutlipartFormDataEntity> decode(const std::vector<char> &src,
-                                                                const std::string &del);
+
+    static std::pair<error, std::vector<libhttp::MutlipartFormDataEntity> >
+    decode(const std::vector<char> &src, const std::string &del);
+
     static libhttp::MutlipartFormDataEntity::error
     sanityCheck(const libhttp::MutlipartFormDataEntity &);
   };
