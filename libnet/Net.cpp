@@ -134,20 +134,20 @@ void libnet::Netenv::awaitEvents(void) {
 void libnet::Netenv::acceptNewClients(void) {
   libnet::Sockets::iterator begin = readReadySockets.begin();
   libnet::Sockets::iterator end = readReadySockets.end();
+  sockaddr_in              *clientAddr;
   socklen_t                 clientAddrLen;
-  sockaddr_in               clientAddr;
 
   int fd;
-  clientAddrLen = sizeof clientAddr;
+  clientAddrLen = sizeof *clientAddr;
   while (begin != end) {
-    bzero(&clientAddr, sizeof clientAddr);
-    if ((fd = accept(*begin, (struct sockaddr *)&clientAddr, &clientAddrLen)) == -1) {
+    clientAddr = new sockaddr_in;
+    if ((fd = accept(*begin, (sockaddr *)clientAddr, &clientAddrLen)) == -1) {
       std::cerr << "accept" << strerror(errno) << std::endl;
       return;
     }
 
     // add the new client to sessions pool
-    sessions.insert(std::make_pair(fd, new libnet::Session(fd, &clientAddr)));
+    sessions.insert(std::make_pair(fd, new libnet::Session(fd, clientAddr)));
 
     begin++;
   }
@@ -160,7 +160,8 @@ void libnet::Netenv::destroySession(Session *session) {
   if (sessionIter == sessions.end())
     return;
 
-  sessions.erase(sessionIter);
   close(sessionIter->second->fd);
   delete sessionIter->second;
+  delete sessionIter->second->clientAddr;
+  sessions.erase(sessionIter);
 }

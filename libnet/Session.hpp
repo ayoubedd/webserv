@@ -16,6 +16,6 @@ namespace libnet {
     libhttp::Request             request;
     libnet::SessionState         status;
     libhttp::Reader              reader;
-    sockaddr_in                  clientAddr;
+    sockaddr_in                 *clientAddr;
   };
 } // namespace libnet
