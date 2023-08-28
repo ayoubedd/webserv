@@ -5,6 +5,7 @@
 #include <fstream>
 #include <iostream>
 #include <iterator>
+#include <sstream>
 #include <string>
 #include <utility>
 
@@ -12,17 +13,22 @@ static std::pair<libhttp::Chunk::error, ssize_t>
 extractChunkSize(std::vector<char>::const_iterator begin, std::vector<char>::const_iterator end) {
   std::vector<char>::const_iterator tmpBegin = begin;
 
-  ssize_t chunkSize;
+  ssize_t     chunkSize = 0;
+  std::string hexLowerCase("abcdef");
+  std::string hexUpperCase("ABCDEF");
 
-  while (tmpBegin != end && std::isdigit(*tmpBegin))
+  while (tmpBegin != end &&
+         (std::isdigit(*tmpBegin) || hexLowerCase.find(*tmpBegin) != std::string::npos ||
+          hexUpperCase.find(*tmpBegin) != std::string::npos))
     tmpBegin++;
 
   try {
-    chunkSize = std::stoi(std::string(begin, tmpBegin));
+    std::stringstream stream;
+    stream << std::string(begin, tmpBegin);
+    stream >> std::hex >> chunkSize;
     return std::make_pair(libhttp::Chunk::OK, chunkSize);
   } catch (...) {
-    std::cout << "failure" << std::endl;
-    return std::make_pair(libhttp::Chunk::INVALID_INPUT, -1);
+    return std::make_pair(libhttp::Chunk::INVALID_INPUT, 0);
   }
 }
 
@@ -38,7 +44,7 @@ static std::vector<char>::const_iterator skipChunkSizeLine(std::vector<char>::co
   return begin;
 }
 
-static void insertIterRangeIntoVec(std::vector<char> &dst,
+static void insertIterRangeIntoVec(std::vector<char>                &dst,
                                    std::vector<char>::const_iterator srcIter, int size) {
   int i = 0;
 
@@ -55,8 +61,8 @@ static void insertStringIntoVec(std::vector<char> &vec, const std::string &str) 
 
 std::pair<libhttp::Chunk::error, std::vector<char> >
 libhttp::Chunk::decode(const std::vector<char> &src) {
-  std::vector<char> buff;
-  std::vector<char>::const_iterator it = src.begin();
+  std::vector<char>                         buff;
+  std::vector<char>::const_iterator         it = src.begin();
   std::pair<libhttp::Chunk::error, ssize_t> chunkSizeErrPair;
 
   chunkSizeErrPair.second = -1;
@@ -92,7 +98,7 @@ libhttp::Chunk::decode(const std::vector<char> &src) {
 
 std::vector<char> libhttp::Chunk::encode(const std::vector<char> &src, ssize_t chunkSize) {
   std::vector<char>::const_iterator it = src.begin();
-  std::vector<char> buff;
+  std::vector<char>                 buff;
 
   while (it != src.end()) {
     // Falling back to remainning bytes instead of chunkSize
