@@ -18,7 +18,8 @@ extractChunkSize(std::vector<char>::const_iterator begin, std::vector<char>::con
   std::string hexUpperCase("ABCDEF");
 
   while (tmpBegin != end &&
-         (std::isdigit(*tmpBegin) || hexLowerCase.find(*tmpBegin) || hexUpperCase.find(*tmpBegin)))
+         (std::isdigit(*tmpBegin) || hexLowerCase.find(*tmpBegin) != std::string::npos ||
+          hexUpperCase.find(*tmpBegin) != std::string::npos))
     tmpBegin++;
 
   try {
