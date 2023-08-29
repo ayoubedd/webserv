@@ -9,11 +9,11 @@
 
 namespace libhttp {
   struct Reader {
-    int fd;
-    Request &req;
+    int               fd;
+    Request          &req;
     std::vector<char> raw; // TODO: change the container to deque for batter performance
-    unsigned int readBuffSize;
-    unsigned int reqLineEnd, headerEnd, bodyEnd;
+    unsigned int      readBuffSize;
+    unsigned int      reqLineEnd, headerEnd, bodyEnd;
 
     Reader(int fd, Request &req, unsigned int readBuffSize = 8190);
     enum error {
@@ -40,8 +40,8 @@ namespace libhttp {
 
     std::pair<error, libnet::SessionState> read(libnet::SessionState state);
     std::pair<error, libnet::SessionState> processReadBuffer(libnet::SessionState state);
-    std::pair<error, bool> readingRequestHeaderHundler();
-    std::pair<error, bool> readingBodyHundler();
+    std::pair<error, bool>                 readingRequestHeaderHundler();
+    std::pair<error, bool>                 readingBodyHundler();
 
     std::pair<error, bool> processChunkedEncoding();
     std::pair<error, bool> processMultiPartFormData();

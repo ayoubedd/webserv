@@ -11,7 +11,12 @@
 #include <utility>
 
 libhttp::Reader::Reader(int fd, libhttp::Request &req, unsigned int readBuffSize)
-    : fd(fd), req(req), readBuffSize(readBuffSize), reqLineEnd(0), headerEnd(0), bodyEnd(0){};
+    : fd(fd)
+    , req(req)
+    , readBuffSize(readBuffSize)
+    , reqLineEnd(0)
+    , headerEnd(0)
+    , bodyEnd(0){};
 
 libhttp::Reader::error libhttp::Reader::build() {
   error err;
@@ -72,8 +77,8 @@ libhttp::Reader::error libhttp::Reader::buildRequestLine() {
 
 libhttp::Reader::error libhttp::Reader::buildRequestHeaders() {
   std::string headline, key, val;
-  error err;
-  char c;
+  error       err;
+  char        c;
 
   err = OK;
   headline = getHeaderstLinesFromRawData();
@@ -144,7 +149,7 @@ void stdStringTrim(std::string &str, std::string del) {
 }
 
 std::pair<libhttp::Reader::error, bool> libhttp::Reader::readingRequestHeaderHundler() {
-  bool found;
+  bool         found;
   unsigned int i;
 
   found = false;
@@ -163,7 +168,7 @@ std::pair<libhttp::Reader::error, bool> libhttp::Reader::readingRequestHeaderHun
 }
 
 std::string getBoundary(std::string &s) {
-  std::string sub;
+  std::string            sub;
   std::string::size_type start, end;
 
   start = s.find("\"", s.find("boundary"));
@@ -188,7 +193,7 @@ bool isStrEqualBuff(std::vector<char>::const_iterator it, std::string &str) {
 }
 
 static std::pair<bool, unsigned int> getLastBoundry(const std::vector<char> &data,
-                                                    std::string &boundry) {
+                                                    std::string             &boundry) {
   unsigned int i;
 
   for (i = 0; i <= data.size() - boundry.size(); i++) {
@@ -200,8 +205,8 @@ static std::pair<bool, unsigned int> getLastBoundry(const std::vector<char> &dat
 
 std::pair<libhttp::Reader::error, bool> libhttp::Reader::processChunkedEncoding() {
   std::vector<char>::size_type i;
-  std::string del = "0\r\n\r\n";
-  bool found;
+  std::string                  del = "0\r\n\r\n";
+  bool                         found;
 
   found = false;
   for (i = 0; i < raw.size() - 3; i++) {
@@ -229,7 +234,7 @@ std::pair<libhttp::Reader::error, bool> libhttp::Reader::processContentLength() 
 }
 
 std::pair<libhttp::Reader::error, bool> libhttp::Reader::processMultiPartFormData() {
-  std::string boundry;
+  std::string                   boundry;
   std::pair<bool, unsigned int> bodyEndIdx;
 
   boundry = getBoundary(this->req.headers["Content-Type"]);
@@ -260,7 +265,7 @@ std::pair<libhttp::Reader::error, bool > libhttp::Reader::readingBodyHundler() {
 std::pair<libhttp::Reader::error, libnet::SessionState>
 libhttp::Reader::processReadBuffer(libnet::SessionState state) {
   std::pair<error, bool> complete;
-  error err;
+  error                  err;
 
   if (state == libnet::READING_HEADERS) {
     err = OK;
@@ -293,8 +298,8 @@ libhttp::Reader::processReadBuffer(libnet::SessionState state) {
 
 std::pair<libhttp::Reader::error, libnet::SessionState>
 libhttp::Reader::read(libnet::SessionState state) {
-  char buff[this->readBuffSize];
-  ssize_t buffLen;
+  char                                   buff[this->readBuffSize];
+  ssize_t                                buffLen;
   std::pair<error, libnet::SessionState> futureState;
 
   buffLen = recv(this->fd, buff, readBuffSize, 0);

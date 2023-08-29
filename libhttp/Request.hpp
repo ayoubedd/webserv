@@ -7,10 +7,10 @@
 
 namespace libhttp {
   struct Request {
-    std::string method;
-    RequestTarget reqTarget;
-    std::string version;
-    Headers headers;
+    std::string       method;
+    RequestTarget     reqTarget;
+    std::string       version;
+    Headers           headers;
     std::vector<char> body;
   };
 } // namespace libhttp
