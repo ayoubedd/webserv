@@ -24,7 +24,7 @@ static std::string::size_type searchInEnc(char c) {
 }
 
 std::string libhttp::RequestTarget::encode(const std::string &uri) {
-  std::string ss;
+  std::string            ss;
   std::string::size_type i, idx;
 
   for (i = 0; i < uri.size(); i++) {
@@ -39,9 +39,9 @@ std::string libhttp::RequestTarget::encode(const std::string &uri) {
 }
 
 std::string libhttp::RequestTarget::decode(const std::string &uri) {
-  std::string ss;
+  std::string            ss;
   std::string::size_type i;
-  const std::string *str;
+  const std::string     *str;
 
   for (i = 0; i < uri.size(); i++) {
     i + 3 <= uri.size() ? str = std::find(DEC, DEC + LEN, uri.substr(i, 3)) : str = DEC + LEN;
@@ -65,19 +65,20 @@ static std::string getPathFromReqTarget(std::string &reqTarget) {
   return reqTarget.substr(0, i);
 }
 
-static void insertKeyAndValToParams(std::string keyAndVal,
+static void insertKeyAndValToParams(std::string                         keyAndVal,
                                     std::map<std::string, std::string> &params) {
   std::stringstream ss(keyAndVal);
-  std::string key, val;
+  std::string       key, val;
   std::getline(ss, key, '=');
   std::getline(ss, val);
   params.insert(std::make_pair(key, val));
 }
 
-static void getParamsFromReqTarget(std::string &reqTarget,
-                                   std::map<std::string, std::string> &params) {
+static void getParamsFromReqTarget(std::string                        &reqTarget,
+                                   std::map<std::string, std::string> &params,
+                                   std::string                        &rawPramas) {
   std::string::size_type i, j;
-  std::string keyAndValAsStr;
+  std::string            keyAndValAsStr;
 
   i = 0;
   while (i < reqTarget.size() && reqTarget[i] != '?')
@@ -90,7 +91,8 @@ static void getParamsFromReqTarget(std::string &reqTarget,
     j++;
   if (i + 1 == j)
     return;
-  std::stringstream paramsAsStr(reqTarget.substr(i, j - i));
+  rawPramas = reqTarget.substr(i, j - i);
+  std::stringstream paramsAsStr(rawPramas);
   while (std::getline(paramsAsStr, keyAndValAsStr, '&')) {
     insertKeyAndValToParams(keyAndValAsStr, params);
   }
@@ -117,6 +119,6 @@ static std::string getAnchoreFromReqTrget(std::string &reqTarget) {
 void libhttp::RequestTarget::build(std::string &reqTarget) {
   reqTarget = this->decode(reqTarget);
   this->path = getPathFromReqTarget(reqTarget);
-  getParamsFromReqTarget(reqTarget, this->params);
+  getParamsFromReqTarget(reqTarget, this->params, this->rawPramas);
   this->anchor = getAnchoreFromReqTrget(reqTarget);
 }
