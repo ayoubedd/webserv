@@ -10,7 +10,7 @@
 
 typedef std::pair< libhttp::MutlipartFormDataEntity::error,
                    std::pair<std::vector<char>::const_iterator, std::vector<char>::const_iterator> >
-    PartRange;
+                                                                                        PartRange;
 typedef std::pair<std::vector<char>::const_iterator, std::vector<char>::const_iterator> HeaderRange;
 
 static bool isStringMatchVec(std::vector<char>::const_iterator begin,
@@ -27,17 +27,21 @@ static bool isStringMatchVec(std::vector<char>::const_iterator begin,
 }
 
 static PartRange findPartRange(std::vector<char>::const_iterator begin,
-                               std::vector<char>::const_iterator end, const std::string &del) {
+                               std::vector<char>::const_iterator end, const std::string &boundary) {
   std::vector<char>::const_iterator partBegin = end;
   std::vector<char>::const_iterator partEnd = end;
-  std::string startDel;
+  std::string                       startDel;
 
-  if (isStringMatchVec(begin, end, del + "\r\n"))
-    startDel = del + "\r\n";
-  else if (isStringMatchVec(begin, end, del + "--" + "\r\n"))
+  std::string del = "--" + boundary + "\r\n";
+  std::string closeDel = "--" + boundary + "--\r\n";
+
+  if (isStringMatchVec(begin, end, del))
+    startDel = boundary;
+  else if (isStringMatchVec(begin, end, "\r\n" + closeDel)) {
     return std::make_pair(libhttp::MutlipartFormDataEntity::END, std::make_pair(end, end));
-  else
+  } else {
     return std::make_pair(libhttp::MutlipartFormDataEntity::MALFORMED, std::make_pair(end, end));
+  }
 
   // Start should always match del
   partBegin = begin + startDel.length();
@@ -47,8 +51,8 @@ static PartRange findPartRange(std::vector<char>::const_iterator begin,
 
   // Searching for ending
   while (begin != end) {
-    if (isStringMatchVec(begin, end, del + "\r\n") ||
-        isStringMatchVec(begin, end, del + "--" + "\r\n")) {
+    if (isStringMatchVec(begin, end, "\r\n" + del) ||
+        isStringMatchVec(begin, end, "\r\n" + closeDel)) {
       // Found end
       partEnd = begin;
       break;
@@ -67,7 +71,7 @@ static PartRange findPartRange(std::vector<char>::const_iterator begin,
 
 static std::pair<std::vector<char>::const_iterator, std::vector<char>::const_iterator>
 findHeaderRange(std::vector<char>::const_iterator begin, std::vector<char>::const_iterator end) {
-  bool foundColumn = false;
+  bool                              foundColumn = false;
   std::vector<char>::const_iterator headerStart;
 
   // Skip CRLFs
@@ -111,8 +115,8 @@ static std::string trimString(const std::string &str, const std::string &set) {
 static std::pair<std::string, std::string>
 extractHeaderKeyValue(std::vector<char>::const_iterator begin,
                       std::vector<char>::const_iterator end) {
-  std::string key;
-  std::string value;
+  std::string                       key;
+  std::string                       value;
   std::vector<char>::const_iterator beginnig;
 
   beginnig = begin;
@@ -152,7 +156,7 @@ static std::vector<char> extractBody(std::vector<char>::const_iterator begin,
 static libhttp::HeadersMap extractHeaders(std::vector<char>::const_iterator begin,
                                           std::vector<char>::const_iterator end) {
   libhttp::HeadersMap headers;
-  HeaderRange headerRange;
+  HeaderRange         headerRange;
 
   while (begin != end) {
     // Break if found CRLS (the one in between headers and the body)
@@ -179,11 +183,11 @@ static libhttp::HeadersMap extractHeaders(std::vector<char>::const_iterator begi
 
 std::pair<libhttp::MutlipartFormDataEntity::error, std::vector<libhttp::MutlipartFormDataEntity> >
 libhttp::MutlipartFormDataEntity::decode(const std::vector<char> &src, const std::string &del) {
-  std::vector<char>::const_iterator begin = src.begin();
-  std::vector<char>::const_iterator end = src.end();
-  std::vector<libhttp::MutlipartFormDataEntity> entities;
-  libhttp::MutlipartFormDataEntity entity;
-  PartRange partRangeErrPair;
+  std::vector<char>::const_iterator                                       begin = src.begin();
+  std::vector<char>::const_iterator                                       end = src.end();
+  std::vector<libhttp::MutlipartFormDataEntity>                           entities;
+  libhttp::MutlipartFormDataEntity                                        entity;
+  PartRange                                                               partRangeErrPair;
   std::pair<libhttp::MutlipartFormDataEntity::error, libhttp::HeadersMap> headersErrPair;
 
   while (begin != end) {
