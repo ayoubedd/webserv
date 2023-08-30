@@ -14,7 +14,7 @@ namespace libhttp {
       CONTENT_DISPOSITION_MISSING,
     };
     libhttp::HeadersMap headers;
-    std::vector<char> body;
+    std::vector<char>   body;
 
     static std::pair<error, std::vector<libhttp::MutlipartFormDataEntity> >
     decode(const std::vector<char> &src, const std::string &del);
