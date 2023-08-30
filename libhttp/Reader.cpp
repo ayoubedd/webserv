@@ -52,7 +52,7 @@ std::string libhttp::Reader::getHeaderstLinesFromRawData() {
 }
 
 libhttp::Reader::error libhttp::Reader::buildRequestLine() {
-  std::string reqline;
+  std::string reqline, reqTarget;
 
   reqline = this->getRequestLineFromRawData();
   if (!reqline.size())
@@ -64,8 +64,9 @@ libhttp::Reader::error libhttp::Reader::buildRequestLine() {
   }
   std::stringstream s(reqline);
   std::getline(s, req.method, SP);
-  std::getline(s, req.path, SP);
+  std::getline(s, reqTarget, SP);
   std::getline(s, req.version, CR);
+  req.reqTarget.build(reqTarget);
   return OK;
 };
 
