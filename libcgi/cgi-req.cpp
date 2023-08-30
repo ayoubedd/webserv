@@ -1,5 +1,6 @@
 #include "libcgi/cgi-req.hpp"
 #include <algorithm>
+#include <arpa/inet.h>
 
 const char *libcgi::CgiRequest::AUTH_TYPE = "AUTH_TYPE";
 const char *libcgi::CgiRequest::CONTENT_LENGTH = "CONTENT_LENGTH";
@@ -38,6 +39,9 @@ void libcgi::CgiRequest::convertReqHeadersToCgiHeaders(libhttp::Headers *httpHea
 }
 
 void libcgi::CgiRequest::addCgiStandardHeaders(libhttp::Request *httpReq) {
+  char clientAddrBuff[INET_ADDRSTRLEN];
+  ::inet_ntop(AF_INET, &httpReq->clientAddr->sin_addr, clientAddrBuff, INET_ADDRSTRLEN);
+
   env[AUTH_TYPE] = "";
 
   if (httpReq->headers.headers.find(CONTENT_LENGTH) != httpReq->headers.headers.end())
@@ -52,4 +56,34 @@ void libcgi::CgiRequest::addCgiStandardHeaders(libhttp::Request *httpReq) {
 
   env[GATEWAY_INTERFACE] = "CGI/1.1";
   env[PATH_INFO] = httpReq->reqTarget.path;
+  env[QUERY_STRING] = httpReq->reqTarget.rawPramas;
+  env[REMOTE_ADDR] = clientAddrBuff;
+  env[REMOTE_HOST] = clientAddrBuff;
+  env[SERVER_PORT] = ::ntohs(httpReq->clientAddr->sin_port);
+  env[REMOTE_IDENT] = "";
+  env[REQUEST_METHOD] = httpReq->method;
+  env[SCRIPT_NAME] = ctx.scriptName;
+  env[SERVER_NAME] = ctx.serverName;
+  env[SERVER_PORT] = ctx.serverPort;
+  env[SERVER_PROTOCOL] = ctx.protocol;
+  env[SERVER_SOFTWARE] = ctx.serverSoftware;
+
+  if (httpReq->reqTarget.path.size() > 0)
+    env[PATH_TRANSLATED] = ctx.localReqPath;
+}
+
+void libcgi::CgiRequest::init(std::string serverName, std::string scriptName,
+                              std::string localReqPath, std::string serverPort,
+                              std::string protocol, std::string serverSoftware) {
+  ctx.serverName = serverName;
+  ctx.scriptName = scriptName;
+  ctx.localReqPath = localReqPath;
+  ctx.serverSoftware = serverPort;
+  ctx.protocol = protocol;
+  ctx.serverSoftware = serverSoftware;
+}
+
+void libcgi::CgiRequest::build(libhttp::Request *httpReq) {
+  convertReqHeadersToCgiHeaders(&httpReq->headers);
+  addCgiStandardHeaders(httpReq);
 }

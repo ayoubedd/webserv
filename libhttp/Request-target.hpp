@@ -8,6 +8,7 @@ namespace libhttp {
     std::string                        path;
     std::map<std::string, std::string> params;
     std::string                        anchor;
+    std::string                        rawPramas;
 
     void                                build(std::string &reqTarget);
     static const char                   ENC[21];

@@ -3,6 +3,7 @@
 #include "libhttp/Headers.hpp"
 #include "libhttp/Request-target.hpp"
 #include <iostream>
+#include <netinet/ip.h>
 #include <vector>
 
 namespace libhttp {
@@ -12,6 +13,7 @@ namespace libhttp {
     std::string       version;
     Headers           headers;
     std::vector<char> body;
+    sockaddr_in      *clientAddr;
   };
 } // namespace libhttp
 

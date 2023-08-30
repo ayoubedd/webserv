@@ -23,11 +23,24 @@ namespace libcgi {
     static const char *SERVER_PORT;
     static const char *SERVER_PROTOCOL;
     static const char *SERVER_SOFTWARE;
+    struct Ctx {
+      std::string serverName;
+      std::string scriptName;
+      std::string protocol;
+      std::string serverPort;
+      std::string serverSoftware;
+      std::string localReqPath;
+    };
 
     typedef std::map<std::string, std::string> CgiEnv;
 
     CgiEnv env;
+    Ctx    ctx;
 
+    void init(std::string serverName, std::string scriptName, std::string localReqPath,
+              std::string serverPort = "80", std::string protocol = "HTTP/1.1",
+              std::string serverSoftware = "WebServ");
+    void build(libhttp::Request *httpReq);
     void convertReqHeadersToCgiHeaders(libhttp::Headers *httpHeaders);
     void addCgiStandardHeaders(libhttp::Request *httpReq);
   };
