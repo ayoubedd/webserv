@@ -1,5 +1,6 @@
 #include "libhttp/Post_handler.hpp"
 #include "libhttp/Chunk.hpp"
+#include "libhttp/MultipartFormData.hpp"
 #include <fstream>
 #include <iostream>
 #include <string>
@@ -31,15 +32,20 @@ static BODY_FORMAT extractBodyFormat(const libhttp::HeadersMap &headers) {
 static bool writeBufferToFile(const std::vector<char> &src, const std::string &path) {
   std::fstream file;
 
+  // Open file
   file.open(path, std::fstream::out | std::fstream::trunc | std::fstream::binary);
 
+  // Check if opening the file was a success or not
   if (!file.is_open())
-    return false;
+    return true;
 
+  // Write file to fs
   file.write(&src[0], src.size());
+
+  // Close fd
   file.close();
 
-  return true;
+  return false;
 }
 
 static std::string extractMultiPartBoundary(const libhttp::HeadersMap &headers) {
@@ -62,9 +68,76 @@ static std::string extractMultiPartBoundary(const libhttp::HeadersMap &headers) 
   return std::string(contentTypeIter->second.begin() + idx, contentTypeIter->second.end());
 }
 
-void libhttp::postHandler(libhttp::Request &req) {
+static std::string extractFileNameFromPart(const libhttp::HeadersMap &headers) {
+  libhttp::HeadersMap::const_iterator iter;
+
+  iter = headers.begin();
+  std::string header;
+  while (iter != headers.end()) {
+    if (iter->first == "Content-Disposition") {
+      header = iter->second;
+      break;
+    }
+    iter++;
+  }
+
+  std::string::size_type beginIndex = header.find("filename=");
+  if (beginIndex == std::string::npos)
+    return "";
+
+  while (header[beginIndex] && header[beginIndex] != '"')
+    beginIndex++;
+  beginIndex++;
+
+  std::string::size_type endIndex = beginIndex;
+  while (header[endIndex] && header[endIndex] != '"')
+    endIndex++;
+
+  return header.substr(beginIndex, endIndex - beginIndex);
+  // Content-Disposition: form-data; name="file"; filename="two"^M$
+}
+
+static bool isPartFileUpload(libhttp::MutlipartFormDataEntity &part) {
+  libhttp::HeadersMap::const_iterator iter;
+
+  iter = part.headers.find("Content-Disposition");
+  if (iter == part.headers.end())
+    return false;
+
+  if (iter->second.find("filename=") == std::string::npos)
+    return false;
+
+  return true;
+}
+
+static void writeMultiPartFiles(std::vector<libhttp::MutlipartFormDataEntity> &parts,
+                                const std::string                             &uploadRoot) {
+  std::vector<libhttp::MutlipartFormDataEntity>::iterator begin = parts.begin();
+
+  std::string fileName;
+  while (begin != parts.end()) {
+    // Check if part is a file
+    if (!isPartFileUpload(*begin)) {
+      std::cout << "its not a file upload" << std::endl;
+      begin++;
+      continue;
+    }
+
+    // Extracting file name
+    fileName = extractFileNameFromPart(begin->headers);
+    if (!fileName.length())
+      fileName = "random_file_name_should_be_generated";
+
+    // Write file to fs
+    if (writeBufferToFile(begin->body, uploadRoot + fileName))
+      std::cout << "failure to write body" << std::endl;
+
+    begin++;
+  }
+}
+
+void libhttp::postHandler(libhttp::Request &req, const std::string &uploadRoot) {
   enum BODY_FORMAT reqBodyFormat;
-  std::string      uploadRoot = "./upload";
 
   // tell body format
   reqBodyFormat = extractBodyFormat(req.headers.headers);
@@ -79,14 +152,14 @@ void libhttp::postHandler(libhttp::Request &req) {
       return;
 
     // Write data to fs
-    if (!writeBufferToFile(data.second, uploadRoot + req.reqTarget.path))
+    if (writeBufferToFile(data.second, uploadRoot + req.reqTarget.path))
       std::cerr << "POST: failure writting file to fs" << std::endl;
   }
 
   // Regular file upload
   if (reqBodyFormat == BODY_FORMAT::NORMAL) {
     // Write data to fs
-    if (!writeBufferToFile(req.body, uploadRoot + req.reqTarget.path))
+    if (writeBufferToFile(req.body, uploadRoot + req.reqTarget.path))
       std::cerr << "POST: failure writting file to fs" << std::endl;
   }
 
@@ -98,6 +171,10 @@ void libhttp::postHandler(libhttp::Request &req) {
     if (!boundary.length())
       return;
 
-    // implementation goes here
+    auto formData = libhttp::MutlipartFormDataEntity::decode(req.body, boundary);
+    if (formData.first != libhttp::MutlipartFormDataEntity::OK)
+      return;
+
+    writeMultiPartFiles(formData.second, uploadRoot);
   }
 }
