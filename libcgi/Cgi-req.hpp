@@ -41,6 +41,7 @@ namespace libcgi {
               std::string serverPort = "80", std::string protocol = "HTTP/1.1",
               std::string serverSoftware = "WebServ");
     void build(libhttp::Request *httpReq);
+
     void convertReqHeadersToCgiHeaders(libhttp::Headers *httpHeaders);
     void addCgiStandardHeaders(libhttp::Request *httpReq);
   };

@@ -1,4 +1,4 @@
-#include "libcgi/cgi-req.hpp"
+#include "libcgi/Cgi-req.hpp"
 #include <algorithm>
 #include <arpa/inet.h>
 

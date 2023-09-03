@@ -1,6 +1,6 @@
 NAME=webserv
 CXX=g++
-CXXFLAGS+=-Wall -Wextra -Wreorder -I .
+CXXFLAGS+=-Wall -Wextra -Wreorder -I . -I/usr/include/c++/11 -I/usr/include/x86_64-linux-gnu/c++/11 -L /usr/lib/gcc/x86_64-linux-gnu/11
 
 WEBSERV=webserv/main.cpp
 
