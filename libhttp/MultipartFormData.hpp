@@ -1,25 +1,81 @@
 #pragma once
 
-#include "libhttp/Headers.hpp"
-#include <utility>
+#include "libhttp/Request.hpp"
+#include <fstream>
+#include <string>
 #include <vector>
 
 namespace libhttp {
-  struct MutlipartFormDataEntity {
-    enum error {
-      OK,
-      MALFORMED,
-      END,
-      MISSING_HEADERS,
-      CONTENT_DISPOSITION_MISSING,
+
+  struct MultipartEntity {
+    ~MultipartEntity();
+    // Part type.
+    enum PartType {
+      UNKNOWN,
+      FILE,
+      OTHER,
     };
-    libhttp::HeadersMap headers;
-    std::vector<char>   body;
 
-    static std::pair<error, std::vector<libhttp::MutlipartFormDataEntity> >
-    decode(const std::vector<char> &src, const std::string &del);
+    MultipartEntity();
 
-    static libhttp::MutlipartFormDataEntity::error
-    sanityCheck(const libhttp::MutlipartFormDataEntity &);
+    PartType                     type;
+    libhttp::HeadersMap          headers;
+    std::vector<char>            buff;
+    std::vector<char>::size_type prevBuffSize;
+    std::string                  filePath;
+
+    void clean();
   };
+
+  struct MultipartFormData {
+    MultipartFormData(const std::string &tmpDir = "/tmp/webserv/multipart/");
+
+    // Reader states
+    enum Status {
+      READY,           // Ready to consume new multipart/form-data
+      BEFORE_DEL,      // didn't match del yet
+      READING_HEADERS, // Reading headers of a multipart/form-data part
+      READING_BODY,    // Reading body of a multipart/form-data part
+      DONE,            // Done reading and parsing the whole multipart/form-data
+    };
+
+    // Reader errors
+    enum Error {
+      OK,                               // No error accured
+      ERROR_WRITTING_TO_FS,             // Error writting to file system
+      ERROR_CREATING_FILE,              // Error writting to file system
+      PART_MISSING_CONTENT_DISPOSITION, // Part missing Content-Disposition header
+      MALFORMED_MUTLIPART,              // Malformed multipart/form-data request
+      TMP_DIR_ACCESS_ERROR,             // Error accesssing tmp directory
+      CANNOT_EXTRACT_BOUNRAY,           // Error extracting boundary from headers
+      RERUN,                            // Telling the caller to re run the reader in place
+    };
+
+    typedef std::pair<Error, Status> ErrorStatePair;
+
+    Status                       status;
+    MultipartEntity              entity;
+    std::vector<MultipartEntity> entities;
+    std::string                  del;
+    std::string                  afterBodyDel;
+    std::string                  closeDel;
+    std::string                  commonDel;
+    std::fstream                 file;
+
+    // Closes all open files for the current session
+    // and removes from the file system.
+    void cleanup();
+
+    // Reads from the Request body
+    // and continues from it where it was last time
+    ErrorStatePair read(libhttp::Request &req);
+
+    // Temporary directory in which all the files will be created.
+    // example:
+    // - /tmp/webserv/multipart/
+    // example file for connection fd:
+    //  - /tmp/webserv/multipart/fd/file
+    const std::string tmpDir;
+  };
+
 } // namespace libhttp
