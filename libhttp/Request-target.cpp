@@ -13,6 +13,12 @@ const std::string libhttp::RequestTarget::DEC[] = {
     "%2B", "%2C", "%2F", "%3A", "%3B", "%3D", "%3F", "%40", "%5B", "%5D",
 };
 
+libhttp::RequestTarget::RequestTarget()
+    : path("")
+    , params()
+    , anchor()
+    , rawPramas() {}
+
 static std::string::size_type searchInEnc(char c) {
   std::string::size_type i;
 

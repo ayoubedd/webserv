@@ -2,6 +2,16 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 
+libhttp::Request::Request()
+    : method("")
+    , reqTarget()
+    , version("")
+    , headers(Headers{})
+    , body()
+    , clientAddr(NULL)
+    , allBodyLen(0)
+    , state(libnet::READING_HEADERS){};
+
 std::ostream &operator<<(std::ostream &os, const libhttp::Request &req) {
   char ip4[INET_ADDRSTRLEN];
 
