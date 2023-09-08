@@ -9,16 +9,17 @@
 
 namespace libhttp {
   struct Request {
-    std::string                  method;
-    RequestTarget                reqTarget;
-    std::string                  version;
-    Headers                      headers;
-    std::vector<char>            body;
-    sockaddr_in                 *clientAddr;
+    std::string       method;
+    RequestTarget     reqTarget;
+    std::string       version;
+    Headers           headers;
+    std::vector<char> body; // any data pushed here needs to be added to allBodyLen to keep track of
+                            // all read Content-Length
     std::vector<char>::size_type allBodyLen;
+    sockaddr_in                 *clientAddr;
     libnet::SessionState         state;
 
-    Request();
+    Request(sockaddr_in *clientAddr);
   };
 } // namespace libhttp
 

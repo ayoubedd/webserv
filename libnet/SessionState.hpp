@@ -8,7 +8,6 @@ namespace libnet {
     READING_BODY,
     READING_FIN,
     READING_ERR,
-    READING_SOCK_CLOSED,
 
     CGI_WAIT,
     CGI_TIMEOUT,

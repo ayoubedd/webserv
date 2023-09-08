@@ -10,18 +10,18 @@
 
 namespace libhttp {
   struct Reader {
-    // typedef std::vector<char> Bytes; // TODO: change the container to deque for batter
-    // performance
     std::vector<char>     raw;
     int                   fd;
     Request              *req;
     unsigned int          readBuffSize;
     unsigned int          reqLineEnd, headerEnd, bodyEnd;
     std::queue<Request *> requests;
+    sockaddr_in           clientAddr;
 
-    Reader(int fd, unsigned int readBuffSize = 8190);
+    Reader(int fd, sockaddr_in clientAddr, unsigned int readBuffSize = 8190);
     enum error {
       OK,
+      CONN_CLOSED,
       EMPTY_REQ,
       REQUEST_LINE_EMPTY,
       REQUEST_MISSING_CRLF,
@@ -42,7 +42,7 @@ namespace libhttp {
     error buildRequestHeaders();
     error buildRequestBody();
 
-    std::pair<error, libnet::SessionState> read(libnet::SessionState state);
+    error                                  read();
     std::pair<error, libnet::SessionState> processReadBuffer(libnet::SessionState state);
     std::pair<error, bool>                 readingRequestHeaderHundler();
     std::pair<error, bool>                 readingBodyHundler();
@@ -53,6 +53,7 @@ namespace libhttp {
 
     void moveRawDataToRequestBody(std::vector<char>::iterator first,
                                   std::vector<char>::iterator last);
+    void clearRawDataIndices();
   };
 
   bool TestReaderBuildRequestLine();

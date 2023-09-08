@@ -2,22 +2,26 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 
-libhttp::Request::Request()
-    : method("")
+libhttp::Request::Request(sockaddr_in *clientAddr)
+    : method()
     , reqTarget()
-    , version("")
-    , headers(Headers{})
+    , version()
+    , headers()
     , body()
-    , clientAddr(NULL)
     , allBodyLen(0)
+    , clientAddr(clientAddr)
     , state(libnet::READING_HEADERS){};
 
 std::ostream &operator<<(std::ostream &os, const libhttp::Request &req) {
-  char ip4[INET_ADDRSTRLEN];
+  char      ip4[INET_ADDRSTRLEN] = {0};
+  short int port = 0;
 
-  const char *ptr = inet_ntop(AF_INET, &req.clientAddr->sin_addr, ip4, INET_ADDRSTRLEN);
+  if (req.clientAddr)
+    inet_ntop(AF_INET, &req.clientAddr->sin_addr, ip4, INET_ADDRSTRLEN);
+  if (req.clientAddr)
+    port = ntohs(req.clientAddr->sin_port);
 
-  os << ptr << ":" << ntohs(req.clientAddr->sin_port) << std::endl;
+  os << ip4 << ":" << port << std::endl;
   os << "method: " << req.method << std::endl;
   os << "path: " << req.reqTarget.path << std::endl;
   os << "version: " << req.version << std::endl;
