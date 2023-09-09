@@ -1,4 +1,3 @@
-#include "Get.hpp"
 
 std::map<std::string ,std::string> directoryContents(libhttp::Get &get);
 void readContent(libhttp::Get &get);
@@ -9,21 +8,20 @@ void generatorTemplateDirListing(libhttp::Get &get);
 static void setTypeResource(libhttp::Get &get);
 static bool findResource(libhttp::Get &get);
 
-static void init(libhttp::Get &get,std::string path)
+static void init(libhttp::get &get,std::string path)
 {
   get.path = path; 
   get.done = false;
-  get.isFile = false;
-  get.isFile = false;
-  get.bufferSize = 1024;
+  get.isfile = false;
+  get.isfile = false;
+  get.buffersize = 1024;
   get.error = false;
-  get.isAlreadyInit = true;
+  get.isalreadyinit = true;
 }
 
-std::string Get(libhttp::Get &get ,std::string &path)
+libhttp::Get Get(std::string &path)
 {
-  if(!get.isAlreadyInit)
-  {
+  
     init(get,path);
     if(!findResource(get))
     {
@@ -48,14 +46,6 @@ std::string Get(libhttp::Get &get ,std::string &path)
         return get.buffer;
       }
     }
-  }
-  else
-  {
-    // countin read form file and read
-    // and check if read 0 set get.done = true
-    readContent(get);
-    return get.buffer;
-  }
   return "";
 }
 
@@ -75,6 +65,7 @@ static void setTypeResource(libhttp::Get &get)
   else
     get.isFile = true, get.isFolder= false;
 }
+
 std::map<std::string ,std::string> directoryContents(libhttp::Get &get)
 {
   DIR* dir = opendir(get.path.c_str());
