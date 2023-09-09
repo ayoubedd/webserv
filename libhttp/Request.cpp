@@ -22,6 +22,7 @@ std::ostream &operator<<(std::ostream &os, const libhttp::Request &req) {
     port = ntohs(req.clientAddr->sin_port);
 
   os << ip4 << ":" << port << std::endl;
+  os << req.state << std::endl;
   os << "method: " << req.method << std::endl;
   os << "path: " << req.reqTarget.path << std::endl;
   os << "version: " << req.version << std::endl;

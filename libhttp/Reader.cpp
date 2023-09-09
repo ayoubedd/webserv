@@ -58,7 +58,6 @@ std::string libhttp::Reader::getRequestLineFromRawData() {
   std::string reqLine;
 
   reqLine.assign(this->raw.begin(), this->raw.begin() + reqLineEnd + 2);
-  std::cout << "<" << reqLine << ">" << std::endl;
   return reqLine;
 }
 
@@ -307,8 +306,8 @@ libhttp::Reader::processReadBuffer(libnet::SessionState state) {
   std::pair<error, bool> complete;
   error                  err;
 
+  err = OK;
   if (state == libnet::READING_HEADERS) {
-    err = OK;
     complete = readingRequestHeaderHundler();
     if (complete.first != OK) {
       return std::make_pair(complete.first, state);
@@ -330,7 +329,6 @@ libhttp::Reader::processReadBuffer(libnet::SessionState state) {
   if (complete.first != OK) {
     return std::make_pair(complete.first, state);
   }
-  // err = buildRequestBody();
   if (!complete.second) {
     return std::make_pair(OK, libnet::READING_BODY);
   }
@@ -342,8 +340,8 @@ libhttp::Reader::error libhttp::Reader::read() {
   ssize_t                                buffLen;
   std::pair<error, libnet::SessionState> futureState;
 
-  // buffLen = recv(this->fd, buff, readBuffSize, 0);
-  buffLen = ::read(this->fd, buff, readBuffSize);
+  // buffLen = ::read(this->fd, buff, readBuffSize);
+  buffLen = recv(this->fd, buff, readBuffSize, 0);
 
   if (buffLen < 0) {
     return REQUEST_READ_FAILED;
@@ -352,7 +350,6 @@ libhttp::Reader::error libhttp::Reader::read() {
     return CONN_CLOSED; // socket closed
 
   this->raw.insert(this->raw.end(), buff, buff + buffLen);
-  // start a loop
   while (true) {
     req = requests.size() == 0 || requests.back()->state == libnet::READING_FIN
               ? new Request(&this->clientAddr)
@@ -361,7 +358,8 @@ libhttp::Reader::error libhttp::Reader::read() {
     req->state = futureState.second;
     if (futureState.first != OK || req->state != libnet::READING_FIN)
       break;
-    this->requests.push(req);
+    if (!this->requests.size() || this->req != this->requests.back())
+      this->requests.push(req);
     clearRawDataIndices();
   }
   if (!this->requests.size() || this->req != this->requests.back())
