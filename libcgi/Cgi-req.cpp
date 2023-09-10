@@ -29,10 +29,11 @@ static std::string convertHeaderKey(std::string key) {
 }
 
 void libcgi::CgiRequest::convertReqHeadersToCgiHeaders(libhttp::Headers *httpHeaders) {
-  CgiEnv::iterator it;
+  CgiEnv::iterator it,end;
 
   it = httpHeaders->headers.begin();
-  while (it != env.end()) {
+  end = httpHeaders->headers.end();
+  while (it != end) {
     env.insert(std::make_pair(convertHeaderKey(it->first), it->second));
     it++;
   }

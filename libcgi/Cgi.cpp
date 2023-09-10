@@ -22,6 +22,8 @@ char **headersAsEnv(std::map<std::string, std::string> &headers) {
 
   env = new char *[headers.size() + 1];
   i = 0;
+  it = headers.begin();
+  end = headers.end();
   for (; i < headers.size(); i++, it++) {
     env[i] = keyAndValAsStr(it->first, it->second);
   }
@@ -39,15 +41,15 @@ char **getScriptArgs(std::string &scriptPath) {
   return argv;
 }
 
-void free2d(char **env) {
+void delete2d(char **env) {
   char *i;
 
   for (i = *env; i; i++)
-    delete i;
+    delete[] i;
   delete[] env;
 }
 
-libcgi::Cgi::Cgi(std::string scriptPath, libhttp::Request *httpReq, sockaddr *clientAddr)
+libcgi::Cgi::Cgi(std::string scriptPath, libhttp::Request *httpReq, sockaddr_in *clientAddr)
     : httpReq(httpReq)
     , scriptPath(scriptPath)
     , clientAddr(clientAddr) {}
@@ -74,9 +76,15 @@ std::pair<libcgi::Cgi::error, libcgi::CgiResult> libcgi::Cgi::exec() {
   if (::pipe(fd) < 0)
     return std::make_pair(FAILED_OPEN_FILE, CgiResult{.pid = -1, .fd = -1});
   if (this->httpReq->body.size() > 0) {
-    ::write(fd[1], &this->httpReq->body.front(), this->httpReq->body.size());
-  }
+    int err;
 
+    err = ::write(fd[1], &this->httpReq->body.front(), this->httpReq->body.size());
+    if (err < 0) {
+      close(fd[0]);
+      close(fd[1]);
+      return std::make_pair(FAILED_WRITE, CgiResult{.pid = -1, .fd = -1});
+    }
+  }
   pid = fork();
   if (pid == 0) {
     dup2(0, fd[0]);
@@ -84,11 +92,15 @@ std::pair<libcgi::Cgi::error, libcgi::CgiResult> libcgi::Cgi::exec() {
     argv = getScriptArgs(this->scriptPath);
     env = headersAsEnv(cgiReq.env);
     execve(this->scriptPath.c_str(), argv, env);
+    delete2d(argv);
+    delete2d(env);
     // write to the fd the error
     exit(1);
   } else if (pid > 0) {
     close(fd[1]);
     return std::make_pair(OK, CgiResult{.pid = pid, .fd = fd[0]});
   }
+  close(fd[0]);
+  close(fd[1]);
   return std::make_pair(FAILED_FORK, CgiResult{.pid = -1, .fd = -1});
 }
