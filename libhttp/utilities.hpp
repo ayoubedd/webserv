@@ -4,3 +4,4 @@
 bool fileExists(std::string &filename);
 bool isFolder(std::string &path);
 bool findResource(std::string &path);
+bool deleteDirectory(const char* path);

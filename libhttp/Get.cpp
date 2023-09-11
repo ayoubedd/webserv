@@ -6,7 +6,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-std::pair<libhttp::Get::t_error,int> Get(std::string path)
+std::pair<libhttp::Get::t_error,int> libhttp::Get(std::string path)
 {
   if(!findResource(path))
     return  std::make_pair(libhttp::Get::FILE_NOT_FOUND,-1);

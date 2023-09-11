@@ -10,4 +10,5 @@ struct Get{
       FORBIDDEN
     }error;
   };
+  std::pair<Get::t_error,int> Get(std::string path);
 }
