@@ -9,14 +9,15 @@
 
 namespace libhttp {
   struct ChunkDecoder {
-    ChunkDecoder(const std::string &tmpDir = "/tmp/webserv/chunk");
+    ChunkDecoder(void);
 
     enum Error {
-      OK,               // Nothing to worry about
-      MALFORMED,        // The request body is malformed
-      CANNOT_OPEN_FILE, // Faillure opening the output file
-      RERUN,            // There more data left to operate on
-      NO_ENOUGH_DATA,   // No enough data to complete the current action
+      OK,                     // Nothing to worry about
+      MALFORMED,              // The request body is malformed
+      CANNOT_OPEN_FILE,       // Faillure opening the output file
+      RERUN,                  // There more data left to operate on
+      NO_ENOUGH_DATA,         // No enough data to complete the current action
+      ERROR_WRITTING_TO_FILE, // Error Writting to output file
     };
 
     enum Status {
@@ -33,9 +34,8 @@ namespace libhttp {
     std::vector<char>::size_type remainingBytes;
     std::fstream                 file;
     std::string                  filePath;
-    std::string                  tmpDir;
-    ErrorStatusPair              decode(libhttp::Request &req);
-    void                         reset(void);
+    ErrorStatusPair              decode(libhttp::Request &req, const std::string &uploadRoot);
+    void                         reset(libhttp::ChunkDecoder::Status = READY);
   };
 
 } // namespace libhttp

@@ -5,10 +5,9 @@
 #include <utility>
 #include <vector>
 
-libhttp::ChunkDecoder::ChunkDecoder(const std::string &tmpDir) {
+libhttp::ChunkDecoder::ChunkDecoder(void) {
   status = READY;
   chunkSize = 0;
-  this->tmpDir = tmpDir;
 }
 
 static std::pair<libhttp::ChunkDecoder::Error, std::vector<char>::size_type>
@@ -49,7 +48,8 @@ extractChunkSize(std::vector<char> &vec) {
   }
 }
 
-libhttp::ChunkDecoder::ErrorStatusPair libhttp::ChunkDecoder::decode(libhttp::Request &req) {
+libhttp::ChunkDecoder::ErrorStatusPair
+libhttp::ChunkDecoder::decode(libhttp::Request &req, const std::string &uploadRoot) {
   switch (status) {
     case READY: {
       std::cout << "STATUS: READY" << std::endl;
@@ -63,9 +63,7 @@ libhttp::ChunkDecoder::ErrorStatusPair libhttp::ChunkDecoder::decode(libhttp::Re
         fileName = "/random_file_name";
       }
 
-      filePath = tmpDir + fileName;
-
-      std::cout << "filepath: " << filePath << std::endl;
+      filePath = uploadRoot + fileName;
 
       // Open file
       file.open(filePath, std::fstream::out | std::fstream::binary | std::fstream::trunc);
@@ -73,7 +71,7 @@ libhttp::ChunkDecoder::ErrorStatusPair libhttp::ChunkDecoder::decode(libhttp::Re
       // Check if the is opened
       if (!file.is_open()) {
         reset();
-        return std::make_pair(libhttp::ChunkDecoder::CANNOT_OPEN_FILE, READY);
+        return std::make_pair(libhttp::ChunkDecoder::CANNOT_OPEN_FILE, status);
       }
 
       // Sets the status to CHUNK_START
@@ -99,14 +97,12 @@ libhttp::ChunkDecoder::ErrorStatusPair libhttp::ChunkDecoder::decode(libhttp::Re
       // Cannot extract chunkSize
       if (ErrChunkSzPair.first != libhttp::ChunkDecoder::OK) {
         reset();
-        status = libhttp::ChunkDecoder::READY;
         return std::make_pair(ErrChunkSzPair.first, status);
       }
 
       // Check if we hit the zero-chunk aka END
       if (ErrChunkSzPair.second == 0) {
-        reset();
-        status = libhttp::ChunkDecoder::DONE;
+        reset(DONE);
         return std::make_pair(libhttp::ChunkDecoder::OK, status);
       }
 
@@ -139,8 +135,19 @@ libhttp::ChunkDecoder::ErrorStatusPair libhttp::ChunkDecoder::decode(libhttp::Re
       //  in some cases, it might be bytes left to check the next thing is CRLF
       //  in which case the remainingBytes is zero
       if (remainingBytes > 0) {
+        // Write bytes
         file.write(&req.body[0], bytesToWrite);
+
+        // Check for file writting failures
+        if (file.fail()) {
+          reset();
+          return std::make_pair(libhttp::ChunkDecoder::ERROR_WRITTING_TO_FILE, status);
+        }
+
+        // Subtract written bytes of remainingBytes
         remainingBytes -= bytesToWrite;
+
+        // Erase written bytes from req
         req.body.erase(req.body.begin(), req.body.begin() + bytesToWrite);
       }
 
@@ -156,7 +163,6 @@ libhttp::ChunkDecoder::ErrorStatusPair libhttp::ChunkDecoder::decode(libhttp::Re
         // its a MALFORMED request body
         if (req.body[0] != '\r' || req.body[1] != '\n') {
           reset();
-          status = libhttp::ChunkDecoder::READY;
           return std::make_pair(libhttp::ChunkDecoder::MALFORMED, status);
         }
 
@@ -186,11 +192,12 @@ libhttp::ChunkDecoder::ErrorStatusPair libhttp::ChunkDecoder::decode(libhttp::Re
   return std::make_pair(OK, READY);
 }
 
-void libhttp::ChunkDecoder::reset() {
+void libhttp::ChunkDecoder::reset(libhttp::ChunkDecoder::Status newStatus) {
   if (file.is_open())
     file.close();
 
-  // status = READY;
+  status = newStatus;
   chunkSize = 0;
   remainingBytes = 0;
+  filePath = "";
 }
