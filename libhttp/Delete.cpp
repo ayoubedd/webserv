@@ -25,7 +25,6 @@ bool deleteDirectory(const char* path) {
                 }
                 else {
                     if (remove(entryPath.c_str()) != 0) {
-                        std::cout << "in while \n";
                         return false;
                     }
                 }
@@ -33,28 +32,21 @@ bool deleteDirectory(const char* path) {
         }
     }
     closedir(dir);
-    if (remove(path) != 0) {
-        std::cout << "in the last\n";
-       return false;
-   }
+    return true;
 }
 
 libhttp::Delete::t_error libhttp::Deletes(std::string &path)
 {
-    std::cout << path <<std::endl;
     if(!findResource(path))
     {
-        std::cout << "not found \n";
         return libhttp::Delete::FILE_NOT_FOUND;
     }
     if(isFolder(path))
     {
-        std::cout << "dir \n"<<std::endl;
         if (deleteDirectory(path.c_str()))
             return libhttp::Delete::OK;
         else
         {
-            std::cout << "error \n";
             return libhttp::Delete::FORBIDDEN;
         }
     }
@@ -64,6 +56,7 @@ libhttp::Delete::t_error libhttp::Deletes(std::string &path)
             return libhttp::Delete::FORBIDDEN;
         }
         else
-            libhttp::Delete::OK;
+            return libhttp::Delete::OK;
     }
+    return libhttp::Delete::FILE_NOT_FOUND;
 }

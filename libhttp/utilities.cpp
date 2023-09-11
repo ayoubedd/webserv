@@ -34,6 +34,5 @@ bool findResource(std::string &path)
 {
   if(!isFolder(path))
     return fileExists(path);
-  std::cout << "find = "<<directoryExists(path) << std::endl;
   return directoryExists(path);
 }
