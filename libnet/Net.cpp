@@ -161,7 +161,7 @@ void libnet::Netenv::destroySession(Session *session) {
     return;
 
   close(sessionIter->second->fd);
-  delete sessionIter->second;
   delete sessionIter->second->clientAddr;
+  delete sessionIter->second;
   sessions.erase(sessionIter);
 }

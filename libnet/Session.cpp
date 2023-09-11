@@ -5,9 +5,9 @@
 
 libnet::Session::Session(int fd, sockaddr_in *clientAddr)
     : fd(fd)
-    , request(libhttp::Request())
-    , status(READING_HEADERS)
-    , reader(fd, this->request)
+    // , request(libhttp::Request())
+    // , status(READING_HEADERS)
+    , reader(fd, *clientAddr)
     , clientAddr(clientAddr) {
-  this->request.clientAddr = clientAddr;
+  // this->request.clientAddr = clientAddr;
 }

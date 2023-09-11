@@ -6,8 +6,8 @@ namespace libnet {
   enum SessionState {
     READING_HEADERS,
     READING_BODY,
-    READING_ERR,
     READING_FIN,
+    READING_ERR,
 
     CGI_WAIT,
     CGI_TIMEOUT,
