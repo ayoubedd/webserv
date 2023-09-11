@@ -29,5 +29,5 @@ std::string libparse::getTypeFile(std::map<std::string, std::string> types, std:
         if (it->second == type)
             return it->first;
     }
-    return  "text/plain";
+    return  "application/octet-stream";
 }
