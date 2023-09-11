@@ -15,24 +15,25 @@ bool fileExists(std::string &filename) {
 
 bool isFolder(std::string &path)
 {
-  if(path[path.length() - 1] == '\\')
+  if(path[path.length() - 1] == '/')
     return true;
   return false;
 }
 
 bool directoryExists(std::string &path) {
-  struct stat sb;
+  DIR* dir = opendir(path.c_str());
 
-   if (stat(path.c_str(), &sb) == 0 && !(sb.st_mode & S_IFDIR))
-     return true;
-  return false;
-
+  if (dir == nullptr) {
+      return false;
+  }
+  closedir(dir);
+  return true;
 }
 
 bool findResource(std::string &path)
 {
   if(!isFolder(path))
     return fileExists(path);
+  std::cout << "find = "<<directoryExists(path) << std::endl;
   return directoryExists(path);
 }
-

@@ -6,7 +6,7 @@ WEBSERV=webserv/main.cpp
 
 LIBHTTP=libhttp/Headers.cpp libhttp/Request.cpp libhttp/Reader.cpp \
 				 libhttp/Request-target.cpp libhttp/Chunk.cpp libhttp/MultipartFormData.cpp \
-				 libhttp/Get.cpp libhttp/utilities.cpp
+				 libhttp/Get.cpp libhttp/utilities.cpp libhttp/Delete.cpp
 LIBHTTP_TEST=libhttp/Headers_test.cpp libhttp/Reader_test.cpp
 
 LIBPARSE=libparse/TestParser.cpp libparse/ReadFile.cpp \
