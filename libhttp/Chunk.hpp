@@ -9,13 +9,14 @@
 
 namespace libhttp {
   struct ChunkDecoder {
-    ChunkDecoder(const std::string& tmpDir = "/tmp/webserv/chunk");
+    ChunkDecoder(const std::string &tmpDir = "/tmp/webserv/chunk");
 
     enum Error {
-      OK,
-      MALFORMED,
-      CANNOT_OPEN_FILE,
-      RERUN,
+      OK,               // Nothing to worry about
+      MALFORMED,        // The request body is malformed
+      CANNOT_OPEN_FILE, // Faillure opening the output file
+      RERUN,            // There more data left to operate on
+      NO_ENOUGH_DATA,   // No enough data to complete the current action
     };
 
     enum Status {

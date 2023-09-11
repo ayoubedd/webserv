@@ -26,15 +26,23 @@ extractChunkSize(std::vector<char> &vec) {
           hexUpperCase.find(*tmpBegin) != std::string::npos))
     tmpBegin++;
 
-  // TODO:
-  // - should check that the following are CRLFs
+  if (tmpBegin == end)
+    return std::make_pair(libhttp::ChunkDecoder::NO_ENOUGH_DATA, 0);
+
+  // Checking if there is enough data
+  // to check wether we reached the CRLF
+  if (end - tmpBegin < 2)
+    return std::make_pair(libhttp::ChunkDecoder::NO_ENOUGH_DATA, 0);
+
+  // Checking if we reached the CRLF
+  if (*tmpBegin != '\r' || *(tmpBegin + 1) != '\n')
+    return std::make_pair(libhttp::ChunkDecoder::MALFORMED, 0);
 
   try {
     std::stringstream stream;
     stream << std::string(begin, tmpBegin);
     stream >> std::hex >> chunkSize;
-    std::cout << "there was: " << tmpBegin - begin << " characters." << std::endl;
-    vec.erase(vec.begin(), vec.begin() + (tmpBegin - begin));
+    vec.erase(vec.begin(), vec.begin() + (tmpBegin - begin + 2));
     return std::make_pair(libhttp::ChunkDecoder::OK, chunkSize);
   } catch (...) {
     return std::make_pair(libhttp::ChunkDecoder::MALFORMED, 0);
@@ -71,6 +79,8 @@ libhttp::ChunkDecoder::ErrorStatusPair libhttp::ChunkDecoder::decode(libhttp::Re
       // Sets the status to CHUNK_START
       status = libhttp::ChunkDecoder::CHUNK_START;
 
+      // More to operate on ?
+      // return RERUN
       if (req.body.size())
         return std::make_pair(libhttp::ChunkDecoder::RERUN, status);
 
@@ -79,15 +89,12 @@ libhttp::ChunkDecoder::ErrorStatusPair libhttp::ChunkDecoder::decode(libhttp::Re
 
     case CHUNK_START: {
       std::cout << "STATUS: CHUNK_START" << std::endl;
-      // extracts chunkSize
-      // sets remainingBytes to chunkSize
-      // if successful sets status to READING_CHUNK
-      // return RERUN if there is bytes to be processed
-
-      // if chunk size is zero then sets status to DONE
-
       std::pair<libhttp::ChunkDecoder::Error, std::vector<char>::size_type> ErrChunkSzPair =
           extractChunkSize(req.body);
+
+      // No enough data to extract the chunk size
+      if (ErrChunkSzPair.first == libhttp::ChunkDecoder::NO_ENOUGH_DATA)
+        return std::make_pair(libhttp::ChunkDecoder::OK, status);
 
       // Cannot extract chunkSize
       if (ErrChunkSzPair.first != libhttp::ChunkDecoder::OK) {
@@ -103,13 +110,6 @@ libhttp::ChunkDecoder::ErrorStatusPair libhttp::ChunkDecoder::decode(libhttp::Re
         return std::make_pair(libhttp::ChunkDecoder::OK, status);
       }
 
-      // TODO:
-      // - should check that the following is CRLFs
-
-      // Erasing two CRLFs
-      req.body.erase(req.body.begin(), req.body.begin() + 2); // add checks
-
-
       // Set the chunkSize and remainingBytes
       chunkSize = ErrChunkSzPair.second;
       remainingBytes = chunkSize;
@@ -117,7 +117,8 @@ libhttp::ChunkDecoder::ErrorStatusPair libhttp::ChunkDecoder::decode(libhttp::Re
       // Set the new status
       status = libhttp::ChunkDecoder::READING_CHUNK;
 
-      // If there was more bytes to processed return RERUN to the caller
+      // More to operate on ?
+      // return RERUN
       if (req.body.size())
         return std::make_pair(libhttp::ChunkDecoder::RERUN, status);
 
@@ -133,26 +134,43 @@ libhttp::ChunkDecoder::ErrorStatusPair libhttp::ChunkDecoder::decode(libhttp::Re
       std::vector<char>::size_type bytesToWrite =
           (remainingBytes < req.body.size() ? remainingBytes : req.body.size());
 
-      file.write(&req.body[0], bytesToWrite);
-      remainingBytes -= bytesToWrite;
-      req.body.erase(req.body.begin(), req.body.begin() + bytesToWrite);
+      // Should check that remainingBytes greater than zero
+      // rational:
+      //  in some cases, it might be bytes left to check the next thing is CRLF
+      //  in which case the remainingBytes is zero
+      if (remainingBytes > 0) {
+        file.write(&req.body[0], bytesToWrite);
+        remainingBytes -= bytesToWrite;
+        req.body.erase(req.body.begin(), req.body.begin() + bytesToWrite);
+      }
 
       // If we read the bytes of the current chunk set status CHUNK_START
       // otherwise we need more bytes, aka READING_CHUNK
       if (remainingBytes == 0) {
-        // what if the req.body stoped at the last byte of the chunk
-        // but we need to erase the two CRLFs to set the new status
-        // what about this case
+        // Check if there is enough data
+        // to check the existance of the CRLF
+        if (req.body.size() < 2)
+          return std::make_pair(libhttp::ChunkDecoder::OK, status);
 
-        // TODO:
-        // - should check that the following are CRLFs
+        // If the following is not CRLF
+        // its a MALFORMED request body
+        if (req.body[0] != '\r' || req.body[1] != '\n') {
+          reset();
+          status = libhttp::ChunkDecoder::READY;
+          return std::make_pair(libhttp::ChunkDecoder::MALFORMED, status);
+        }
 
-        req.body.erase(req.body.begin(), req.body.begin() + 2); // add checks
+        // Erase the CRLF
+        req.body.erase(req.body.begin(), req.body.begin() + 2);
 
+        // Setting the new status
         status = libhttp::ChunkDecoder::CHUNK_START;
+
       } else
         status = libhttp::ChunkDecoder::READING_CHUNK;
 
+      // More to operate on ?
+      // return RERUN
       if (req.body.size())
         return std::make_pair(libhttp::ChunkDecoder::RERUN, status);
 
