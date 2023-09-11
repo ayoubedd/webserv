@@ -150,7 +150,7 @@ static std::vector<char> extractBody(std::vector<char>::const_iterator begin,
   if (begin == end)
     return body;
 
-  return std::vector(begin, end);
+  return std::vector<char>(begin, end);
 }
 
 static libhttp::HeadersMap extractHeaders(std::vector<char>::const_iterator begin,
