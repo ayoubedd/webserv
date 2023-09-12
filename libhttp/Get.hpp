@@ -1,13 +1,6 @@
-#pragma once
-#include "../libparse/Config.hpp"
-#include "utilities.hpp"
+
+#include "libhttp/utilities.hpp"
 
 namespace  libhttp {
-struct Get{
-    enum t_error{
-      OK, 
-      FILE_NOT_FOUND,
-      FORBIDDEN
-    }error;
-  };
+
 }
