@@ -74,21 +74,21 @@ std::pair<int ,int> getStartandEndRangeRequest(std::string str)
 
   std::stringstream strm(str.substr(6,str.find("-",6) - 6 ));
   strm >> start;
-  std::stringstream strm(str.substr(str.find("-",6),str.find("/",str.find("-",6)) - str.find("-",6)));
-  strm >> end;
+  std::stringstream strm1(str.substr(str.find("-",6) + 1,str.find("/",str.find("-",6)) - str.find("-",6)));
+  strm1 >> end;
     return std::make_pair(start,end);
 }
 void initGetRes(libhttp::Methods::GetRes &getReq)
 {
     getReq.fd = -1;
     getReq.range.first = 0;
-    getReq.range.second = -1;
+    getReq.range.second = 0;
 }
 
 
 // Request Get
 
-std::pair<libhttp::Methods::error,libhttp::Methods::GetRes> Get(libhttp::Request &request)
+std::pair<libhttp::Methods::error,libhttp::Methods::GetRes> libhttp::Get(libhttp::Request &request)
 {
     std::string path;
     // you must encode and decode
@@ -118,7 +118,7 @@ std::pair<libhttp::Methods::error,libhttp::Methods::GetRes> Get(libhttp::Request
 
 
 // Request Delete
-libhttp::Methods::error libhttp::Methods::Deletes(std::string &path)
+libhttp::Methods::error libhttp::Deletes(std::string &path)
 {
     if(findResource(path))
     {
