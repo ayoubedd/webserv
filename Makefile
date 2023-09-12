@@ -4,7 +4,8 @@ CXXFLAGS+=-Wall -Wextra -Wreorder -I . -I/usr/include/c++/11 -I/usr/include/x86_
 
 WEBSERV=webserv/main.cpp
 
-LIBHTTP=libhttp/Headers.cpp libhttp/Request.cpp libhttp/Reader.cpp libhttp/Request-target.cpp libhttp/Chunk.cpp
+LIBHTTP=libhttp/Headers.cpp libhttp/Request.cpp libhttp/Reader.cpp \
+				 libhttp/Request-target.cpp libhttp/Chunk.cpp libhttp/MultipartFormData.cpp
 LIBHTTP_TEST=libhttp/Headers_test.cpp libhttp/Reader_test.cpp
 
 LIBPARSE=libparse/TestParser.cpp libparse/ReadFile.cpp \
