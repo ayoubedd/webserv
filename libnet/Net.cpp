@@ -87,7 +87,7 @@ void libnet::Netenv::prepFdSets(void) {
 
 int libnet::Netenv::largestFd(void) {
   libnet::Sessions::iterator sessionsLargestFd = std::max_element(sessions.begin(), sessions.end());
-  libnet::Sockets::iterator socketsLargestFd = std::max_element(sockets.begin(), sockets.end());
+  libnet::Sockets::iterator  socketsLargestFd = std::max_element(sockets.begin(), sockets.end());
 
   return std::max(sessionsLargestFd->first, *socketsLargestFd);
 }
@@ -134,16 +134,20 @@ void libnet::Netenv::awaitEvents(void) {
 void libnet::Netenv::acceptNewClients(void) {
   libnet::Sockets::iterator begin = readReadySockets.begin();
   libnet::Sockets::iterator end = readReadySockets.end();
+  sockaddr_in              *clientAddr;
+  socklen_t                 clientAddrLen;
 
   int fd;
+  clientAddrLen = sizeof *clientAddr;
   while (begin != end) {
-    if ((fd = accept(*begin, NULL, 0)) == -1) {
+    clientAddr = new sockaddr_in;
+    if ((fd = accept(*begin, (sockaddr *)clientAddr, &clientAddrLen)) == -1) {
       std::cerr << "accept" << strerror(errno) << std::endl;
       return;
     }
 
     // add the new client to sessions pool
-    sessions.insert(std::make_pair(fd, new libnet::Session(fd)));
+    sessions.insert(std::make_pair(fd, new libnet::Session(fd, clientAddr)));
 
     begin++;
   }
@@ -156,7 +160,8 @@ void libnet::Netenv::destroySession(Session *session) {
   if (sessionIter == sessions.end())
     return;
 
-  sessions.erase(sessionIter);
   close(sessionIter->second->fd);
+  delete sessionIter->second->clientAddr;
   delete sessionIter->second;
+  sessions.erase(sessionIter);
 }

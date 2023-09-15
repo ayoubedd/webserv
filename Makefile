@@ -4,12 +4,12 @@ CXXFLAGS+=-Wall -Wextra -Wreorder -I .
 
 WEBSERV=webserv/main.cpp
 
-LIBHTTP=libhttp/Headers.cpp libhttp/Request.cpp libhttp/Reader.cpp libhttp/Request-target.cpp
+LIBHTTP=libhttp/Headers.cpp libhttp/Request.cpp libhttp/Reader.cpp \
+				 libhttp/Request-target.cpp libhttp/Chunk.cpp libhttp/MultipartFormData.cpp
 LIBHTTP_TEST=libhttp/Headers_test.cpp libhttp/Reader_test.cpp
 
 LIBPARSE=libparse/TestParser.cpp libparse/ReadFile.cpp \
-				 libparse/utilities.cpp libparse/Lexer.cpp libparse/Parser.cpp libparse/matching-location.cpp
-
+				 libparse/utilities.cpp libparse/Lexer.cpp libparse/Parser.cpp libparse/matching-location.cpp libparse/Types.cpp
 LIBNET=libnet/Net.cpp libnet/Session.cpp libnet/SessionState.cpp
 
 CXXFILES=$(WEBSERV) $(LIBHTTP) $(LIBHTTP_TEST) $(LIBPARSE) $(LIBNET)

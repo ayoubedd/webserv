@@ -5,13 +5,16 @@
 
 namespace libhttp {
   struct RequestTarget {
-    std::string path;
+    std::string                        path;
     std::map<std::string, std::string> params;
-    std::string anchor;
+    std::string                        anchor;
+    std::string                        rawPramas;
 
-    void build(std::string &reqTarget);
-    static const char ENC[21];
-    static const std::string DEC[21];
+    RequestTarget();
+
+    void                                build(std::string &reqTarget);
+    static const char                   ENC[21];
+    static const std::string            DEC[21];
     static const std::string::size_type LEN = 21;
 
     static std::string encode(const std::string &uri);
