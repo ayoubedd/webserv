@@ -3,10 +3,7 @@
 #include <string>
 #include <utility>
 
-libhttp::MultipartFormData::MultipartFormData(const std::string &tmpDir)
-    : tmpDir(tmpDir) {
-  status = libhttp::MultipartFormData::READY;
-};
+libhttp::MultipartFormData::MultipartFormData() { status = libhttp::MultipartFormData::READY; };
 
 libhttp::MultipartEntity::MultipartEntity() { type = UNKNOWN; };
 void libhttp::MultipartEntity::MultipartEntity::clean() {
@@ -182,7 +179,8 @@ static void writeToFileTillDel(libhttp::MultipartEntity &entity, std::fstream &f
   entity.buff.erase(entity.buff.begin(), entity.buff.begin() + i);
 }
 
-libhttp::MultipartFormData::ErrorStatePair libhttp::MultipartFormData::read(libhttp::Request &req) {
+libhttp::MultipartFormData::ErrorStatePair
+libhttp::MultipartFormData::read(libhttp::Request &req, const std::string &uploadRoot) {
   // Should extract the boundary at the first time.
   if (status == READY) {
     std::cout << "==> STATUS: READY" << std::endl;
@@ -270,12 +268,14 @@ libhttp::MultipartFormData::ErrorStatePair libhttp::MultipartFormData::read(libh
 
       // TODO:
       // - not all parts are file parts
+      // - should generate random file name in case one is not provided
+      // - what to do if a file with the same name already exist
 
       // Extracting filename of the part
       std::string fileName =
           extractHeaderPropKeyValue(entity.headers, "Content-Disposition", "filename");
       fileName = fileName.substr(1, fileName.length() - 2);
-      entity.filePath = tmpDir + fileName;
+      entity.filePath = uploadRoot + "/" + fileName;
 
       // Setting the new status
       status = libhttp::MultipartFormData::READING_BODY;

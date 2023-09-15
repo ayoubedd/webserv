@@ -28,7 +28,7 @@ namespace libhttp {
   };
 
   struct MultipartFormData {
-    MultipartFormData(const std::string &tmpDir = "/tmp/webserv/multipart/");
+    MultipartFormData(void);
 
     // Reader states
     enum Status {
@@ -68,14 +68,7 @@ namespace libhttp {
 
     // Reads from the Request body
     // and continues from it where it was last time
-    ErrorStatePair read(libhttp::Request &req);
-
-    // Temporary directory in which all the files will be created.
-    // example:
-    // - /tmp/webserv/multipart/
-    // example file for connection fd:
-    //  - /tmp/webserv/multipart/fd/file
-    const std::string tmpDir;
+    ErrorStatePair read(libhttp::Request &req, const std::string& uploadRoot);
   };
 
 } // namespace libhttp
