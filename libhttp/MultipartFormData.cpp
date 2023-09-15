@@ -226,13 +226,9 @@ libhttp::MultipartFormData::read(libhttp::Request &req, const std::string &uploa
         return std::make_pair(libhttp::MultipartFormData::OK, status);
       }
 
-      // TODO:
-      // - possible optimzation: if entities size is non zero means
-      //                          the only possible case is afterBodyDel
-
       // Erase the delmiter if there is one
       // otherwise the request is malformed
-      if (isStringMatchVec(req.body.begin(), req.body.end(), del)) {
+      if (entities.size() == 0 && isStringMatchVec(req.body.begin(), req.body.end(), del)) {
         req.body.erase(req.body.begin(), req.body.begin() + del.length());
       } else if (isStringMatchVec(req.body.begin(), req.body.end(), afterBodyDel)) {
         req.body.erase(req.body.begin(), req.body.begin() + afterBodyDel.length());
