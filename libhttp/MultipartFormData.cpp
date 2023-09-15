@@ -223,6 +223,8 @@ libhttp::MultipartFormData::read(libhttp::Request &req, const std::string &uploa
       // Reached the end
       if (isStringMatchVec(req.body.begin(), req.body.end(), closeDel)) {
         cleanup(DONE);
+        // Erase closing del from req.body
+        req.body.erase(req.body.begin(), req.body.begin() + closeDel.length());
         return std::make_pair(libhttp::MultipartFormData::OK, status);
       }
 
