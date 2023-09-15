@@ -16,7 +16,7 @@ void libhttp::MultipartEntity::MultipartEntity::clean() {
 libhttp::MultipartEntity::~MultipartEntity(){};
 
 void libhttp::MultipartFormData::cleanup(libhttp::MultipartFormData::Status newStatus) {
-  if (newStatus != DONE) {
+  if (newStatus != DONE && entities.size()) {
     std::vector<libhttp::MultipartEntity>::iterator entitiesIter = entities.begin();
     while (entitiesIter != entities.end()) {
       std::cout << "deleteing: " << entitiesIter->filePath << std::endl;
