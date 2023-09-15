@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css"
+        integrity="sha512-z3gLpd7yknf1YoNbCzqRKc4qyor8gaKU1qmn+CShxbuBusANI9QpRohGBreCFkKxLhei6S9CQXFEbbKuqLg0DA=="
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <title>{{TITLE}}</title>
+    <style>
+        :root {
+            --bg: #262626;
+            --fg: #f4f4f4;
+            --main: #6929c4;
+        }
+
+        html {
+            font-size: 62.5%;
+        }
+
+        body {
+            width: 100vw;
+            height: 100vh;
+            font-family: Inter, sans-serif;
+            background-color: var(--bg);
+        }
+
+        main {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            height: 100%;
+        }
+
+        main div {
+            width: 25rem;
+            height: 25rem;
+            /* border: 1px solid red; */
+        }
+
+        .icon {
+            font-size: 10rem;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .icon>i {
+            position: absolute;
+            z-index: 3;
+            color: #f32013;
+            opacity: 0.8;
+        }
+
+        .circle-1 {
+            position: absolute;
+            z-index: 2;
+            border-radius: 50%;
+            background-color: #f32013;
+            opacity: 0.2;
+            width: 17rem;
+            height: 17rem;
+        }
+
+        .circle-2 {
+            position: absolute;
+            z-index: 1;
+            background-color: #f32013;
+            border-radius: 50%;
+            opacity: 0.1;
+        }
+
+        main {
+            font-size: 2rem;
+        }
+
+        main h1 {
+            color: var(--fg);
+        }
+
+        main p {
+            color: var(--fg);
+            font-size: 1.5rem;
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body>
+
+</body>
+<main>
+    <div class="icon">
+        <i class="fa-solid fa-server"></i>
+        <div class="circle-1"></div>
+        <div class="circle-2"></div>
+    </div>
+    <h1>500 <span>|</span> Server error</h1>
+    <p>Oops something went wrong. Try to refresh this page <br> feel
+        free to contact us if the problem presists</p>
+</main>
+
+</html>
