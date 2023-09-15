@@ -8,7 +8,9 @@
 namespace libhttp {
 
   struct MultipartEntity {
+    MultipartEntity();
     ~MultipartEntity();
+
     // Part type.
     enum PartType {
       UNKNOWN,
@@ -16,11 +18,8 @@ namespace libhttp {
       OTHER,
     };
 
-    MultipartEntity();
-
     PartType                     type;
     libhttp::HeadersMap          headers;
-    std::vector<char>            buff;
     std::vector<char>::size_type prevBuffSize;
     std::string                  filePath;
 

@@ -10,6 +10,7 @@ void libhttp::MultipartEntity::MultipartEntity::clean() {
   type = MultipartEntity::UNKNOWN;
   headers.clear();
   prevBuffSize = 0;
+  filePath = "";
 };
 
 libhttp::MultipartEntity::~MultipartEntity(){};
@@ -140,9 +141,9 @@ extractHeaderKeyValue(std::vector<char>::const_iterator begin,
   return std::make_pair(key, value);
 }
 
-static bool parsePartHeaders(libhttp::MultipartEntity &entity) {
-  std::vector<char>::iterator curr = entity.buff.begin();
-  std::vector<char>::iterator end = entity.buff.end();
+static bool parsePartHeaders(std::vector<char> &vec, libhttp::MultipartEntity &entity) {
+  std::vector<char>::iterator curr = vec.begin();
+  std::vector<char>::iterator end = vec.end();
 
   std::vector<char>::iterator headerBegin;
 
@@ -165,14 +166,13 @@ static bool parsePartHeaders(libhttp::MultipartEntity &entity) {
       break;
   }
 
-  entity.buff.erase(entity.buff.begin(), curr + 2);
+  vec.erase(vec.begin(), curr + 2);
   return false;
 }
 
-static void writeToFileTillDel(libhttp::MultipartEntity &entity, std::fstream &file,
-                               const std::string &del) {
-  std::vector<char>::iterator begin = entity.buff.begin();
-  std::vector<char>::iterator end = entity.buff.end();
+static void writeToFileTillDel(std::vector<char> &vec, std::fstream &file, const std::string &del) {
+  std::vector<char>::iterator begin = vec.begin();
+  std::vector<char>::iterator end = vec.end();
 
   ssize_t i = 0;
   while (begin != end) {
@@ -184,8 +184,8 @@ static void writeToFileTillDel(libhttp::MultipartEntity &entity, std::fstream &f
 
   std::cout << "writting " << i << " bytes of data to file" << std::endl;
 
-  file.write(&entity.buff[0], i);
-  entity.buff.erase(entity.buff.begin(), entity.buff.begin() + i);
+  file.write(&vec[0], i);
+  vec.erase(vec.begin(), vec.begin() + i);
 }
 
 libhttp::MultipartFormData::ErrorStatePair
@@ -211,25 +211,17 @@ libhttp::MultipartFormData::read(libhttp::Request &req, const std::string &uploa
     status = libhttp::MultipartFormData::BEFORE_DEL;
   }
 
-  // TODO:
-  // - to avoid a lot of copying of data mabye i should work on the req.body
-  // and what ever left then pass to entity.buff to be used later
-
-  // Copy data from request
-  entity.buff.insert(entity.buff.end(), req.body.begin(), req.body.end());
-  req.body.clear();
-
   switch (status) {
     case libhttp::MultipartFormData::BEFORE_DEL: {
       std::cout << "==> STATUS: BEFORE_DEL" << std::endl;
 
       // Checking if the raw size is less than smallest del.
-      if (entity.buff.size() < del.length()) {
+      if (req.body.size() < del.length()) {
         return std::make_pair(libhttp::MultipartFormData::OK, status);
       }
 
       // Reached the end
-      if (isStringMatchVec(entity.buff.begin(), entity.buff.end(), closeDel)) {
+      if (isStringMatchVec(req.body.begin(), req.body.end(), closeDel)) {
         cleanup(DONE);
         return std::make_pair(libhttp::MultipartFormData::OK, status);
       }
@@ -240,10 +232,10 @@ libhttp::MultipartFormData::read(libhttp::Request &req, const std::string &uploa
 
       // Erase the delmiter if there is one
       // otherwise the request is malformed
-      if (isStringMatchVec(entity.buff.begin(), entity.buff.end(), del)) {
-        entity.buff.erase(entity.buff.begin(), entity.buff.begin() + del.length());
-      } else if (isStringMatchVec(entity.buff.begin(), entity.buff.end(), afterBodyDel)) {
-        entity.buff.erase(entity.buff.begin(), entity.buff.begin() + afterBodyDel.length());
+      if (isStringMatchVec(req.body.begin(), req.body.end(), del)) {
+        req.body.erase(req.body.begin(), req.body.begin() + del.length());
+      } else if (isStringMatchVec(req.body.begin(), req.body.end(), afterBodyDel)) {
+        req.body.erase(req.body.begin(), req.body.begin() + afterBodyDel.length());
       } else {
         cleanup(READY);
         return std::make_pair(libhttp::MultipartFormData::MALFORMED_MUTLIPART, status);
@@ -254,7 +246,7 @@ libhttp::MultipartFormData::read(libhttp::Request &req, const std::string &uploa
 
       // In case there is more bytes in the buffer
       // return RERUN to the caller to recall immediately
-      if (entity.buff.size())
+      if (req.body.size())
         return std::make_pair(libhttp::MultipartFormData::RERUN, status);
 
       return std::make_pair(libhttp::MultipartFormData::OK, status);
@@ -267,11 +259,11 @@ libhttp::MultipartFormData::read(libhttp::Request &req, const std::string &uploa
       // - optimization: skip searching in the prvious bytes
 
       // Checking if the buffer contains end of headers (TWO CRLFs)
-      if (!isVecContainsString(entity.buff.begin(), entity.buff.end(), "\r\n\r\n"))
+      if (!isVecContainsString(req.body.begin(), req.body.end(), "\r\n\r\n"))
         return std::make_pair(libhttp::MultipartFormData::OK, status);
 
       // Parse headers
-      bool error = parsePartHeaders(entity);
+      bool error = parsePartHeaders(req.body, entity);
       if (error) {
         std::cout << "- error parsing headres" << std::endl;
         cleanup(READY);
@@ -293,7 +285,7 @@ libhttp::MultipartFormData::read(libhttp::Request &req, const std::string &uploa
       status = libhttp::MultipartFormData::READING_BODY;
 
       // If there is more data to be processed return RERUN to the caller
-      if (entity.buff.size())
+      if (req.body.size())
         return std::make_pair(libhttp::MultipartFormData::RERUN, status);
 
       return std::make_pair(libhttp::MultipartFormData::OK, status);
@@ -319,15 +311,15 @@ libhttp::MultipartFormData::read(libhttp::Request &req, const std::string &uploa
       }
 
       // Write all bytes till the commonDel
-      writeToFileTillDel(entity, file, commonDel); // this might be dangerous
+      writeToFileTillDel(req.body, file, commonDel);
 
       // if not bytes left (didnt found the commonDel) return OK (file not complete yet)
-      if (!entity.buff.size())
+      if (!req.body.size())
         return std::make_pair(libhttp::MultipartFormData::OK, status);
 
       // End of a part or reached the last multipart/form-data part
-      if (isStringMatchVec(entity.buff.begin(), entity.buff.end(), closeDel) ||
-          isStringMatchVec(entity.buff.begin(), entity.buff.end(), afterBodyDel)) {
+      if (isStringMatchVec(req.body.begin(), req.body.end(), closeDel) ||
+          isStringMatchVec(req.body.begin(), req.body.end(), afterBodyDel)) {
         entities.push_back(entity);
         file.close();
         entity.clean();
@@ -335,7 +327,7 @@ libhttp::MultipartFormData::read(libhttp::Request &req, const std::string &uploa
       }
 
       // if still some bytes to process return RERUN
-      if (entity.buff.size())
+      if (req.body.size())
         return std::make_pair(libhttp::MultipartFormData::RERUN, status);
 
       return std::make_pair(libhttp::MultipartFormData::OK, status);
