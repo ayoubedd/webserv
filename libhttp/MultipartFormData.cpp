@@ -3,13 +3,16 @@
 #include <string>
 #include <utility>
 
-libhttp::MultipartFormData::MultipartFormData() { status = libhttp::MultipartFormData::READY; };
+libhttp::MultipartFormData::MultipartFormData() {
+  status = libhttp::MultipartFormData::READY;
+  searchedBytes = 0;
+};
 
 libhttp::MultipartEntity::MultipartEntity() { type = UNKNOWN; };
+
 void libhttp::MultipartEntity::MultipartEntity::clean() {
   type = MultipartEntity::UNKNOWN;
   headers.clear();
-  prevBuffSize = 0;
   filePath = "";
 };
 
@@ -23,6 +26,9 @@ void libhttp::MultipartFormData::cleanup(libhttp::MultipartFormData::Status newS
       entitiesIter++;
     }
   }
+
+  // Reset searchedBytes
+  searchedBytes = 0;
 
   // Clear entities vec
   entities.clear();
@@ -252,12 +258,19 @@ libhttp::MultipartFormData::read(libhttp::Request &req, const std::string &uploa
       std::cout << "==> STATUS READING_HEADERS" << std::endl;
 
       // TODO:
-      // - optimization: skip searching in the prvious bytes
       // - should check of existance of Content-Disposition header
 
       // Checking if the buffer contains end of headers (TWO CRLFs)
-      if (!isVecContainsString(req.body.begin(), req.body.end(), "\r\n\r\n"))
+      if (!isVecContainsString(req.body.begin() + searchedBytes, req.body.end(), "\r\n\r\n")) {
+        // Always subtract four bytes
+        // Rational: to avoid splitting delimter
+        if (req.body.size() > 4)
+          searchedBytes = req.body.size() - 4;
         return std::make_pair(libhttp::MultipartFormData::OK, status);
+      }
+
+      // Resetting searchedBytes
+      searchedBytes = 0;
 
       // Parse headers
       bool error = parsePartHeaders(req.body, entity);

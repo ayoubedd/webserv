@@ -20,7 +20,6 @@ namespace libhttp {
 
     PartType                     type;
     libhttp::HeadersMap          headers;
-    std::vector<char>::size_type prevBuffSize;
     std::string                  filePath;
 
     void clean();
@@ -60,6 +59,7 @@ namespace libhttp {
     std::string                  closeDel;
     std::string                  commonDel;
     std::fstream                 file;
+    std::vector<char>::size_type searchedBytes;
 
     // Closes all open files for the current session
     // and removes from the file system.
