@@ -4,12 +4,10 @@
 
 void sessionsHandler(libnet::Netenv &net) {
   libnet::Sessions::iterator session;
-  libnet::Sessions &readySessions = net.readyClients;
+  libnet::Sessions          &readySessions = net.readyClients;
 
   session = readySessions.begin();
   while (session != readySessions.end()) {
-    session->second->reader.read(session->second->status);
-    std::cout << session->second->request << std::endl;
     session++;
   };
 }
@@ -21,7 +19,7 @@ int main(int argc, char *argv[]) {
   }
 
   libparse::Domains domains;
-  libnet::Netenv net;
+  libnet::Netenv    net;
 
   libparse::parser(argv[1], domains);
 
