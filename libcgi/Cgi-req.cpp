@@ -29,7 +29,7 @@ static std::string convertHeaderKey(std::string key) {
 }
 
 void libcgi::CgiRequest::convertReqHeadersToCgiHeaders(libhttp::Headers *httpHeaders) {
-  CgiEnv::iterator it,end;
+  libhttp::HeadersMap::const_iterator it,end;
 
   it = httpHeaders->headers.begin();
   end = httpHeaders->headers.end();

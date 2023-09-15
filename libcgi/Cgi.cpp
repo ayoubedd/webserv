@@ -42,17 +42,21 @@ char **getScriptArgs(std::string &scriptPath) {
 }
 
 void delete2d(char **env) {
-  char *i;
+  unsigned int i;
 
-  for (i = *env; i; i++)
-    delete[] i;
+  for (i = 0; env[i]; i++)
+    delete[] env[i];
   delete[] env;
 }
 
-libcgi::Cgi::Cgi(std::string scriptPath, libhttp::Request *httpReq, sockaddr_in *clientAddr)
+libcgi::Cgi::Cgi(libhttp::Request *httpReq, std::string scriptPath, sockaddr_in *clientAddr)
     : httpReq(httpReq)
     , scriptPath(scriptPath)
-    , clientAddr(clientAddr) {}
+    , clientAddr(clientAddr)
+    , cgiReq()
+    , fd{-1, -1}
+    , pid(-1)
+    , bodySize(0) {}
 
 libcgi::Cgi::error libcgi::Cgi::init(std::string serverName, std::string scriptName,
                                      std::string localReqPath, std::string serverPort,
@@ -63,28 +67,28 @@ libcgi::Cgi::error libcgi::Cgi::init(std::string serverName, std::string scriptN
   if (::stat(this->scriptPath.c_str(), &s) != 0)
     return FAILED_OPEN_FILE;
   if (!(s.st_mode & S_IXUSR))
-    return FAILED_OPEN_FILE;
+    return FAILED_EXEC_PERM;
   this->cgiReq.build(this->httpReq);
+
+  if (::pipe(fd) < 0)
+    return FAILED_OPEN_FILE;
+
   return OK;
 }
 
+libcgi::Cgi::error libcgi::Cgi::write(std::vector<char> &body) {
+  int len;
+
+  len = ::write(this->fd[1], &body.front(), body.size());
+  if (len < 0)
+    return FAILED_WRITE;
+  this->bodySize += body.size();
+  return OK;
+};
+
 std::pair<libcgi::Cgi::error, libcgi::CgiResult> libcgi::Cgi::exec() {
   char **env, **argv;
-  int    fd[2];
-  int    pid;
 
-  if (::pipe(fd) < 0)
-    return std::make_pair(FAILED_OPEN_FILE, CgiResult{.pid = -1, .fd = -1});
-  if (this->httpReq->body.size() > 0) {
-    int err;
-
-    err = ::write(fd[1], &this->httpReq->body.front(), this->httpReq->body.size());
-    if (err < 0) {
-      close(fd[0]);
-      close(fd[1]);
-      return std::make_pair(FAILED_WRITE, CgiResult{.pid = -1, .fd = -1});
-    }
-  }
   pid = fork();
   if (pid == 0) {
     dup2(0, fd[0]);

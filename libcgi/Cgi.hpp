@@ -13,19 +13,31 @@ namespace libcgi {
   };
 
   struct Cgi {
-    enum error { OK, FAILED_OPEN_FILE, FILED_OPEN_PIPE, FAILED_FORK, FAILED_WRITE };
+    enum error {
+      OK,
+      FAILED_OPEN_FILE,
+      FAILED_EXEC_PERM,
+      FILED_OPEN_PIPE,
+      FAILED_FORK,
+      FAILED_WRITE
+    };
 
     libhttp::Request *httpReq;
     std::string       scriptPath;
-    sockaddr_in       *clientAddr;
+    sockaddr_in      *clientAddr;
     CgiRequest        cgiReq;
+    int               fd[2];
+    pid_t             pid;
+    size_t            bodySize;
 
-    Cgi(std::string scriptPath, libhttp::Request *httpReq, sockaddr_in *clientInfo);
+    Cgi(libhttp::Request *httpReq, std::string scriptPath, sockaddr_in *clientInfo);
 
     error init(std::string serverName, std::string scriptName, std::string localReqPath,
                std::string serverPort = "80", std::string protocol = "HTTP/1.1",
                std::string serverSoftware = "WebServ");
 
-    std::pair<error, CgiResult> exec();
+    error                                  write(std::vector<char> &body);
+    std::pair<error, CgiResult>            exec();
+    std::pair<error, libnet::SessionState> read(libnet::SessionState state);
   };
 } // namespace libcgi
