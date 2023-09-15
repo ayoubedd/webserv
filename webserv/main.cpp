@@ -1,18 +1,7 @@
 #include "libnet/Net.hpp"
 #include "libparse/Config.hpp"
 #include "libparse/utilities.hpp"
-
-void sessionsHandler(libnet::Netenv &net) {
-  libnet::Sessions::iterator session;
-  libnet::Sessions &readySessions = net.readyClients;
-
-  session = readySessions.begin();
-  while (session != readySessions.end()) {
-    session->second->reader.read(session->second->status);
-    std::cout << session->second->request << std::endl;
-    session++;
-  };
-}
+#include "libhttp/Methods.hpp"
 
 int main(int argc, char *argv[]) {
   if (argc < 2) {
@@ -24,18 +13,40 @@ int main(int argc, char *argv[]) {
   libnet::Netenv net;
 
   libparse::parser(argv[1], domains);
-
-  net.setupSockets(domains);
-
-  while (true) {
-    net.prepFdSets();
-    net.awaitEvents();
-
-    if (!net.readReadySockets.empty())
-      net.acceptNewClients();
-
-    sessionsHandler(net);
-  };
-
+  {
+    std::string buffer;
+    std::string path = "dev/";
+    buffer = generateTemplateFiles(path);
+    std::cout << buffer <<std::endl;
+    exit(1);
+  }
+    // test simple request get
+    {
+       std::pair<libhttp::Methods::error,libhttp::Methods::GetRes> res;
+        libhttp::Request req;
+        req.reqTarget.path = "dev/index.html";
+        res = libhttp::Get(req);
+        std::cout<< " status " << res.first << " fd " << res.second.fd
+                << " start " << res.second.range.first << " end " << res.second.range.second 
+                << std::endl;
+    }
+    
+    {
+      std::pair<libhttp::Methods::error,libhttp::Methods::GetRes> res;
+        libhttp::Request req;
+        req.reqTarget.path = "dev/";
+        std::string index;
+        res = libhttp::GetIfDir(req.reqTarget.path, index);
+        std::cout<< " status " << res.first << " fd " << res.second.fd
+                << " start " << res.second.range.first << " end " << res.second.range.second 
+                << std::endl;
+    }
+    // test delelet 
+    {
+      int status;
+      std::string path = "dev/home.html";
+      status = libhttp::Deletes(path);
+      std::cout<< " status " <<  status << std::endl;
+    }
   return 0;
 }

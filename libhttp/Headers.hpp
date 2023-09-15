@@ -8,9 +8,11 @@ namespace libhttp {
   typedef std::map<std::string, std::string> HeadersMap;
   typedef std::pair<std::string, std::string> HeaderPair;
 
+  
+
   struct Headers {
     HeadersMap headers;
-
+    static const char *Content_Range;
     void delHeader(std::string);
     std::string &operator[](std::string);
   };

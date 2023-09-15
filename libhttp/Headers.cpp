@@ -11,3 +11,5 @@ std::ostream &operator<<(std::ostream &os, const libhttp::Headers &h) {
   }
   return os;
 }
+
+const char *libhttp::Headers::Content_Range = "Content_Range";
