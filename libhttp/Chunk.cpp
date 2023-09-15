@@ -8,6 +8,7 @@
 libhttp::ChunkDecoder::ChunkDecoder(void) {
   status = READY;
   chunkSize = 0;
+  remainingBytes = 0;
 }
 
 static std::pair<libhttp::ChunkDecoder::Error, std::vector<char>::size_type>
@@ -16,9 +17,9 @@ extractChunkSize(std::vector<char> &vec) {
   std::vector<char>::const_iterator end = vec.end();
   std::vector<char>::const_iterator tmpBegin = begin;
 
-  ssize_t     chunkSize = 0;
-  std::string hexLowerCase("abcdef");
-  std::string hexUpperCase("ABCDEF");
+  std::vector<char>::size_type chunkSize = 0;
+  std::string                  hexLowerCase("abcdef");
+  std::string                  hexUpperCase("ABCDEF");
 
   while (tmpBegin != end &&
          (std::isdigit(*tmpBegin) || hexLowerCase.find(*tmpBegin) != std::string::npos ||
@@ -55,6 +56,9 @@ libhttp::ChunkDecoder::decode(libhttp::Request &req, const std::string &uploadRo
       std::cout << "STATUS: READY" << std::endl;
       // Open the file with the appropriate name
       // set status to CHUNK_START
+
+      // TODO:
+      // - should generate random file names instead of getting it from req.path
 
       // Extracint filename
       std::string fileName = req.reqTarget.path;
@@ -193,8 +197,16 @@ libhttp::ChunkDecoder::decode(libhttp::Request &req, const std::string &uploadRo
 }
 
 void libhttp::ChunkDecoder::reset(libhttp::ChunkDecoder::Status newStatus) {
-  if (file.is_open())
+  if (file.is_open()) {
+    std::cout << "closing file: '" << filePath << "'" << std::endl;
     file.close();
+  }
+
+  if (status != READY && newStatus != DONE) {
+    // TODO:
+    // - remove the file from file system
+    std::cout << "deleting: " << filePath << std::endl;
+  }
 
   status = newStatus;
   chunkSize = 0;
