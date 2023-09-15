@@ -257,9 +257,6 @@ libhttp::MultipartFormData::read(libhttp::Request &req, const std::string &uploa
     case libhttp::MultipartFormData::READING_HEADERS: {
       std::cout << "==> STATUS READING_HEADERS" << std::endl;
 
-      // TODO:
-      // - should check of existance of Content-Disposition header
-
       // Checking if the buffer contains end of headers (TWO CRLFs)
       if (!isVecContainsString(req.body.begin() + searchedBytes, req.body.end(), "\r\n\r\n")) {
         // Always subtract four bytes
@@ -278,6 +275,11 @@ libhttp::MultipartFormData::read(libhttp::Request &req, const std::string &uploa
         std::cout << "- error parsing headres" << std::endl;
         cleanup(READY);
         return std::make_pair(libhttp::MultipartFormData::MALFORMED_MUTLIPART, status);
+      }
+
+      if (entity.headers.find("Content-Disposition") == entity.headers.end()) {
+        cleanup(READY);
+        return std::make_pair(libhttp::MultipartFormData::PART_MISSING_CONTENT_DISPOSITION, status);
       }
 
       // TODO:
