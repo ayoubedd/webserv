@@ -182,8 +182,6 @@ static void writeToFileTillDel(std::vector<char> &vec, std::fstream &file, const
     i++;
   }
 
-  std::cout << "writting " << i << " bytes of data to file" << std::endl;
-
   file.write(&vec[0], i);
   vec.erase(vec.begin(), vec.begin() + i);
 }
@@ -259,6 +257,7 @@ libhttp::MultipartFormData::read(libhttp::Request &req, const std::string &uploa
 
       // TODO:
       // - optimization: skip searching in the prvious bytes
+      // - should check of existance of Content-Disposition header
 
       // Checking if the buffer contains end of headers (TWO CRLFs)
       if (!isVecContainsString(req.body.begin(), req.body.end(), "\r\n\r\n"))
@@ -304,8 +303,7 @@ libhttp::MultipartFormData::read(libhttp::Request &req, const std::string &uploa
       if (!file.is_open()) {
         file.open(entity.filePath, std::fstream::out | std::fstream::binary | std::fstream::app);
 
-        // std::cout << "- creating file file" << std::endl;
-
+        // Failure Opening the file
         if (!file.is_open()) {
           cleanup(READY);
           return std::make_pair(libhttp::MultipartFormData::ERROR_CREATING_FILE, status);
