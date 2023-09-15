@@ -64,7 +64,7 @@ namespace libhttp {
 
     // Closes all open files for the current session
     // and removes from the file system.
-    void cleanup();
+    void cleanup(libhttp::MultipartFormData::Status newStatus);
 
     // Reads from the Request body
     // and continues from it where it was last time

@@ -14,21 +14,30 @@ void libhttp::MultipartEntity::MultipartEntity::clean() {
 
 libhttp::MultipartEntity::~MultipartEntity(){};
 
-void libhttp::MultipartFormData::cleanup() {
-  // Reset state to READY
-  status = READY;
+void libhttp::MultipartFormData::cleanup(libhttp::MultipartFormData::Status newStatus) {
+  if (newStatus != DONE) {
+    std::vector<libhttp::MultipartEntity>::iterator entitiesIter = entities.begin();
+    while (entitiesIter != entities.end()) {
+      std::cout << "deleteing: " << entitiesIter->filePath << std::endl;
+      entitiesIter++;
+    }
+  }
 
   // Clear entities vec
   entities.clear();
 
+  // Set status to newStatus
+  status = newStatus;
+
   // Clean entity
-  entity.clean();
   entity.clean();
 
   // Clear delimiters
   del.clear();
   afterBodyDel.clear();
   closeDel.clear();
+
+  // Close file
   file.close();
 }
 
@@ -190,7 +199,7 @@ libhttp::MultipartFormData::read(libhttp::Request &req, const std::string &uploa
     // Check if boundary extracted
     if (!boundary.length()) {
       std::cout << "cleaning" << std::endl;
-      cleanup();
+      cleanup(READY);
       return std::make_pair(libhttp::MultipartFormData::CANNOT_EXTRACT_BOUNRAY, status);
     }
 
@@ -216,16 +225,18 @@ libhttp::MultipartFormData::read(libhttp::Request &req, const std::string &uploa
 
       // Checking if the raw size is less than smallest del.
       if (entity.buff.size() < del.length()) {
-        return std::make_pair(libhttp::MultipartFormData::OK,
-                              libhttp::MultipartFormData::BEFORE_DEL);
+        return std::make_pair(libhttp::MultipartFormData::OK, status);
       }
 
       // Reached the end
       if (isStringMatchVec(entity.buff.begin(), entity.buff.end(), closeDel)) {
-        entity.clean();
-        entity.buff.clear();
-        return std::make_pair(libhttp::MultipartFormData::OK, libhttp::MultipartFormData::DONE);
+        cleanup(DONE);
+        return std::make_pair(libhttp::MultipartFormData::OK, status);
       }
+
+      // TODO:
+      // - possible optimzation: if entities size is non zero means
+      //                          the only possible case is afterBodyDel
 
       // Erase the delmiter if there is one
       // otherwise the request is malformed
@@ -234,9 +245,8 @@ libhttp::MultipartFormData::read(libhttp::Request &req, const std::string &uploa
       } else if (isStringMatchVec(entity.buff.begin(), entity.buff.end(), afterBodyDel)) {
         entity.buff.erase(entity.buff.begin(), entity.buff.begin() + afterBodyDel.length());
       } else {
-        cleanup();
-        return std::make_pair(libhttp::MultipartFormData::MALFORMED_MUTLIPART,
-                              libhttp::MultipartFormData::READY);
+        cleanup(READY);
+        return std::make_pair(libhttp::MultipartFormData::MALFORMED_MUTLIPART, status);
       }
 
       // Since finding the del next State would be READING_HEADERS
@@ -253,18 +263,20 @@ libhttp::MultipartFormData::read(libhttp::Request &req, const std::string &uploa
     case libhttp::MultipartFormData::READING_HEADERS: {
       std::cout << "==> STATUS READING_HEADERS" << std::endl;
 
-      // Checking if the buffer containers end of headers (TWO CRLFs)
+      // TODO:
+      // - optimization: skip searching in the prvious bytes
+
+      // Checking if the buffer contains end of headers (TWO CRLFs)
       if (!isVecContainsString(entity.buff.begin(), entity.buff.end(), "\r\n\r\n"))
-        return std::make_pair(libhttp::MultipartFormData::OK,
-                              libhttp::MultipartFormData::READING_HEADERS);
+        return std::make_pair(libhttp::MultipartFormData::OK, status);
 
       // Parse headers
       bool error = parsePartHeaders(entity);
       if (error) {
         std::cout << "- error parsing headres" << std::endl;
-        // clear, return
+        cleanup(READY);
+        return std::make_pair(libhttp::MultipartFormData::MALFORMED_MUTLIPART, status);
       }
-      // std::cout << "- headers complete" << std::endl;
 
       // TODO:
       // - not all parts are file parts
@@ -301,9 +313,8 @@ libhttp::MultipartFormData::read(libhttp::Request &req, const std::string &uploa
         // std::cout << "- creating file file" << std::endl;
 
         if (!file.is_open()) {
-          cleanup();
-          return std::make_pair(libhttp::MultipartFormData::ERROR_CREATING_FILE,
-                                libhttp::MultipartFormData::READY);
+          cleanup(READY);
+          return std::make_pair(libhttp::MultipartFormData::ERROR_CREATING_FILE, status);
         }
       }
 
@@ -332,14 +343,19 @@ libhttp::MultipartFormData::read(libhttp::Request &req, const std::string &uploa
 
     case libhttp::MultipartFormData::READY: {
       std::cout << "==> STATUS: READY" << std::endl;
-      return std::make_pair(libhttp::MultipartFormData::OK, libhttp::MultipartFormData::READY);
+      return std::make_pair(libhttp::MultipartFormData::OK, status);
     }
 
     case libhttp::MultipartFormData::DONE: {
       std::cout << "==> STATUS: DONE" << std::endl;
-      cleanup();
-      // what if the caller called in this state with new data ??
-      return std::make_pair(libhttp::MultipartFormData::OK, libhttp::MultipartFormData::READY);
+
+      cleanup(READY);
+
+      // More to process ? return RERUN
+      if (req.body.size())
+        return std::make_pair(libhttp::MultipartFormData::RERUN, status);
+
+      return std::make_pair(libhttp::MultipartFormData::OK, status);
     }
   }
 
