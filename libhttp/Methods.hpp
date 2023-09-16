@@ -19,6 +19,11 @@ namespace libhttp {
       FILE_NOT_FOUND,
       FORBIDDEN
     };
+    struct file{
+      std::string name;
+      std::string date;
+      size_t size; 
+    };
     enum typeFile{
       FILE,
       DIR,
@@ -31,6 +36,6 @@ namespace libhttp {
     };
 
  };    
-  std::pair<Methods::error,Methods::GetRes> Get(Request &request);
+  std::pair<Methods::error,Methods::GetRes> Get(Request &request, std::string path);
   Methods::error Deletes(std::string &path);
-}
+}std::string generateTemplate(std::string &path);
