@@ -38,4 +38,7 @@ namespace libhttp {
     void                         reset(libhttp::ChunkDecoder::Status = READY);
   };
 
+  struct Chunk {
+    ChunkDecoder decoder;
+  };
 } // namespace libhttp
