@@ -10,6 +10,8 @@ namespace libhttp {
     std::string                        anchor;
     std::string                        rawPramas;
 
+    RequestTarget();
+
     void                                build(std::string &reqTarget);
     static const char                   ENC[21];
     static const std::string            DEC[21];
