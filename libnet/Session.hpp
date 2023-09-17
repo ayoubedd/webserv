@@ -12,10 +12,10 @@ namespace libnet {
 
     int fd;
 
-    std::queue<libhttp::Request> requests;
-    libhttp::Request             request;
-    libnet::SessionState         status;
-    libhttp::Reader              reader;
-    sockaddr_in                 *clientAddr;
+    // std::queue<libhttp::Request *> requests;
+    // libhttp::Request               request;
+    // libnet::SessionState status;
+    libhttp::Reader reader;
+    sockaddr_in    *clientAddr;
   };
 } // namespace libnet
