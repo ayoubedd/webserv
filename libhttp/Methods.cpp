@@ -1,5 +1,8 @@
 #include "libhttp/Methods.hpp"
 
+#include <iostream>
+#include <fstream>
+#include <ctime>
 
 bool fileExists(std::string &filename) {
     std::ifstream file(filename);
@@ -40,8 +43,9 @@ bool deleteDirectory(const char* path) {
         return false;
     }
     while ((entry = readdir(dir))) {
-        if (entry->d_name == "." && entry->d_name == "..")
+      if(!strcmp(entry->d_name,".") || !strcmp(entry->d_name ,".."))
           continue ;
+    
         std::string entryPath = std::string(path) + "/" + entry->d_name;
         struct stat statBuf;
         if (stat(entryPath.c_str(), &statBuf) == 0) {
@@ -76,6 +80,7 @@ std::pair<int ,int> getStartandEndRangeRequest(std::string str)
   strm1 >> end;
     return std::make_pair(start,end);
 }
+
 void initGetRes(libhttp::Methods::GetRes &getReq)
 {
     getReq.fd = -1;
@@ -96,63 +101,36 @@ bool checkAutoindex(std::string &name)
   return true;
 }
 
-// ////////// 
-// #include <iostream>
-// #include <fstream>
-// #include <ctime>
+int getFileSize(const std::string &file_path) {
+    std::ifstream file(file_path.c_str(), std::ios::binary | std::ios::ate);
+    if (!file) {
+        return -1;
+    }
+    std::ifstream::pos_type size = file.tellg();
+    file.close();
+    if (size == -1) {
+        return -1;
+    }
+    return static_cast<int>(size);
+}
 
-// int get_file_size(const std::string &file_path) {
-//     std::ifstream file(file_path.c_str(), std::ios::binary | std::ios::ate);
-//     if (!file) {
-//         std::cerr << "Error: Unable to open file." << std::endl;
-//         return -1;
-//     }
-    
-//     std::ifstream::pos_type size = file.tellg();
-//     file.close();
-    
-//     if (size == -1) {
-//         std::cerr << "Error: Unable to determine file size." << std::endl;
-//         return -1;
-//     }
-    
-//     return static_cast<int>(size);
-// }
+std::string get_file_last_modification(const std::string &file_path) {
+    std::ifstream file(file_path.c_str());
+    std::string modification_date;
+  
+    if (!file) {
+        return modification_date;
+    }
+    std::time_t modification_time = std::time(0);
+    struct std::tm *modification_tm = std::localtime(&modification_time);
+    char buffer[80];
+    std::strftime(buffer, 80, "%Y-%m-%d %H:%M:%S", modification_tm);
+    return modification_date;
+}
 
-// bool get_file_last_modification(const std::string &file_path, std::string &modification_date) {
-//     std::ifstream file(file_path.c_str());
-    
-//     if (!file) {
-//         std::cerr << "Error: Unable to open file." << std::endl;
-//         return false;
-//     }
-    
-//     std::time_t modification_time = std::time(0);
-//     struct std::tm *modification_tm = std::localtime(&modification_time);
-//     char buffer[80];
-//     std::strftime(buffer, 80, "%Y-%m-%d %H:%M:%S", modification_tm);
-    
-//     modification_date = buffer;
-    
-//     return true;
-// }
-
-// int main() {
-//     std::string file_path = "example.txt"; // Replace with the path to your file
-//     std::string modification_date;
-    
-//     if (get_file_last_modification(file_path, modification_date)) {
-//         std::cout << "Last modification date of '" << file_path << "': " << modification_date << std::endl;
-//     }
-    
-//     return 0;
-// }
-
-
-std::vector<std::pair<libhttp::Methods::typeFile, libhttp::Methods::file>> listFilesAndDirectories(std::string &path)
+std::vector<std::pair<libhttp::Methods::typeFile, libhttp::Methods::file> > listFilesAndDirectories(std::string &path)
 {
   std::pair<libhttp::Methods::typeFile, libhttp::Methods::file> pairOfFiles;
-  
   std::vector<std::pair<libhttp::Methods::typeFile, libhttp::Methods::file> > vecFileAndDir;
   
   DIR *dir;
@@ -169,12 +147,14 @@ std::vector<std::pair<libhttp::Methods::typeFile, libhttp::Methods::file>> listF
     while ((entry = readdir(dir)) != NULL)
     {
       // Skip . and .. entries
-      if (entry->d_name == "." || entry->d_name == "..") {
+      if (!strcmp(entry->d_name,".") || !strcmp(entry->d_name ,"..") ){
           continue;
       }
       // Check if it's a directory
       if (entry->d_type == DT_DIR) {
         pairOfFiles.second.name = entry->d_name;
+        pairOfFiles.second.date = get_file_last_modification(path+entry->d_name);
+        pairOfFiles.second.size = getFileSize(path+entry->d_name);
         pairOfFiles.first = libhttp::Methods::DIR;
         vecFileAndDir.push_back( pairOfFiles);
       }
@@ -190,16 +170,38 @@ std::vector<std::pair<libhttp::Methods::typeFile, libhttp::Methods::file>> listF
     return vecFileAndDir;
 }
 
+
 std::string generateTemplate(std::string &path)
 {
-  std::string templateStatic = path;
+  std::string templateStatic;
+  std::ifstream templateFile("static/index.html");
+  std::ifstream itemFile("static/list-item.html");
+  std::stringstream buf,buffer;
+  std::string listItem;
+  std::string listItemTemplate;
+  std::string tmp;
+  
+  buffer << itemFile.rdbuf();
+  itemFile.close();
+  listItemTemplate = buffer.str();
 
-  std::vector<std::pair<libhttp::Methods::typeFile, libhttp::Methods::file>> test;
+  std::vector<std::pair<libhttp::Methods::typeFile, libhttp::Methods::file> > test;
+  test = listFilesAndDirectories(path);
   for(size_t i = 0; i < test.size() ;i++)
   {
-    std::cout << test[i].first << test[i].second.name << std::endl;
+    tmp = listItemTemplate;
+    ft_replace(tmp,"{{LINK_HERE}}",path + test[i].second.name);
+    ft_replace(tmp,"{{FILE_NAME}}",test[i].second.name);
+    ft_replace(tmp,"{{LAST_MODIFIED}}",test[i].second.date);
+    ft_replace(tmp,"{{SIZE_OR_TYPE}}",std::to_string(test[i].second.size));
+    listItem+=tmp;
   }
-
+  buf << templateFile.rdbuf();
+  templateFile.close();
+  templateStatic = buf.str();
+  ft_replace(templateStatic,"{{INSERT_TITLE_HERE}}",path);
+  ft_replace(templateStatic,"{{INSERT_PATH_HERE}}",path);
+  ft_replace(templateStatic,"{{RANGE_OF_ITEMS}}",listItem);
   return templateStatic;
 }
 

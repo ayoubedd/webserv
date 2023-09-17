@@ -66,3 +66,5 @@ namespace libparse {
   std::string matching(libparse::Domain domain,std::string path);
   void parser(std::string filename, libparse::Domains &domains);
 }; // namespace libparse
+
+void ft_replace(std::string &str, const std::string &old_value, const std::string &new_value);

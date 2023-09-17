@@ -11,7 +11,6 @@
 #include <unistd.h>
 #include <string>
 
-std::string generateTemplateFiles(std::string &path);
 namespace libhttp {
     struct Methods {
     enum error{
@@ -22,7 +21,7 @@ namespace libhttp {
     struct file{
       std::string name;
       std::string date;
-      size_t size; 
+      size_t size;
     };
     enum typeFile{
       FILE,
@@ -33,9 +32,12 @@ namespace libhttp {
     struct GetRes {
       int fd;
       std::pair<int,int> range;
+      std::string contentType;
+      size_t contentLength;
     };
 
  };    
   std::pair<Methods::error,Methods::GetRes> Get(Request &request, std::string path);
   Methods::error Deletes(std::string &path);
-}std::string generateTemplate(std::string &path);
+}
+std::string generateTemplate(std::string &path);
