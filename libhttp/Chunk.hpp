@@ -38,7 +38,22 @@ namespace libhttp {
     void                         reset(libhttp::ChunkDecoder::Status = READY);
   };
 
+  struct ChunkEncoder {
+    ChunkEncoder(void);
+
+    enum error {
+      OK,
+      FAILURE_WRITTING,
+    };
+
+    std::vector<char>::size_type remainingBytes;
+
+    error encode(std::vector<char> &buff, int fd);
+    void  reset(void);
+  };
+
   struct Chunk {
     ChunkDecoder decoder;
+    ChunkEncoder encoder;
   };
 } // namespace libhttp
