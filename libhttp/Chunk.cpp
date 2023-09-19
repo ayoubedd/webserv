@@ -213,3 +213,7 @@ void libhttp::ChunkDecoder::reset(libhttp::ChunkDecoder::Status newStatus) {
   remainingBytes = 0;
   filePath = "";
 }
+
+libhttp::ChunkEncoder::ChunkEncoder(void) {
+
+}
