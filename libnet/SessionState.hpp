@@ -9,8 +9,11 @@ namespace libnet {
     READING_FIN,
     READING_ERR,
 
+    CGI_INIT,
     CGI_WAIT,
     CGI_TIMEOUT,
+    CGI_READING_HEADERS,
+    CGI_READING_BODY,
     CGI_FIN,
     CGI_ERR,
 

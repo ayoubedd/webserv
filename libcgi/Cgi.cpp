@@ -1,7 +1,17 @@
 #include "libcgi/Cgi.hpp"
+#include <assert.h>
 #include <cstring>
 #include <sys/stat.h>
+#include <sys/wait.h>
 #include <unistd.h>
+
+#define assertm(ex, msg)                                                                           \
+  (ex == false ? ({                                                                                \
+    log(msg);                                                                                      \
+    assert(ex);                                                                                    \
+  })                                                                                               \
+               : (assert(ex)))
+#define log(msg) printf("%s\n", msg);
 
 char *keyAndValAsStr(const std::string &key, const std::string &val) {
   char *keyAndVal;
@@ -53,25 +63,26 @@ libcgi::Cgi::Cgi(libhttp::Request *httpReq, std::string scriptPath, sockaddr_in 
     : httpReq(httpReq)
     , scriptPath(scriptPath)
     , clientAddr(clientAddr)
-    , cgiReq()
+    , req()
     , fd{-1, -1}
     , pid(-1)
-    , bodySize(0) {}
+    , bodySize(0)
+    , state(libnet::CGI_INIT) {}
 
 libcgi::Cgi::error libcgi::Cgi::init(std::string serverName, std::string scriptName,
                                      std::string localReqPath, std::string serverPort,
                                      std::string protocol, std::string serverSoftware) {
   struct stat s;
 
-  this->cgiReq.init(serverName, scriptName, localReqPath, serverPort, protocol, serverSoftware);
+  this->req.init(serverName, scriptName, localReqPath, serverPort, protocol, serverSoftware);
   if (::stat(this->scriptPath.c_str(), &s) != 0)
     return FAILED_OPEN_FILE;
   if (!(s.st_mode & S_IXUSR))
     return FAILED_EXEC_PERM;
-  this->cgiReq.build(this->httpReq);
+  this->req.build(this->httpReq);
 
   if (::pipe(fd) < 0)
-    return FAILED_OPEN_FILE;
+    return FAILED_OPEN_PIPE;
 
   return OK;
 }
@@ -86,7 +97,7 @@ libcgi::Cgi::error libcgi::Cgi::write(std::vector<char> &body) {
   return OK;
 };
 
-std::pair<libcgi::Cgi::error, libcgi::CgiResult> libcgi::Cgi::exec() {
+libcgi::Cgi::error libcgi::Cgi::exec() {
   char **env, **argv;
 
   pid = fork();
@@ -94,17 +105,35 @@ std::pair<libcgi::Cgi::error, libcgi::CgiResult> libcgi::Cgi::exec() {
     dup2(0, fd[0]);
     dup2(1, fd[1]);
     argv = getScriptArgs(this->scriptPath);
-    env = headersAsEnv(cgiReq.env);
-    execve(this->scriptPath.c_str(), argv, env);
+    env = headersAsEnv(req.env);
+    ::execve(this->scriptPath.c_str(), argv, env);
     delete2d(argv);
     delete2d(env);
+    std::cerr << "child err" << std::endl;
     // write to the fd the error
     exit(1);
   } else if (pid > 0) {
-    close(fd[1]);
-    return std::make_pair(OK, CgiResult{.pid = pid, .fd = fd[0]});
+    return OK;
   }
-  close(fd[0]);
-  close(fd[1]);
-  return std::make_pair(FAILED_FORK, CgiResult{.pid = -1, .fd = -1});
+  return FAILED_FORK;
+}
+
+libcgi::Cgi::error libcgi::Cgi::read() {
+  char    buff[4096 * 2];
+  ssize_t len;
+
+  len = ::read(this->fd[0], buff, sizeof buff);
+  if (len < 0)
+    return FAILED_READ;
+  buff[len] = 0;
+
+  std::cerr << "this is running" << std::endl;
+  // std::cout << buff << std::endl;
+  return OK;
+}
+
+void libcgi::Cgi::clean() {
+  close(this->fd[0]);
+  close(this->fd[1]);
+  waitpid(this->pid, 0, 0); // this will block add WNOHANG
 }
