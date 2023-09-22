@@ -52,7 +52,7 @@ extractChunkSize(std::vector<char> &vec) {
 }
 
 libhttp::ChunkDecoder::ErrorStatusPair
-libhttp::ChunkDecoder::decode(libhttp::Request &req, const std::string &uploadRoot) {
+libhttp::ChunkDecoder::read(libhttp::Request &req, const std::string &uploadRoot) {
   switch (status) {
     case READY: {
       // Open the file with the appropriate name

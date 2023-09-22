@@ -34,7 +34,7 @@ namespace libhttp {
     std::vector<char>::size_type remainingBytes;
     std::fstream                 file;
     std::string                  filePath;
-    ErrorStatusPair              decode(libhttp::Request &req, const std::string &uploadRoot);
+    ErrorStatusPair              read(libhttp::Request &req, const std::string &uploadRoot);
     void                         reset(libhttp::ChunkDecoder::Status = READY);
   };
 
