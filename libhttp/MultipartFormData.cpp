@@ -1,4 +1,5 @@
 #include "libhttp/MultipartFormData.hpp"
+#include <algorithm>
 #include <cstdlib>
 #include <string>
 #include <unistd.h>
@@ -23,7 +24,7 @@ void libhttp::MultipartFormData::cleanup(libhttp::MultipartFormData::Status newS
   if (newStatus != DONE && entities.size()) {
     std::vector<libhttp::MultipartEntity>::iterator entitiesIter = entities.begin();
     while (entitiesIter != entities.end()) {
-      std::cout << "deleteing: " << entitiesIter->filePath << std::endl;
+      std::remove(entitiesIter->filePath.c_str());
       entitiesIter++;
     }
   }
@@ -197,13 +198,11 @@ libhttp::MultipartFormData::ErrorStatePair
 libhttp::MultipartFormData::read(libhttp::Request &req, const std::string &uploadRoot) {
   // Should extract the boundary at the first time.
   if (status == READY) {
-    std::cout << "==> STATUS: READY" << std::endl;
     std::string boundary =
         extractHeaderPropKeyValue(req.headers.headers, "Content-Type", "boundary");
 
     // Check if boundary extracted
     if (!boundary.length()) {
-      std::cout << "cleaning" << std::endl;
       cleanup(READY);
       return std::make_pair(libhttp::MultipartFormData::CANNOT_EXTRACT_BOUNRAY, status);
     }
@@ -218,8 +217,6 @@ libhttp::MultipartFormData::read(libhttp::Request &req, const std::string &uploa
 
   switch (status) {
     case libhttp::MultipartFormData::BEFORE_DEL: {
-      std::cout << "==> STATUS: BEFORE_DEL" << std::endl;
-
       // Checking if the raw size is less than smallest del.
       if (req.body.size() < del.length()) {
         return std::make_pair(libhttp::MultipartFormData::OK, status);
@@ -256,8 +253,6 @@ libhttp::MultipartFormData::read(libhttp::Request &req, const std::string &uploa
     }
 
     case libhttp::MultipartFormData::READING_HEADERS: {
-      std::cout << "==> STATUS READING_HEADERS" << std::endl;
-
       // Checking if the buffer contains end of headers (TWO CRLFs)
       if (!isVecContainsString(req.body.begin() + searchedBytes, req.body.end(), "\r\n\r\n")) {
         // Always subtract four bytes
@@ -273,7 +268,6 @@ libhttp::MultipartFormData::read(libhttp::Request &req, const std::string &uploa
       // Parse headers
       bool error = parsePartHeaders(req.body, entity);
       if (error) {
-        std::cout << "- error parsing headres" << std::endl;
         cleanup(READY);
         return std::make_pair(libhttp::MultipartFormData::MALFORMED_MUTLIPART, status);
       }
@@ -304,8 +298,6 @@ libhttp::MultipartFormData::read(libhttp::Request &req, const std::string &uploa
     }
 
     case libhttp::MultipartFormData::READING_BODY: {
-      std::cout << "==> STATUS: READING_BODY" << std::endl;
-
       // Checking if the file of the current part is already open
       // if not so open it.
       if (!file.is_open()) {
@@ -342,13 +334,10 @@ libhttp::MultipartFormData::read(libhttp::Request &req, const std::string &uploa
     }
 
     case libhttp::MultipartFormData::READY: {
-      std::cout << "==> STATUS: READY" << std::endl;
       return std::make_pair(libhttp::MultipartFormData::OK, status);
     }
 
     case libhttp::MultipartFormData::DONE: {
-      std::cout << "==> STATUS: DONE" << std::endl;
-
       cleanup(READY);
 
       // More to process ? return RERUN
