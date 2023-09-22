@@ -55,7 +55,6 @@ libhttp::ChunkDecoder::ErrorStatusPair
 libhttp::ChunkDecoder::decode(libhttp::Request &req, const std::string &uploadRoot) {
   switch (status) {
     case READY: {
-      std::cout << "STATUS: READY" << std::endl;
       // Open the file with the appropriate name
       // set status to CHUNK_START
 
@@ -88,7 +87,6 @@ libhttp::ChunkDecoder::decode(libhttp::Request &req, const std::string &uploadRo
     }
 
     case CHUNK_START: {
-      std::cout << "STATUS: CHUNK_START" << std::endl;
       std::pair<libhttp::ChunkDecoder::Error, std::vector<char>::size_type> ErrChunkSzPair =
           extractChunkSize(req.body);
 
@@ -124,7 +122,6 @@ libhttp::ChunkDecoder::decode(libhttp::Request &req, const std::string &uploadRo
     }
 
     case READING_CHUNK: {
-      std::cout << "STATUS: READING_CHUNK" << std::endl;
       // Try to read remainingBytes unitil then subtract readed bytes from remainingBytes
       // if remainingBytes reached zero then this chunk is complete
       // afterwords sets status to CHUNK_START to read the next one
@@ -186,7 +183,6 @@ libhttp::ChunkDecoder::decode(libhttp::Request &req, const std::string &uploadRo
     }
 
     case DONE: {
-      std::cout << "STATUS: DONE" << std::endl;
       break;
     }
   }
@@ -196,12 +192,10 @@ libhttp::ChunkDecoder::decode(libhttp::Request &req, const std::string &uploadRo
 
 void libhttp::ChunkDecoder::reset(libhttp::ChunkDecoder::Status newStatus) {
   if (file.is_open()) {
-    std::cout << "closing file: '" << filePath << "'" << std::endl;
     file.close();
   }
 
   if (status != READY && newStatus != DONE) {
-    std::cout << "deleting: " << filePath << std::endl;
     std::remove(filePath.c_str());
   }
 
