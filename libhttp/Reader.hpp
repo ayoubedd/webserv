@@ -3,21 +3,25 @@
 #include "libhttp/Request.hpp"
 #include "libnet/SessionState.hpp"
 #include <cstdlib>
+#include <queue>
 #include <string>
 #include <utility>
 #include <vector>
 
 namespace libhttp {
   struct Reader {
-    int fd;
-    Request &req;
-    std::vector<char> raw; // TODO: change the container to deque for batter performance
-    unsigned int readBuffSize;
-    unsigned int reqLineEnd, headerEnd, bodyEnd;
+    std::vector<char>     raw;
+    int                   fd;
+    Request              *req;
+    unsigned int          readBuffSize;
+    unsigned int          reqLineEnd, headerEnd, bodyEnd;
+    std::queue<Request *> requests;
+    sockaddr_in           clientAddr;
 
-    Reader(int fd, Request &req, unsigned int readBuffSize = 8190);
+    Reader(int fd, sockaddr_in clientAddr, unsigned int readBuffSize = 8190);
     enum error {
       OK,
+      CONN_CLOSED,
       EMPTY_REQ,
       REQUEST_LINE_EMPTY,
       REQUEST_MISSING_CRLF,
@@ -38,14 +42,18 @@ namespace libhttp {
     error buildRequestHeaders();
     error buildRequestBody();
 
-    std::pair<error, libnet::SessionState> read(libnet::SessionState state);
+    error                                  read();
     std::pair<error, libnet::SessionState> processReadBuffer(libnet::SessionState state);
-    std::pair<error, bool> readingRequestHeaderHundler();
-    std::pair<error, bool> readingBodyHundler();
+    std::pair<error, bool>                 readingRequestHeaderHundler();
+    std::pair<error, bool>                 readingBodyHundler();
 
     std::pair<error, bool> processChunkedEncoding();
     std::pair<error, bool> processMultiPartFormData();
     std::pair<error, bool> processContentLength();
+
+    void moveRawDataToRequestBody(std::vector<char>::iterator first,
+                                  std::vector<char>::iterator last);
+    void clearRawDataIndices();
   };
 
   bool TestReaderBuildRequestLine();
