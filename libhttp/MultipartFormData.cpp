@@ -283,11 +283,6 @@ libhttp::MultipartFormData::read(libhttp::Request &req, const std::string &uploa
         return std::make_pair(libhttp::MultipartFormData::PART_MISSING_CONTENT_DISPOSITION, status);
       }
 
-      // TODO:
-      // - not all parts are file parts
-      // - should generate random file name in case one is not provided
-      // - what to do if a file with the same name already exist
-
       // Extracting filename of the part
       std::string providedFileName =
           extractHeaderPropKeyValue(entity.headers, "Content-Disposition", "filename");
@@ -310,9 +305,6 @@ libhttp::MultipartFormData::read(libhttp::Request &req, const std::string &uploa
 
     case libhttp::MultipartFormData::READING_BODY: {
       std::cout << "==> STATUS: READING_BODY" << std::endl;
-
-      // TODO:
-      // - if part not a file upload dont bother creating a file for it.
 
       // Checking if the file of the current part is already open
       // if not so open it.
