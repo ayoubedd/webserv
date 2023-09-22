@@ -289,10 +289,14 @@ libhttp::MultipartFormData::read(libhttp::Request &req, const std::string &uploa
       // - what to do if a file with the same name already exist
 
       // Extracting filename of the part
-      std::string fileName =
+      std::string providedFileName =
           extractHeaderPropKeyValue(entity.headers, "Content-Disposition", "filename");
-      fileName = fileName.substr(1, fileName.length() - 2);
-      entity.filePath = uploadRoot + "/" + fileName;
+      providedFileName = providedFileName.substr(1, providedFileName.length() - 2);
+
+      if (!providedFileName.length())
+        entity.filePath = libhttp::generateFileName(uploadRoot + "/uploaded_file");
+      else
+        entity.filePath = libhttp::generateFileName(uploadRoot + "/" + providedFileName);
 
       // Setting the new status
       status = libhttp::MultipartFormData::READING_BODY;
