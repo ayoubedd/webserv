@@ -1,4 +1,5 @@
 #include "libhttp/Chunk.hpp"
+#include "libhttp/MultipartFormData.hpp"
 #include "libhttp/Request.hpp"
 #include <sstream>
 #include <sys/types.h>
@@ -61,13 +62,12 @@ libhttp::ChunkDecoder::decode(libhttp::Request &req, const std::string &uploadRo
       // - should generate random file names instead of getting it from req.path
 
       // Extracint filename
-      std::string fileName = req.reqTarget.path;
-      if (fileName.length() == 0) {
-        // The file name is not provided
-        fileName = "/random_file_name";
-      }
+      std::string providedFileName = req.reqTarget.path;
 
-      filePath = uploadRoot + fileName;
+      if (!providedFileName.length() || providedFileName == "/")
+        filePath = libhttp::generateFileName(uploadRoot + "/uploaded_file");
+      else
+        filePath = libhttp::generateFileName(uploadRoot + "/" + providedFileName);
 
       // Open file
       file.open(filePath, std::fstream::out | std::fstream::binary | std::fstream::trunc);
