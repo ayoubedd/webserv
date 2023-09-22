@@ -354,8 +354,6 @@ libhttp::MultipartFormData::read(libhttp::Request &req, const std::string &uploa
 }
 
 std::string libhttp::generateFileName(const std::string &prefix) {
-  std::string random;
-
   std::string::size_type i = 0;
 
   if (access(prefix.c_str(), F_OK) != 0)
