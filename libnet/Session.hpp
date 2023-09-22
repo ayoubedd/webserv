@@ -1,5 +1,6 @@
 #pragma once
 
+#include "libhttp/Multipart.hpp"
 #include "libhttp/Reader.hpp"
 #include "libhttp/Request.hpp"
 #include "libhttp/TransferEncoding.hpp"
@@ -17,7 +18,8 @@ namespace libnet {
     // libhttp::Request               request;
     // libnet::SessionState status;
     libhttp::TransferEncoding transferEncoding;
-    libhttp::Reader reader;
-    sockaddr_in    *clientAddr;
+    libhttp::Multipart        multipart;
+    libhttp::Reader           reader;
+    sockaddr_in              *clientAddr;
   };
 } // namespace libnet
