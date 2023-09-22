@@ -313,8 +313,10 @@ libhttp::MultipartFormData::read(libhttp::Request &req, const std::string &uploa
       // Write all bytes till the commonDel
       writeToFileTillDel(req.body, file, commonDel);
 
-      // if not bytes left (didnt found the commonDel) return OK (file not complete yet)
-      if (!req.body.size())
+      // if not bytes left (didnt found the commonDel)
+      // or remaining bytes less than commonDel.len() (cannot performe comparsion)
+      // return OK (file not complete yet)
+      if (req.body.size() < commonDel.length())
         return std::make_pair(libhttp::MultipartFormData::OK, status);
 
       // End of a part or reached the last multipart/form-data part
