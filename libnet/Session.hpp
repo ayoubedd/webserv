@@ -1,5 +1,6 @@
 #pragma once
 
+#include "libhttp/Multipart.hpp"
 #include "libhttp/Reader.hpp"
 #include "libhttp/Request.hpp"
 #include "libnet/SessionState.hpp"
@@ -15,6 +16,7 @@ namespace libnet {
     // std::queue<libhttp::Request *> requests;
     // libhttp::Request               request;
     // libnet::SessionState status;
+    libhttp::Multipart multipart;
     libhttp::Reader reader;
     sockaddr_in    *clientAddr;
   };
