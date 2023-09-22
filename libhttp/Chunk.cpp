@@ -1,6 +1,7 @@
 #include "libhttp/Chunk.hpp"
 #include "libhttp/MultipartFormData.hpp"
 #include "libhttp/Request.hpp"
+#include <cstdio>
 #include <sstream>
 #include <sys/types.h>
 #include <utility>
@@ -57,9 +58,6 @@ libhttp::ChunkDecoder::decode(libhttp::Request &req, const std::string &uploadRo
       std::cout << "STATUS: READY" << std::endl;
       // Open the file with the appropriate name
       // set status to CHUNK_START
-
-      // TODO:
-      // - should generate random file names instead of getting it from req.path
 
       // Extracint filename
       std::string providedFileName = req.reqTarget.path;
@@ -203,9 +201,8 @@ void libhttp::ChunkDecoder::reset(libhttp::ChunkDecoder::Status newStatus) {
   }
 
   if (status != READY && newStatus != DONE) {
-    // TODO:
-    // - remove the file from file system
     std::cout << "deleting: " << filePath << std::endl;
+    std::remove(filePath.c_str());
   }
 
   status = newStatus;
