@@ -1,123 +1,210 @@
 #include "libhttp/Chunk.hpp"
-#include <algorithm>
-#include <cctype>
-#include <cstdlib>
-#include <fstream>
-#include <iostream>
-#include <iterator>
+#include "libhttp/MultipartFormData.hpp"
+#include "libhttp/Request.hpp"
+#include <cstdio>
 #include <sstream>
-#include <string>
+#include <sys/types.h>
 #include <utility>
+#include <vector>
 
-static std::pair<libhttp::Chunk::error, ssize_t>
-extractChunkSize(std::vector<char>::const_iterator begin, std::vector<char>::const_iterator end) {
+libhttp::ChunkDecoder::ChunkDecoder(void) {
+  status = READY;
+  chunkSize = 0;
+  remainingBytes = 0;
+}
+
+static std::pair<libhttp::ChunkDecoder::Error, std::vector<char>::size_type>
+extractChunkSize(std::vector<char> &vec) {
+  std::vector<char>::const_iterator begin = vec.begin();
+  std::vector<char>::const_iterator end = vec.end();
   std::vector<char>::const_iterator tmpBegin = begin;
 
-  ssize_t     chunkSize = 0;
-  std::string hexLowerCase("abcdef");
-  std::string hexUpperCase("ABCDEF");
+  std::vector<char>::size_type chunkSize = 0;
+  std::string                  hexLowerCase("abcdef");
+  std::string                  hexUpperCase("ABCDEF");
 
   while (tmpBegin != end &&
          (std::isdigit(*tmpBegin) || hexLowerCase.find(*tmpBegin) != std::string::npos ||
           hexUpperCase.find(*tmpBegin) != std::string::npos))
     tmpBegin++;
 
+  if (tmpBegin == end)
+    return std::make_pair(libhttp::ChunkDecoder::NO_ENOUGH_DATA, 0);
+
+  // Checking if there is enough data
+  // to check wether we reached the CRLF
+  if (end - tmpBegin < 2)
+    return std::make_pair(libhttp::ChunkDecoder::NO_ENOUGH_DATA, 0);
+
+  // Checking if we reached the CRLF
+  if (*tmpBegin != '\r' || *(tmpBegin + 1) != '\n')
+    return std::make_pair(libhttp::ChunkDecoder::MALFORMED, 0);
+
   try {
     std::stringstream stream;
     stream << std::string(begin, tmpBegin);
     stream >> std::hex >> chunkSize;
-    return std::make_pair(libhttp::Chunk::OK, chunkSize);
+    vec.erase(vec.begin(), vec.begin() + (tmpBegin - begin + 2));
+    return std::make_pair(libhttp::ChunkDecoder::OK, chunkSize);
   } catch (...) {
-    return std::make_pair(libhttp::Chunk::INVALID_INPUT, 0);
+    return std::make_pair(libhttp::ChunkDecoder::MALFORMED, 0);
   }
 }
 
-static std::vector<char>::const_iterator skipChunkSizeLine(std::vector<char>::const_iterator begin,
-                                                           std::vector<char>::const_iterator end) {
-  while (begin != end) {
-    if (*begin == '\r' && (begin + 1) != end) {
-      if (*(begin + 1) == '\n')
-        return (begin + 2);
-    }
-    begin++;
-  }
-  return begin;
-}
+libhttp::ChunkDecoder::ErrorStatusPair
+libhttp::ChunkDecoder::read(libhttp::Request &req, const std::string &uploadRoot) {
+  switch (status) {
+    case READY: {
+      // Open the file with the appropriate name
+      // set status to CHUNK_START
 
-static void insertIterRangeIntoVec(std::vector<char>                &dst,
-                                   std::vector<char>::const_iterator srcIter, int size) {
-  int i = 0;
+      // Extracint filename
+      std::string providedFileName = req.reqTarget.path;
 
-  while (i < size) {
-    dst.push_back(*srcIter);
-    srcIter++;
-    i++;
-  }
-}
+      if (!providedFileName.length() || providedFileName == "/")
+        filePath = libhttp::generateFileName(uploadRoot + "/uploaded_file");
+      else
+        filePath = libhttp::generateFileName(uploadRoot + "/" + providedFileName);
 
-static void insertStringIntoVec(std::vector<char> &vec, const std::string &str) {
-  vec.insert(vec.end(), str.begin(), str.end());
-}
+      // Open file
+      file.open(filePath, std::fstream::out | std::fstream::binary | std::fstream::trunc);
 
-std::pair<libhttp::Chunk::error, std::vector<char> >
-libhttp::Chunk::decode(const std::vector<char> &src) {
-  std::vector<char>                         buff;
-  std::vector<char>::const_iterator         it = src.begin();
-  std::pair<libhttp::Chunk::error, ssize_t> chunkSizeErrPair;
+      // Check if the is opened
+      if (!file.is_open()) {
+        reset();
+        return std::make_pair(libhttp::ChunkDecoder::CANNOT_OPEN_FILE, status);
+      }
 
-  chunkSizeErrPair.second = -1;
-  while (it != src.end()) {
-    // Calculate chunk size
-    chunkSizeErrPair = extractChunkSize(it, src.end());
-    if (chunkSizeErrPair.first != libhttp::Chunk::OK) {
-      buff.clear();
-      return std::make_pair(libhttp::Chunk::INVALID_INPUT, buff);
+      // Sets the status to CHUNK_START
+      status = libhttp::ChunkDecoder::CHUNK_START;
+
+      // More to operate on ?
+      // return RERUN
+      if (req.body.size())
+        return std::make_pair(libhttp::ChunkDecoder::RERUN, status);
+
+      return std::make_pair(libhttp::ChunkDecoder::OK, status);
     }
 
-    if (chunkSizeErrPair.second == 0)
+    case CHUNK_START: {
+      std::pair<libhttp::ChunkDecoder::Error, std::vector<char>::size_type> ErrChunkSzPair =
+          extractChunkSize(req.body);
+
+      // No enough data to extract the chunk size
+      if (ErrChunkSzPair.first == libhttp::ChunkDecoder::NO_ENOUGH_DATA)
+        return std::make_pair(libhttp::ChunkDecoder::OK, status);
+
+      // Cannot extract chunkSize
+      if (ErrChunkSzPair.first != libhttp::ChunkDecoder::OK) {
+        reset();
+        return std::make_pair(ErrChunkSzPair.first, status);
+      }
+
+      // Check if we hit the zero-chunk aka END
+      if (ErrChunkSzPair.second == 0) {
+        reset(DONE);
+        return std::make_pair(libhttp::ChunkDecoder::OK, status);
+      }
+
+      // Set the chunkSize and remainingBytes
+      chunkSize = ErrChunkSzPair.second;
+      remainingBytes = chunkSize;
+
+      // Set the new status
+      status = libhttp::ChunkDecoder::READING_CHUNK;
+
+      // More to operate on ?
+      // return RERUN
+      if (req.body.size())
+        return std::make_pair(libhttp::ChunkDecoder::RERUN, status);
+
+      return std::make_pair(libhttp::ChunkDecoder::OK, status);
+    }
+
+    case READING_CHUNK: {
+      // Try to read remainingBytes unitil then subtract readed bytes from remainingBytes
+      // if remainingBytes reached zero then this chunk is complete
+      // afterwords sets status to CHUNK_START to read the next one
+
+      std::vector<char>::size_type bytesToWrite =
+          (remainingBytes < req.body.size() ? remainingBytes : req.body.size());
+
+      // Should check that remainingBytes greater than zero
+      // rational:
+      //  in some cases, it might be bytes left to check the next thing is CRLF
+      //  in which case the remainingBytes is zero
+      if (remainingBytes > 0) {
+        // Write bytes
+        file.write(&req.body[0], bytesToWrite);
+
+        // Check for file writting failures
+        if (file.fail()) {
+          reset();
+          return std::make_pair(libhttp::ChunkDecoder::ERROR_WRITTING_TO_FILE, status);
+        }
+
+        // Subtract written bytes of remainingBytes
+        remainingBytes -= bytesToWrite;
+
+        // Erase written bytes from req
+        req.body.erase(req.body.begin(), req.body.begin() + bytesToWrite);
+      }
+
+      // If we read the bytes of the current chunk set status CHUNK_START
+      // otherwise we need more bytes, aka READING_CHUNK
+      if (remainingBytes == 0) {
+        // Check if there is enough data
+        // to check the existance of the CRLF
+        if (req.body.size() < 2)
+          return std::make_pair(libhttp::ChunkDecoder::OK, status);
+
+        // If the following is not CRLF
+        // its a MALFORMED request body
+        if (req.body[0] != '\r' || req.body[1] != '\n') {
+          reset();
+          return std::make_pair(libhttp::ChunkDecoder::MALFORMED, status);
+        }
+
+        // Erase the CRLF
+        req.body.erase(req.body.begin(), req.body.begin() + 2);
+
+        // Setting the new status
+        status = libhttp::ChunkDecoder::CHUNK_START;
+
+      } else
+        status = libhttp::ChunkDecoder::READING_CHUNK;
+
+      // More to operate on ?
+      // return RERUN
+      if (req.body.size())
+        return std::make_pair(libhttp::ChunkDecoder::RERUN, status);
+
+      return std::make_pair(libhttp::ChunkDecoder::OK, status);
+    }
+
+    case DONE: {
       break;
-
-    // Check wheter the extracted chunk size is in range
-    if (chunkSizeErrPair.second > src.end() - it) {
-      buff.clear();
-      return std::make_pair(libhttp::Chunk::INVALID_INPUT, buff);
     }
-
-    // Advance iterator over size line
-    it = skipChunkSizeLine(it, src.end());
-
-    // Insert data into result vec
-    insertIterRangeIntoVec(buff, it, chunkSizeErrPair.second);
-
-    // Advance iterator over chunk body
-    it += chunkSizeErrPair.second + 2;
   }
 
-  return std::make_pair(libhttp::Chunk::OK, buff);
+  return std::make_pair(OK, READY);
 }
 
-std::vector<char> libhttp::Chunk::encode(const std::vector<char> &src, ssize_t chunkSize) {
-  std::vector<char>::const_iterator it = src.begin();
-  std::vector<char>                 buff;
+void libhttp::ChunkDecoder::reset(libhttp::ChunkDecoder::Status newStatus) {
+  if (file.is_open()) {
+    file.close();
+  }
 
-  while (it != src.end()) {
-    // Falling back to remainning bytes instead of chunkSize
-    // in case of left bytes less than chunkSize
-    chunkSize = chunkSize < (src.end() - it) ? chunkSize : (src.end() - it);
+  if (status != READY && newStatus != DONE) {
+    std::remove(filePath.c_str());
+  }
 
-    // Inserting chunk size line
-    insertStringIntoVec(buff, std::to_string(chunkSize) + "\r\n");
+  status = newStatus;
+  chunkSize = 0;
+  remainingBytes = 0;
+  filePath = "";
+}
 
-    // Inserting chunk body
-    insertIterRangeIntoVec(buff, it, chunkSize);
-    insertStringIntoVec(buff, "\r\n");
+libhttp::ChunkEncoder::ChunkEncoder(void) {
 
-    // Advance iterator by chunkSize
-    it += chunkSize;
-  };
-
-  // Zero-Sized chunk
-  insertStringIntoVec(buff, "0\r\n\r\n");
-
-  return buff;
 }
