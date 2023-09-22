@@ -1,6 +1,7 @@
 #include "libhttp/MultipartFormData.hpp"
 #include <cstdlib>
 #include <string>
+#include <unistd.h>
 #include <utility>
 
 libhttp::MultipartFormData::MultipartFormData() {
@@ -363,4 +364,21 @@ libhttp::MultipartFormData::read(libhttp::Request &req, const std::string &uploa
   }
 
   return std::make_pair(libhttp::MultipartFormData::OK, status);
+}
+
+std::string libhttp::generateFileName(const std::string &prefix) {
+  std::string random;
+
+  std::string::size_type i = 0;
+
+  if (access(prefix.c_str(), F_OK) != 0)
+    return prefix;
+
+  while (true) {
+    if (access((prefix + "_" + std::to_string(i)).c_str(), F_OK) != 0)
+      break;
+    i++;
+  };
+
+  return prefix + "_" + std::to_string(i);
 }

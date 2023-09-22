@@ -18,9 +18,9 @@ namespace libhttp {
       OTHER,
     };
 
-    PartType                     type;
-    libhttp::HeadersMap          headers;
-    std::string                  filePath;
+    PartType            type;
+    libhttp::HeadersMap headers;
+    std::string         filePath;
 
     void clean();
   };
@@ -67,7 +67,8 @@ namespace libhttp {
 
     // Reads from the Request body
     // and continues from it where it was last time
-    ErrorStatePair read(libhttp::Request &req, const std::string& uploadRoot);
+    ErrorStatePair read(libhttp::Request &req, const std::string &uploadRoot);
   };
 
+  std::string generateFileName(const std::string &prefix);
 } // namespace libhttp
