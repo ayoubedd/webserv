@@ -21,7 +21,7 @@ namespace libhttp {
     struct file{
       std::string name;
       std::string date;
-      size_t size;
+      ssize_t size;
     };
     enum typeFile{
       FILE,

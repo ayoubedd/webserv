@@ -1,8 +1,23 @@
 #include "libhttp/Methods.hpp"
-
+#include <cstring>
 #include <iostream>
 #include <fstream>
 #include <ctime>
+#include <stdlib.h>
+
+bool directoryExists(std::string &path);
+bool findResource(std::string &path);
+bool deleteDirectory(const char* path);
+bool checkRangeRequest(libhttp::Headers &headers);
+std::pair<int ,int> getStartandEndRangeRequest(std::string str);
+void initGetRes(libhttp::Methods::GetRes &getReq,std::string &path);
+void setRange(libhttp::Methods::GetRes &getReq, std::pair<int, int> range);
+bool checkAutoindex(std::string &name);
+int getFileSize(const std::string &file_path);
+std::string getFileLastModification(const std::string &file_path);
+std::vector<std::pair<libhttp::Methods::typeFile, libhttp::Methods::file> > listFilesAndDirectories(std::string &path);
+std::string generateTemplate(std::string &path);
+//
 
 bool fileExists(std::string &filename) {
     std::ifstream file(filename);
@@ -19,6 +34,7 @@ bool isFolder(std::string &path)
 }
 
 bool directoryExists(std::string &path) {
+
   DIR* dir = opendir(path.c_str());
 
   if (dir == nullptr) {
@@ -36,6 +52,7 @@ bool findResource(std::string &path)
 }
 
 bool deleteDirectory(const char* path) {
+
     struct dirent* entry;
     DIR* dir = opendir(path);
 
@@ -45,21 +62,27 @@ bool deleteDirectory(const char* path) {
     while ((entry = readdir(dir))) {
       if(!strcmp(entry->d_name,".") || !strcmp(entry->d_name ,".."))
           continue ;
-    
-        std::string entryPath = std::string(path) + "/" + entry->d_name;
+      else {
+        std::string entryPath = std::string(path) + entry->d_name;
+        // std::cout << entryPath << std::endl;
         struct stat statBuf;
         if (stat(entryPath.c_str(), &statBuf) == 0) {
           if (S_ISDIR(statBuf.st_mode)) {
-                    deleteDirectory(entryPath.c_str());
-                }
-                else {
-                    if (remove(entryPath.c_str()) != 0) {
-                        return false;
-                    }
-                }
-            }
+              deleteDirectory(entryPath.c_str());
+          }
+          else {
+            std::cout << entryPath << std::endl;
+            if (remove(entryPath.c_str()) != 0) {
+              return false;
+          }
+        }
+      }
+    }
     }
     closedir(dir);
+    std::cout << "rmdir "<< path << std::endl;
+    if(rmdir(path) != 0)
+      return false;
     return true;
 }
 
@@ -81,11 +104,11 @@ std::pair<int ,int> getStartandEndRangeRequest(std::string str)
     return std::make_pair(start,end);
 }
 
-void initGetRes(libhttp::Methods::GetRes &getReq)
+void initGetRes(libhttp::Methods::GetRes &getReq,std::string &path)
 {
     getReq.fd = -1;
     getReq.range.first = 0;
-    getReq.range.second = -1;
+    getReq.range.second = getFileSize(path);
 }
 
 void setRange(libhttp::Methods::GetRes &getReq, std::pair<int, int> range)
@@ -114,17 +137,18 @@ int getFileSize(const std::string &file_path) {
     return static_cast<int>(size);
 }
 
-std::string get_file_last_modification(const std::string &file_path) {
+std::string getFileLastModification(const std::string &file_path) {
     std::ifstream file(file_path.c_str());
     std::string modification_date;
-  
-    if (!file) {
+ 
+    if (!file.is_open()) {
         return modification_date;
     }
     std::time_t modification_time = std::time(0);
     struct std::tm *modification_tm = std::localtime(&modification_time);
     char buffer[80];
     std::strftime(buffer, 80, "%Y-%m-%d %H:%M:%S", modification_tm);
+    modification_date = buffer;
     return modification_date;
 }
 
@@ -153,8 +177,8 @@ std::vector<std::pair<libhttp::Methods::typeFile, libhttp::Methods::file> > list
       // Check if it's a directory
       if (entry->d_type == DT_DIR) {
         pairOfFiles.second.name = entry->d_name;
-        pairOfFiles.second.date = get_file_last_modification(path+entry->d_name);
-        pairOfFiles.second.size = getFileSize(path+entry->d_name);
+        pairOfFiles.second.date = getFileLastModification(path+entry->d_name);
+        pairOfFiles.second.size = -1;
         pairOfFiles.first = libhttp::Methods::DIR;
         vecFileAndDir.push_back( pairOfFiles);
       }
@@ -163,6 +187,8 @@ std::vector<std::pair<libhttp::Methods::typeFile, libhttp::Methods::file> > list
       {
         pairOfFiles.second.name = entry->d_name;
         pairOfFiles.first = libhttp::Methods::FILE;
+        pairOfFiles.second.date = getFileLastModification(path+entry->d_name);
+        pairOfFiles.second.size = getFileSize(path+entry->d_name);
         vecFileAndDir.push_back( pairOfFiles);
       }
     }
@@ -187,13 +213,17 @@ std::string generateTemplate(std::string &path)
 
   std::vector<std::pair<libhttp::Methods::typeFile, libhttp::Methods::file> > test;
   test = listFilesAndDirectories(path);
+  
   for(size_t i = 0; i < test.size() ;i++)
   {
     tmp = listItemTemplate;
     ft_replace(tmp,"{{LINK_HERE}}",path + test[i].second.name);
     ft_replace(tmp,"{{FILE_NAME}}",test[i].second.name);
     ft_replace(tmp,"{{LAST_MODIFIED}}",test[i].second.date);
-    ft_replace(tmp,"{{SIZE_OR_TYPE}}",std::to_string(test[i].second.size));
+    if(test[i].second.size == -1)
+      ft_replace(tmp,"{{SIZE_OR_TYPE}}","Dir");
+    else
+      ft_replace(tmp,"{{SIZE_OR_TYPE}}",std::to_string(test[i].second.size));
     listItem+=tmp;
   }
   buf << templateFile.rdbuf();
@@ -208,24 +238,25 @@ std::string generateTemplate(std::string &path)
 // Request Get
 std::pair<libhttp::Methods::error,libhttp::Methods::GetRes> libhttp::Get(libhttp::Request &request,std::string path)
 {
-  // you must encode and decode
-  std::pair<ssize_t , ssize_t > range;
   libhttp::Methods::GetRes getReq;
 
-  // init sturct of get Request by -1,0,-1
-  initGetRes(getReq);
   // check Resource 
   if(!findResource(path))
     return  std::make_pair(libhttp::Methods::error::FILE_NOT_FOUND,getReq);
+
+  // init sturct of get Request by -1,0,-1
+  initGetRes(getReq,path);
 
   if(!isFolder(path))
   {
     getReq.fd = open(path.c_str(), O_RDONLY);
     if (getReq.fd == -1)
         return  std::make_pair(libhttp::Methods::error::FORBIDDEN,getReq);
+
   // handle bytes range get request
     if(checkRangeRequest(request.headers))
         setRange(getReq,getStartandEndRangeRequest(request.headers[libhttp::Headers::Content_Range]));
+
     return std::make_pair(libhttp::Methods::OK,getReq);
   }
 
@@ -251,7 +282,7 @@ libhttp::Methods::error libhttp::Deletes(std::string &path)
       if (deleteDirectory(path.c_str()))
         return libhttp::Methods::OK;
       else
-            return libhttp::Methods::FORBIDDEN;
+        return libhttp::Methods::FORBIDDEN;
     }
     else
     {
