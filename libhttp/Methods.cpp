@@ -1,9 +1,12 @@
 #include "libhttp/Methods.hpp"
+#include "libparse/Types.hpp"
+#include <cstddef>
 #include <cstring>
 #include <iostream>
 #include <fstream>
 #include <ctime>
 #include <stdlib.h>
+#include <string>
 
 bool directoryExists(std::string &path);
 bool findResource(std::string &path);
@@ -80,7 +83,6 @@ bool deleteDirectory(const char* path) {
     }
     }
     closedir(dir);
-    std::cout << "rmdir "<< path << std::endl;
     if(rmdir(path) != 0)
       return false;
     return true;
@@ -161,20 +163,16 @@ std::vector<std::pair<libhttp::Methods::typeFile, libhttp::Methods::file> > list
   
   struct dirent *entry;
 
-    // Open the directory
     if ((dir = opendir(path.c_str())) == NULL) {
      pairOfFiles.first = libhttp::Methods::NOT_FOUND;
       vecFileAndDir.push_back( pairOfFiles);
       return vecFileAndDir;
     }
-    // Read directory entries
     while ((entry = readdir(dir)) != NULL)
     {
-      // Skip . and .. entries
       if (!strcmp(entry->d_name,".") || !strcmp(entry->d_name ,"..") ){
           continue;
       }
-      // Check if it's a directory
       if (entry->d_type == DT_DIR) {
         pairOfFiles.second.name = entry->d_name;
         pairOfFiles.second.date = getFileLastModification(path+entry->d_name);
@@ -182,7 +180,6 @@ std::vector<std::pair<libhttp::Methods::typeFile, libhttp::Methods::file> > list
         pairOfFiles.first = libhttp::Methods::DIR;
         vecFileAndDir.push_back( pairOfFiles);
       }
-      // Check if it's a regular file
       else 
       {
         pairOfFiles.second.name = entry->d_name;
@@ -236,24 +233,43 @@ std::string generateTemplate(std::string &path)
 }
 
 // Request Get
+ssize_t libhttp::getFile(std::string &path,int status)
+{
+  ssize_t fd;
+  fd = open(path.c_str(), O_RDONLY);
+  if(status == 200)
+    return fd;
+
+  std::ifstream templateFile(path);
+  std::stringstream tmp;
+  std::string buffer;
+  tmp << templateFile.rdbuf();
+  templateFile.close();
+  buffer = tmp.str();
+  ft_replace(buffer,"{{STATUS}}",std::to_string(status));
+  int p[2];
+  if (pipe(p) < 0)
+      return -1;
+  write(p[1],buffer.c_str(),buffer.length());
+  return p[0];
+}
+
 std::pair<libhttp::Methods::error,libhttp::Methods::GetRes> libhttp::Get(libhttp::Request &request,std::string path)
 {
   libhttp::Methods::GetRes getReq;
 
-  // check Resource 
   if(!findResource(path))
     return  std::make_pair(libhttp::Methods::error::FILE_NOT_FOUND,getReq);
 
-  // init sturct of get Request by -1,0,-1
   initGetRes(getReq,path);
 
   if(!isFolder(path))
   {
-    getReq.fd = open(path.c_str(), O_RDONLY);
+    getReq.fd = getFile(path,200);
     if (getReq.fd == -1)
         return  std::make_pair(libhttp::Methods::error::FORBIDDEN,getReq);
 
-  // handle bytes range get request
+  getReq.contentType =libparse::getTypeFile(libparse::Types(),path);
     if(checkRangeRequest(request.headers))
         setRange(getReq,getStartandEndRangeRequest(request.headers[libhttp::Headers::Content_Range]));
 
@@ -268,11 +284,13 @@ std::pair<libhttp::Methods::error,libhttp::Methods::GetRes> libhttp::Get(libhttp
   templateStatic = generateTemplate(path);
   write(p[1],templateStatic.c_str(),templateStatic.length());
   getReq.fd = p[0];
-  // handle simple get request 
+  getReq.contentType = "text/html";
+  getReq.range.first = 0;
+  getReq.range.second = templateStatic.length();
+
   return std::make_pair(libhttp::Methods::OK,getReq);
 }
 
-// Request Delete
 libhttp::Methods::error libhttp::Deletes(std::string &path)
 {
   if(findResource(path))
