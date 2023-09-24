@@ -67,7 +67,6 @@ bool deleteDirectory(const char* path) {
           continue ;
       else {
         std::string entryPath = std::string(path) + entry->d_name;
-        // std::cout << entryPath << std::endl;
         struct stat statBuf;
         if (stat(entryPath.c_str(), &statBuf) == 0) {
           if (S_ISDIR(statBuf.st_mode)) {
@@ -254,6 +253,18 @@ ssize_t libhttp::getFile(std::string &path,int status)
   return p[0];
 }
 
+void setHeaders(libhttp::Methods::GetRes &vec,std::string contentType, int ContentLenght , int statusCode, std::string status)
+{
+  std::string tmp;
+
+  tmp = "HTTP/1.1 "+std::to_string(statusCode)+status + "\n";
+  vec.headers.insert(vec.headers.begin(),tmp.c_str(),tmp.c_str() + tmp.length());
+  tmp = "Content-Length: "+ std::to_string(ContentLenght) + "\n";
+  vec.headers.insert(vec.headers.begin(),tmp.c_str(),tmp.c_str() + tmp.length());
+  tmp = "Content-Type: "+contentType+"\n";
+  vec.headers.insert(vec.headers.begin(),tmp.c_str(),tmp.c_str() + tmp.length());
+}
+
 std::pair<libhttp::Methods::error,libhttp::Methods::GetRes> libhttp::Get(libhttp::Request &request,std::string path)
 {
   libhttp::Methods::GetRes getReq;
@@ -267,12 +278,12 @@ std::pair<libhttp::Methods::error,libhttp::Methods::GetRes> libhttp::Get(libhttp
   {
     getReq.fd = getFile(path,200);
     if (getReq.fd == -1)
-        return  std::make_pair(libhttp::Methods::error::FORBIDDEN,getReq);
+      return  std::make_pair(libhttp::Methods::error::FORBIDDEN,getReq);
 
-  getReq.contentType =libparse::getTypeFile(libparse::Types(),path);
     if(checkRangeRequest(request.headers))
-        setRange(getReq,getStartandEndRangeRequest(request.headers[libhttp::Headers::Content_Range]));
+      setRange(getReq,getStartandEndRangeRequest(request.headers[libhttp::Headers::Content_Range]));
 
+    setHeaders(getReq,libparse::getTypeFile(libparse::Types(),path),(getReq.range.second - getReq.range.first  + 1),200,"OK");
     return std::make_pair(libhttp::Methods::OK,getReq);
   }
 
@@ -284,10 +295,8 @@ std::pair<libhttp::Methods::error,libhttp::Methods::GetRes> libhttp::Get(libhttp
   templateStatic = generateTemplate(path);
   write(p[1],templateStatic.c_str(),templateStatic.length());
   getReq.fd = p[0];
-  getReq.contentType = "text/html";
-  getReq.range.first = 0;
-  getReq.range.second = templateStatic.length();
 
+  setHeaders(getReq,"text/html",templateStatic.length(),200,"OK");
   return std::make_pair(libhttp::Methods::OK,getReq);
 }
 

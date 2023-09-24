@@ -31,6 +31,7 @@ namespace libhttp {
     error err;
     struct GetRes {
       int fd;
+      std::vector<char > headers;
       std::pair<int,int> range;
       std::string contentType;
     };

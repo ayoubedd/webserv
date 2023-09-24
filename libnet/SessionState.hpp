@@ -14,7 +14,8 @@ namespace libnet {
     CGI_FIN,
     CGI_ERR,
 
-    WRITTING_TO_CLIENT,
+    WRITING_HEADERS,
+    WRITING_BODY,
     WRTTING_ERR,
     FIN
   };
