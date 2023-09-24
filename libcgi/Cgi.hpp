@@ -23,7 +23,7 @@ namespace libcgi {
     std::string          scriptPath;
     sockaddr_in         *clientAddr;
     CgiRequest           req;
-    CgiRespons           res;
+    Respons              res;
     int                  fd[2];
     pid_t                pid;
     size_t               bodySize;
@@ -39,5 +39,7 @@ namespace libcgi {
     error exec();
     error read();
     void  clean();
+
+    libnet::SessionState handleCgiBuff(char *ptr, size_t len);
   };
 } // namespace libcgi

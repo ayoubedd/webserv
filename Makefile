@@ -13,7 +13,7 @@ LIBPARSE=libparse/TestParser.cpp libparse/ReadFile.cpp \
 
 LIBNET=libnet/Net.cpp libnet/Session.cpp libnet/SessionState.cpp
 
-LIBCGI=libcgi/Cgi-req.cpp libcgi/Cgi.cpp
+LIBCGI=libcgi/Cgi-req.cpp libcgi/Cgi.cpp libcgi/Cgi-res.cpp
 
 CXXFILES=$(WEBSERV) $(LIBHTTP) $(LIBHTTP_TEST) $(LIBPARSE) $(LIBNET) $(LIBCGI)
 OBJFILES=$(patsubst %.cpp, %.o, $(CXXFILES))

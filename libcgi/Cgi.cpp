@@ -1,6 +1,8 @@
 #include "libcgi/Cgi.hpp"
+#include "libnet/SessionState.hpp"
 #include <assert.h>
 #include <cstring>
+#include <string.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
 #include <unistd.h>
@@ -12,6 +14,33 @@
   })                                                                                               \
                : (assert(ex)))
 #define log(msg) printf("%s\n", msg);
+
+ssize_t doesContainerHasBuff(const char *raw, size_t rLen, const char *ptr, size_t pLen) {
+  for (size_t i = 0; i < rLen - pLen + 1; i++) {
+    if (!strncmp(&raw[i], ptr, strlen(ptr)))
+      return i;
+  }
+  return -1;
+}
+
+libnet::SessionState libcgi::Cgi::handleCgiBuff(char *ptr, size_t len) {
+  ssize_t     idx;
+  const char *del = "\n\n";
+
+  if (this->state == libnet::CGI_READING_HEADERS) {
+    idx = doesContainerHasBuff(ptr, len, del, strlen(del));
+    if (idx == -1) {
+      this->res.cgiHeader.insert(this->res.cgiHeader.end(), ptr, ptr + len);
+      return libnet::CGI_READING_HEADERS;
+    }
+    this->state = libnet::CGI_READING_BODY;
+    this->res.cgiHeader.insert(this->res.cgiHeader.end(), ptr, ptr + idx + 1); // plus the /n
+    this->res.body.insert(this->res.body.end(), ptr + idx + 1, ptr + len);
+    return libnet::CGI_READING_BODY;
+  }
+  this->res.body.insert(this->res.body.end(), ptr, ptr + len);
+  return libnet::CGI_READING_BODY;
+}
 
 char *keyAndValAsStr(const std::string &key, const std::string &val) {
   char *keyAndVal;
@@ -102,8 +131,8 @@ libcgi::Cgi::error libcgi::Cgi::exec() {
 
   pid = fork();
   if (pid == 0) {
-    dup2(0, fd[0]);
-    dup2(1, fd[1]);
+    dup2(fd[0], 0);
+    dup2(fd[1], 1);
     argv = getScriptArgs(this->scriptPath);
     env = headersAsEnv(req.env);
     ::execve(this->scriptPath.c_str(), argv, env);
@@ -122,13 +151,16 @@ libcgi::Cgi::error libcgi::Cgi::read() {
   char    buff[4096 * 2];
   ssize_t len;
 
+  if (this->state == libnet::CGI_INIT)
+    this->state = libnet::CGI_READING_HEADERS;
   len = ::read(this->fd[0], buff, sizeof buff);
+  if (len == 0) {
+    this->state = libnet::CGI_FIN;
+    return OK;
+  }
   if (len < 0)
     return FAILED_READ;
-  buff[len] = 0;
-
-  std::cerr << "this is running" << std::endl;
-  // std::cout << buff << std::endl;
+  this->state = this->handleCgiBuff(buff, len);
   return OK;
 }
 

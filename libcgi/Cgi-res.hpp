@@ -5,8 +5,13 @@
 #include <vector>
 
 namespace libcgi {
-  struct CgiRespons {
-    libhttp::HeadersMap headers;
-    std::vector<char>   body;
+  struct Respons {
+    std::string       statusLine;
+    std::vector<char> cgiHeader;
+    std::vector<char> httpHeaders;
+    std::vector<char> body;
+
+    void build();
+    void cgiHeaderToHttpHeader(const std::string &h);
   };
 } // namespace libcgi
