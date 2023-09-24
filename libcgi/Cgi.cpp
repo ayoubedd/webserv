@@ -34,8 +34,8 @@ libnet::SessionState libcgi::Cgi::handleCgiBuff(char *ptr, size_t len) {
       return libnet::CGI_READING_HEADERS;
     }
     this->state = libnet::CGI_READING_BODY;
-    this->res.cgiHeader.insert(this->res.cgiHeader.end(), ptr, ptr + idx + 1); // plus the /n
-    this->res.body.insert(this->res.body.end(), ptr + idx + 1, ptr + len);
+    this->res.cgiHeader.insert(this->res.cgiHeader.end(), ptr, ptr + idx + 1); // plus the \n
+    this->res.body.insert(this->res.body.end(), ptr + idx + 2, ptr + len);     // plus 2 cus \n\n
     return libnet::CGI_READING_BODY;
   }
   this->res.body.insert(this->res.body.end(), ptr, ptr + len);
