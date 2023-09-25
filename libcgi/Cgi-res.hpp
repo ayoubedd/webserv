@@ -11,7 +11,9 @@ namespace libcgi {
     std::vector<char> httpHeaders;
     std::vector<char> body;
 
-    void build();
-    void cgiHeaderToHttpHeader(const std::string &h);
+    enum error { OK, MALFORMED };
+
+    error build();
+    error cgiHeaderToHttpHeader(const std::string &h);
   };
 } // namespace libcgi

@@ -9,6 +9,7 @@
 #include <sys/stat.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#include <utility>
 
 #define assertm(ex, msg)                                                                           \
   (ex == false ? ({                                                                                \
@@ -35,23 +36,28 @@ std::string asStr(int fd) {
   return ss.str();
 };
 
-libnet::SessionState libcgi::Cgi::handleCgiBuff(char *ptr, size_t len) {
-  ssize_t     idx;
-  const char *del = "\n\n";
+std::pair<libcgi::Cgi::error, libnet::SessionState> libcgi::Cgi::handleCgiBuff(char  *ptr,
+                                                                               size_t len) {
+  ssize_t        idx;
+  const char    *del = "\n\n";
+  Respons::error err;
 
   if (this->state == libnet::CGI_READING_HEADERS) {
     idx = doesContainerHasBuff(ptr, len, del, strlen(del));
     if (idx == -1) {
       this->res.cgiHeader.insert(this->res.cgiHeader.end(), ptr, ptr + len);
-      return libnet::CGI_READING_HEADERS;
+      return std::make_pair(OK, libnet::CGI_READING_HEADERS);
     }
     this->state = libnet::CGI_READING_BODY;
     this->res.cgiHeader.insert(this->res.cgiHeader.end(), ptr, ptr + idx + 1); // plus the \n
     this->res.body.insert(this->res.body.end(), ptr + idx + 2, ptr + len);     // plus 2 cus \n\n
-    return libnet::CGI_READING_BODY;
+    err = this->res.build();
+    if (err != Respons::OK)
+      return std::make_pair(MALFORMED, libnet::CGI_READING_BODY);
+    return std::make_pair(OK, libnet::CGI_READING_BODY);
   }
   this->res.body.insert(this->res.body.end(), ptr, ptr + len);
-  return libnet::CGI_READING_BODY;
+  return std::make_pair(OK, libnet::CGI_READING_BODY);
 }
 
 char *keyAndValAsStr(const std::string &key, const std::string &val) {
@@ -165,8 +171,9 @@ libcgi::Cgi::error libcgi::Cgi::exec() {
 }
 
 libcgi::Cgi::error libcgi::Cgi::read() {
-  char    buff[4096 * 2];
-  ssize_t len;
+  char                                   buff[4096 * 2];
+  ssize_t                                len;
+  std::pair<error, libnet::SessionState> newState;
 
   if (this->state == libnet::CGI_INIT)
     this->state = libnet::CGI_READING_HEADERS;
@@ -177,7 +184,10 @@ libcgi::Cgi::error libcgi::Cgi::read() {
   }
   if (len < 0)
     return FAILED_READ;
-  this->state = this->handleCgiBuff(buff, len);
+  newState = this->handleCgiBuff(buff, len);
+  this->state = newState.second;
+  if (newState.first != OK)
+    return MALFORMED;
   return OK;
 }
 

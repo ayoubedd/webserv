@@ -19,7 +19,8 @@ namespace libcgi {
       FAILED_OPEN_DIR,
       FAILED_FORK,
       FAILED_WRITE,
-      FAILED_READ
+      FAILED_READ,
+      MALFORMED
     };
 
     libhttp::Request    *httpReq;
@@ -53,6 +54,6 @@ namespace libcgi {
      */
     void clean();
 
-    libnet::SessionState handleCgiBuff(char *ptr, size_t len);
+    std::pair<error, libnet::SessionState> handleCgiBuff(char *ptr, size_t len);
   };
 } // namespace libcgi
