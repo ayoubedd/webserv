@@ -118,23 +118,32 @@ libcgi::Cgi::Cgi(libhttp::Request *httpReq, std::string scriptPath, sockaddr_in 
     , bodySize(0)
     , bufferSize(bufferSize) {}
 
-libcgi::Cgi::error libcgi::Cgi::init(std::string serverName, std::string scriptName,
-                                     std::string localReqPath, std::string serverPort,
-                                     std::string protocol, std::string serverSoftware) {
-  struct stat s;
+libcgi::Cgi::error libcgi::Cgi::init(std::string serverName, std::string localReqPath,
+                                     std::string serverPort, std::string protocol,
+                                     std::string serverSoftware) {
+  struct stat            s;
+  std::string::size_type i;
+  std::string            scriptName;
 
-  this->req.init(serverName, scriptName, localReqPath, serverPort, protocol, serverSoftware);
   if (::stat(this->scriptPath.c_str(), &s) != 0)
     return FAILED_OPEN_SCRIPT;
   if (!(s.st_mode & S_IXUSR))
     return FAILED_EXEC_PERM;
-  this->req.build(this->httpReq);
 
   if (::pipe(fd) < 0)
     return FAILED_OPEN_PIPE;
   this->cgiInput = ::mkstemp(temp);
   if (cgiInput < 0)
     return FAILED_OPEN_FILE;
+  i = this->scriptPath.rfind('/');
+  if (i == std::string::npos)
+    scriptName = this->scriptPath;
+  else
+    scriptName = this->scriptPath.substr(i + 1, this->scriptPath.size() - i);
+
+  this->req.init(serverName, scriptName, localReqPath, serverPort, protocol, serverSoftware);
+  this->req.build(this->httpReq);
+  std::cerr << this->req.ctx.scriptName << std::endl;
   return OK;
 }
 

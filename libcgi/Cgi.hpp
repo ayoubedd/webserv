@@ -38,9 +38,8 @@ namespace libcgi {
     Cgi(libhttp::Request *httpReq, std::string scriptPath, sockaddr_in *clientInfo,
         size_t bufferSize = 8192);
 
-    error init(std::string serverName, std::string scriptName, std::string localReqPath,
-               std::string serverPort = "80", std::string protocol = "HTTP/1.1",
-               std::string serverSoftware = "WebServ");
+    error init(std::string serverName, std::string localReqPath, std::string serverPort = "80",
+               std::string protocol = "HTTP/1.1", std::string serverSoftware = "WebServ");
 
     /**
      * this function does not ensure that all bytes were written
