@@ -151,6 +151,7 @@ libcgi::Cgi::error libcgi::Cgi::write(std::vector<char> &body) {
 libcgi::Cgi::error libcgi::Cgi::exec() {
   char **env, **argv;
 
+  lseek(this->cgiInput, 0, SEEK_SET);
   pid = fork();
   if (pid == 0) {
     dup2(this->cgiInput, STDIN_FILENO);
