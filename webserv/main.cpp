@@ -1,41 +1,32 @@
+#include "libcgi/Cgi.hpp"
 #include "libnet/Net.hpp"
 #include "libparse/Config.hpp"
 #include "libparse/utilities.hpp"
+#include <assert.h>
+#include <string.h>
 
-void sessionsHandler(libnet::Netenv &net) {
-  libnet::Sessions::iterator session;
-  libnet::Sessions &readySessions = net.readyClients;
-
-  session = readySessions.begin();
-  while (session != readySessions.end()) {
-    session->second->reader.read(session->second->status);
-    std::cout << session->second->request << std::endl;
-    session++;
-  };
-}
+#define assertm(exp, msg)                                                                          \
+  (exp == false ? ({                                                                               \
+    std::cerr << msg << std::endl;                                                                 \
+    assert(exp);                                                                                   \
+  })                                                                                               \
+                : assert(exp))
 
 int main(int argc, char *argv[]) {
-  if (argc < 2) {
-    std::cerr << "error: Missing config file \n";
-    return 0;
-  }
+  sockaddr_in        client;
+  libcgi::Cgi::error e;
+  bzero(&client, sizeof client);
+  libhttp::Request r(&client);
+  libcgi::Cgi      c(&r, "/tmp/main.pl", &client);
 
-  libparse::Domains domains;
-  libnet::Netenv net;
+  ///////////////////////////////////////////////////
+  e = c.init("domain.com", "main.pl", "/tmp/main.pl");
+  assertm(e == libcgi::Cgi::OK, "failed init");
 
-  libparse::parser(argv[1], domains);
-
-  net.setupSockets(domains);
-
-  while (true) {
-    net.prepFdSets();
-    net.awaitEvents();
-
-    if (!net.readReadySockets.empty())
-      net.acceptNewClients();
-
-    sessionsHandler(net);
-  };
-
+  e = c.exec();
+  assertm(e == libcgi::Cgi::OK, "failed exec");
+  e = c.read();
+  assertm(e == libcgi::Cgi::OK, "failed read");
+  c.clean();
   return 0;
 }

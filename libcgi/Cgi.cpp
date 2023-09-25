@@ -1,8 +1,11 @@
 #include "libcgi/Cgi.hpp"
 #include "libnet/SessionState.hpp"
 #include <assert.h>
+#include <cstdlib>
 #include <cstring>
-#include <string.h>
+#include <fcntl.h>
+#include <sstream>
+#include <stdlib.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
 #include <unistd.h>
@@ -15,6 +18,8 @@
                : (assert(ex)))
 #define log(msg) printf("%s\n", msg);
 
+char libcgi::Cgi::temp[] = "/tmp/webserv/webserv_cgi_in_XXXXXX";
+
 ssize_t doesContainerHasBuff(const char *raw, size_t rLen, const char *ptr, size_t pLen) {
   for (size_t i = 0; i < rLen - pLen + 1; i++) {
     if (!strncmp(&raw[i], ptr, strlen(ptr)))
@@ -22,6 +27,13 @@ ssize_t doesContainerHasBuff(const char *raw, size_t rLen, const char *ptr, size
   }
   return -1;
 }
+
+std::string asStr(int fd) {
+  std::stringstream ss;
+
+  ss << fd;
+  return ss.str();
+};
 
 libnet::SessionState libcgi::Cgi::handleCgiBuff(char *ptr, size_t len) {
   ssize_t     idx;
@@ -88,15 +100,17 @@ void delete2d(char **env) {
   delete[] env;
 }
 
-libcgi::Cgi::Cgi(libhttp::Request *httpReq, std::string scriptPath, sockaddr_in *clientAddr)
+libcgi::Cgi::Cgi(libhttp::Request *httpReq, std::string scriptPath, sockaddr_in *clientAddr,
+                 size_t bufferSize)
     : httpReq(httpReq)
     , scriptPath(scriptPath)
     , clientAddr(clientAddr)
     , req()
+    , state(libnet::CGI_INIT)
     , fd{-1, -1}
     , pid(-1)
     , bodySize(0)
-    , state(libnet::CGI_INIT) {}
+    , bufferSize(bufferSize) {}
 
 libcgi::Cgi::error libcgi::Cgi::init(std::string serverName, std::string scriptName,
                                      std::string localReqPath, std::string serverPort,
@@ -105,24 +119,26 @@ libcgi::Cgi::error libcgi::Cgi::init(std::string serverName, std::string scriptN
 
   this->req.init(serverName, scriptName, localReqPath, serverPort, protocol, serverSoftware);
   if (::stat(this->scriptPath.c_str(), &s) != 0)
-    return FAILED_OPEN_FILE;
+    return FAILED_OPEN_SCRIPT;
   if (!(s.st_mode & S_IXUSR))
     return FAILED_EXEC_PERM;
   this->req.build(this->httpReq);
 
   if (::pipe(fd) < 0)
     return FAILED_OPEN_PIPE;
-
+  this->cgiInput = ::mkstemp(temp);
+  if (cgiInput < 0)
+    return FAILED_OPEN_FILE;
   return OK;
 }
 
 libcgi::Cgi::error libcgi::Cgi::write(std::vector<char> &body) {
   int len;
 
-  len = ::write(this->fd[1], &body.front(), body.size());
+  len = ::write(this->cgiInput, &body.front(), body.size());
   if (len < 0)
     return FAILED_WRITE;
-  this->bodySize += body.size();
+  this->bodySize += len;
   return OK;
 };
 
@@ -131,17 +147,18 @@ libcgi::Cgi::error libcgi::Cgi::exec() {
 
   pid = fork();
   if (pid == 0) {
-    dup2(fd[0], 0);
-    dup2(fd[1], 1);
+    dup2(this->cgiInput, STDIN_FILENO);
+    dup2(this->fd[1], STDOUT_FILENO);
     argv = getScriptArgs(this->scriptPath);
     env = headersAsEnv(req.env);
     ::execve(this->scriptPath.c_str(), argv, env);
     delete2d(argv);
     delete2d(env);
-    std::cerr << "child err" << std::endl;
+    std::cout << "Status: 500 Internal Server Error\n\n";
     // write to the fd the error
     exit(1);
   } else if (pid > 0) {
+    close(fd[1]);
     return OK;
   }
   return FAILED_FORK;
@@ -166,6 +183,7 @@ libcgi::Cgi::error libcgi::Cgi::read() {
 
 void libcgi::Cgi::clean() {
   close(this->fd[0]);
-  close(this->fd[1]);
-  waitpid(this->pid, 0, 0); // this will block add WNOHANG
+  close(this->cgiInput);
+  // waitpid(this->pid, 0, 0); // this will block
+  kill(this->pid, SIGKILL);
 }
