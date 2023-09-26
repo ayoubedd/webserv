@@ -53,27 +53,14 @@ static bool isMethodAllowedOnRoute(const libparse::RouteProps *route, const std:
 }
 
 void libhttp::multiplexer(libnet::Session *session, const libparse::Domains &domains) {
-  libhttp::Request       *req = session->reader.requests.front();
-  std::string             host = extractHost(req->headers.headers);
-  const libparse::Domain *domain = matchDomain(domains, host);
-
-  if (domain == NULL) {
-    // config file contains zero domains
-    return;
-  }
-
+  libhttp::Request           *req = session->reader.requests.front();
+  std::string                 host = extractHost(req->headers.headers);
+  const libparse::Domain     *domain = matchDomain(domains, host);
   const libparse::RouteProps *route = matchRoute(*domain, req->reqTarget.path);
-
-  if (route == NULL) {
-    // No matched route
-    return;
-  }
-
-  // TODO:
-  //  - should handle unsupported methods. (count them as not allowed ?).
 
   if (isMethodAllowedOnRoute(route, req->method) == false) {
     // Method not allowed
+    // 405 Method Not Allowed
     return;
   }
 
@@ -85,11 +72,6 @@ void libhttp::multiplexer(libnet::Session *session, const libparse::Domains &dom
 
   }
 
-  if (req->method == "POST") {
-
-  }
-
-  else {
-    // Unsupported Method
+  else if (req->method == "POST") {
   }
 }
