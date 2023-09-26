@@ -63,4 +63,8 @@ void libhttp::multiplexer(libnet::Session *session, const libparse::Domains &dom
   else if (req->method == "POST") {
 
   }
+
+  else {
+    // Unsupported Method
+  }
 }
