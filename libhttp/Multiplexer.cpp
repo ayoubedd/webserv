@@ -33,7 +33,11 @@ static std::string extractHost(libhttp::HeadersMap &headers) {
   return "";
 }
 
-static bool isRequestHandlerCgi() { return false; }
+static bool isRequestHandlerCgi(const libparse::RouteProps *route) {
+  if (route->cgi.first.length() > 0 && route->cgi.second.length() > 0)
+    return true;
+  return false;
+}
 
 static bool isMethodAllowedOnRoute(const libparse::RouteProps *route, const std::string &method) {
   std::vector<std::string>::const_iterator begin = route->methods.begin();
@@ -73,7 +77,9 @@ void libhttp::multiplexer(libnet::Session *session, const libparse::Domains &dom
     return;
   }
 
-  if (isRequestHandlerCgi()) {}
+  if (isRequestHandlerCgi(route)) {
+    // Cgi
+  }
 
   else if (req->method == "GET" || req->method == "DELETE") {
 
