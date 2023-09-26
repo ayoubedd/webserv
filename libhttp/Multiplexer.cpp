@@ -35,6 +35,19 @@ static std::string extractHost(libhttp::HeadersMap &headers) {
 
 static bool isRequestHandlerCgi() { return false; }
 
+static bool isMethodAllowedOnRoute(const libparse::RouteProps *route, const std::string &method) {
+  std::vector<std::string>::const_iterator begin = route->methods.begin();
+  std::vector<std::string>::const_iterator end = route->methods.end();
+
+  while (begin != end) {
+    if (*begin == method)
+      return true;
+    begin++;
+  }
+
+  return false;
+}
+
 void libhttp::multiplexer(libnet::Session *session, const libparse::Domains &domains) {
   libhttp::Request       *req = session->reader.requests.front();
   std::string             host = extractHost(req->headers.headers);
@@ -52,15 +65,21 @@ void libhttp::multiplexer(libnet::Session *session, const libparse::Domains &dom
     return;
   }
 
-  if (isRequestHandlerCgi()) {
+  // TODO:
+  //  - should handle unsupported methods. (count them as not allowed ?).
+
+  if (isMethodAllowedOnRoute(route, req->method) == false) {
+    // Method not allowed
+    return;
+  }
+
+  if (isRequestHandlerCgi()) {}
+
+  else if (req->method == "GET" || req->method == "DELETE") {
 
   }
 
-  if (req->method == "GET" || req->method == "DELETE") {
-
-  }
-
-  else if (req->method == "POST") {
+  if (req->method == "POST") {
 
   }
 
