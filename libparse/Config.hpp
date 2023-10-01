@@ -32,6 +32,7 @@ namespace libparse {
     std::string index;
     std::string port;
     Routes routes;
+    std::string defaultServer;
   };
 
   typedef struct token {

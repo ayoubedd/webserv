@@ -78,6 +78,7 @@ void printConfig(libparse::Domains d) {
   itR = itD->second.routes.begin();
   while (itD != d.end()) {
     std::cout << "Domain: " << itD->first << std::endl;
+    std::cout << "\t\t\t\tsever default: " << itD->second.defaultServer<< std::endl;
     std::cout << "\t\t\t\troot: " << itD->second.root << std::endl;
     std::cout << "\t\t\t\tindex: " << itD->second.index << std::endl;
     std::cout << "\t\t\t\terror: " << itD->second.error << std::endl;
