@@ -11,6 +11,14 @@ enum BODY_FORMAT {
   MULTIPART_FORMDATA,
 };
 
+enum HANDLER_ERROR {
+  OK,
+  ERROR_WRITTING_TO_FILE,
+  ERROR_OPENING_FILE,
+  BAD_REQUEST,
+  NON,
+};
+
 static BODY_FORMAT extractBodyFormat(const libhttp::HeadersMap &headers) {
   libhttp::HeadersMap::const_iterator transferEncodingIter = headers.find("Transfer-Encoding");
   if (transferEncodingIter != headers.end()) {
@@ -27,8 +35,8 @@ static BODY_FORMAT extractBodyFormat(const libhttp::HeadersMap &headers) {
   return NORMAL;
 };
 
-static void chunkedPostHandler(libhttp::Request &req, libhttp::ChunkDecoder &chunkDecoder,
-                               const std::string &uploadRoot) {
+static HANDLER_ERROR chunkedPostHandler(libhttp::Request &req, libhttp::ChunkDecoder &chunkDecoder,
+                                        const std::string &uploadRoot) {
   libhttp::ChunkDecoder::ErrorStatusPair res;
 
   while (true) {
@@ -38,12 +46,19 @@ static void chunkedPostHandler(libhttp::Request &req, libhttp::ChunkDecoder &chu
     break;
   }
 
+  if (res.first != libhttp::ChunkDecoder::OK) {
+    // Something went wrong.
+    return BAD_REQUEST;
+  }
+
   if (res.second == libhttp::ChunkDecoder::DONE) {
     // Upload done.
   }
+
+  return OK;
 }
 
-static void normalPostHandler(libhttp::Request &req, const std::string &uploadRoot) {
+static HANDLER_ERROR normalPostHandler(libhttp::Request &req, const std::string &uploadRoot) {
   std::fstream file;
 
   std::string fileName = req.reqTarget.path;
@@ -56,7 +71,7 @@ static void normalPostHandler(libhttp::Request &req, const std::string &uploadRo
   if (file.is_open() == false) {
     // Error opening the file
     std::cerr << "normalPostHandler::Error: faillure opening output file" << std::endl;
-    return;
+    return ERROR_OPENING_FILE;
   }
 
   file.write(&req.body[0], req.body.size());
@@ -66,16 +81,18 @@ static void normalPostHandler(libhttp::Request &req, const std::string &uploadRo
     std::remove(fullPath.c_str());
     std::cerr << "normalPostHandler::Error: faillure writting buffer to file" << std::endl;
     file.close();
-    return;
+    return ERROR_WRITTING_TO_FILE;
   }
 
-  file.close();
   // Success
+  file.close();
+
+  return OK;
 }
 
-static void multipartFormDataPostHandler(libhttp::Request           &req,
-                                         libhttp::MultipartFormData &mpFormData,
-                                         const std::string          &uploadRoot) {
+static HANDLER_ERROR multipartFormDataPostHandler(libhttp::Request           &req,
+                                                  libhttp::MultipartFormData &mpFormData,
+                                                  const std::string          &uploadRoot) {
 
   libhttp::MultipartFormData::ErrorStatePair res;
 
@@ -88,28 +105,38 @@ static void multipartFormDataPostHandler(libhttp::Request           &req,
 
   if (res.first != libhttp::MultipartFormData::OK) {
     // Something went wrong.
+    return BAD_REQUEST;
   }
 
   if (res.second == libhttp::MultipartFormData::DONE) {
     // Upload done.
   }
+
+  return OK;
 }
 
 void libhttp::postHandler(libhttp::Request &req, libhttp::TransferEncoding &te,
                           libhttp::Multipart &mp, const std::string &uploadRoot) {
-  BODY_FORMAT bodyFormat;
+  BODY_FORMAT   bodyFormat;
+  HANDLER_ERROR err;
 
   bodyFormat = extractBodyFormat(req.headers.headers);
 
-  if (bodyFormat == NORMAL) {
-    normalPostHandler(req, uploadRoot);
+  err = NON;
+  if (bodyFormat == NORMAL)
+    err = normalPostHandler(req, uploadRoot);
+  else if (bodyFormat == CHUNKED)
+    err = chunkedPostHandler(req, te.chunk.decoder, uploadRoot);
+  else if (bodyFormat == MULTIPART_FORMDATA)
+    err = multipartFormDataPostHandler(req, mp.formData, uploadRoot);
+  else {
+    //
   }
 
-  if (bodyFormat == CHUNKED) {
-    chunkedPostHandler(req, te.chunk.decoder, uploadRoot);
+  if (err != HANDLER_ERROR::OK) {
+    // Error handling.
   }
 
-  if (bodyFormat == MULTIPART_FORMDATA) {
-    multipartFormDataPostHandler(req, mp.formData, uploadRoot);
-  }
+  // Success.
+  // Start building response.
 }
