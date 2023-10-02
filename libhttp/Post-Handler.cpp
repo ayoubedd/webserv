@@ -16,7 +16,7 @@ enum HANDLER_ERROR {
   ERROR_WRITTING_TO_FILE,
   ERROR_OPENING_FILE,
   BAD_REQUEST,
-  NON,
+  DONE,
 };
 
 static BODY_FORMAT extractBodyFormat(const libhttp::HeadersMap &headers) {
@@ -51,16 +51,18 @@ static HANDLER_ERROR chunkedPostHandler(libhttp::Request &req, libhttp::ChunkDec
     return BAD_REQUEST;
   }
 
-  if (res.second == libhttp::ChunkDecoder::DONE) {
-    // Upload done.
-  }
+  if (res.second != libhttp::ChunkDecoder::DONE)
+    return OK;
 
-  return OK;
+  // Upload done.
+
+  return DONE;
 }
 
 static HANDLER_ERROR normalPostHandler(libhttp::Request &req, const std::string &uploadRoot) {
   std::fstream file;
 
+  std::cout << "normal upload hitting" << std::endl;
   std::string fileName = req.reqTarget.path;
   if (fileName == "/" || fileName.length() == 0)
     fileName = "/uploaded_file";
@@ -87,7 +89,7 @@ static HANDLER_ERROR normalPostHandler(libhttp::Request &req, const std::string 
   // Success
   file.close();
 
-  return OK;
+  return DONE;
 }
 
 static HANDLER_ERROR multipartFormDataPostHandler(libhttp::Request           &req,
@@ -108,11 +110,12 @@ static HANDLER_ERROR multipartFormDataPostHandler(libhttp::Request           &re
     return BAD_REQUEST;
   }
 
-  if (res.second == libhttp::MultipartFormData::DONE) {
-    // Upload done.
-  }
+  if (res.second != libhttp::MultipartFormData::DONE)
+    return OK;
 
-  return OK;
+  // Upload done.
+
+  return DONE;
 }
 
 void libhttp::postHandler(libhttp::Request &req, libhttp::TransferEncoding &te,
@@ -122,21 +125,27 @@ void libhttp::postHandler(libhttp::Request &req, libhttp::TransferEncoding &te,
 
   bodyFormat = extractBodyFormat(req.headers.headers);
 
-  err = NON;
-  if (bodyFormat == NORMAL)
-    err = normalPostHandler(req, uploadRoot);
-  else if (bodyFormat == CHUNKED)
-    err = chunkedPostHandler(req, te.chunk.decoder, uploadRoot);
-  else if (bodyFormat == MULTIPART_FORMDATA)
-    err = multipartFormDataPostHandler(req, mp.formData, uploadRoot);
-  else {
-    //
+  switch (bodyFormat) {
+    case NORMAL:
+      err = normalPostHandler(req, uploadRoot);
+    case CHUNKED:
+      err = chunkedPostHandler(req, te.chunk.decoder, uploadRoot);
+    case MULTIPART_FORMDATA:
+      err = multipartFormDataPostHandler(req, mp.formData, uploadRoot);
+      break;
   }
 
-  if (err != HANDLER_ERROR::OK) {
-    // Error handling.
+  // Uploading still ongoing.
+  if (err == OK) {
+    return;
+  }
+
+  if (err != DONE) {
+    // 500 Internal Server Error
   }
 
   // Success.
   // Start building response.
+
+  std::cout << "upload done" << std::endl;
 }
