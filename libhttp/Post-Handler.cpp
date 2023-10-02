@@ -62,7 +62,6 @@ static HANDLER_ERROR chunkedPostHandler(libhttp::Request &req, libhttp::ChunkDec
 static HANDLER_ERROR normalPostHandler(libhttp::Request &req, const std::string &uploadRoot) {
   std::fstream file;
 
-  std::cout << "normal upload hitting" << std::endl;
   std::string fileName = req.reqTarget.path;
   if (fileName == "/" || fileName.length() == 0)
     fileName = "/uploaded_file";
@@ -72,7 +71,6 @@ static HANDLER_ERROR normalPostHandler(libhttp::Request &req, const std::string 
 
   if (file.is_open() == false) {
     // Error opening the file
-    std::cerr << "normalPostHandler::Error: faillure opening output file" << std::endl;
     return ERROR_OPENING_FILE;
   }
 
@@ -81,7 +79,6 @@ static HANDLER_ERROR normalPostHandler(libhttp::Request &req, const std::string 
   // Error wrtting to fs
   if (file.bad() == true) {
     std::remove(fullPath.c_str());
-    std::cerr << "normalPostHandler::Error: faillure writting buffer to file" << std::endl;
     file.close();
     return ERROR_WRITTING_TO_FILE;
   }
@@ -146,6 +143,4 @@ void libhttp::postHandler(libhttp::Request &req, libhttp::TransferEncoding &te,
 
   // Success.
   // Start building response.
-
-  std::cout << "upload done" << std::endl;
 }
