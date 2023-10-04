@@ -7,6 +7,8 @@ off_t libhttp::Writer::advanceOffSet(int fd, size_t start)
   return lseek(fd,start,SEEK_SET); 
 }
 
+libhttp::Writer::Writer(int fd, off_t offSet, int bufferSize):fd(fd),
+  offSet(offSet),readBuffSize(bufferSize),writeBuffSize(bufferSize){}
 libhttp::Writer::erorr libhttp::Writer::write()
 {
   char buffer[readBuffSize];
@@ -33,16 +35,16 @@ libhttp::Writer::erorr libhttp::Writer::write()
         responses.front()->headers.clear();
   }
 
-  if(this->responses.front()->buffer.size() < 65000)
+  if(this->responses.front()->buffer.size() < readBuffSize)
   { 
       sizeBufferReading = ::read(responses.front()->fd,buffer,readBuffSize); 
-      if(sizeBufferReading == 0)
+      if(sizeBufferReading == 0 && responses.front()->buffer.size() == 0)
         return libhttp::Writer::erorr::DONE;
       if(sizeBufferReading == -1)
         return libhttp::Writer::erorr::ERORR;
   }
 
-    this->responses.front()->buffer.insert(responses.front()->buffer.end(), buffer,buffer+readBuffSize);  
+    this->responses.front()->buffer.insert(responses.front()->buffer.end(), buffer,buffer+sizeBufferReading);  
     sizeBufferWriting = send(this->fd, &responses.front()->buffer, responses.front()->buffer.size(),0);
 
     if(sizeBufferReading == -1)
