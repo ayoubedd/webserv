@@ -7,6 +7,7 @@
 #include <ctime>
 #include <stdlib.h>
 #include <string>
+#include <utility>
 
 bool directoryExists(std::string &path);
 bool findResource(std::string &path);
@@ -257,12 +258,12 @@ void setHeaders(libhttp::Methods::GetRes &vec,std::string contentType, int Conte
 {
   std::string tmp;
 
-  tmp = "HTTP/1.1 "+std::to_string(statusCode)+status + "\r\n";
-  vec.headers.insert(vec.headers.begin(),tmp.c_str(),tmp.c_str() + tmp.length());
+  tmp = "HTTP/1.1 "+std::to_string(statusCode)+ " " +status + "\r\n";
+  vec.headers.insert(vec.headers.end(),tmp.c_str(),tmp.c_str() + tmp.length());
   tmp = "Content-Length: "+ std::to_string(ContentLenght) + "\r\n";
-  vec.headers.insert(vec.headers.begin(),tmp.c_str(),tmp.c_str() + tmp.length());
+  vec.headers.insert(vec.headers.end(),tmp.c_str(),tmp.c_str() + tmp.length());
   tmp = "Content-Type: "+contentType+"\r\n\r\n";
-  vec.headers.insert(vec.headers.begin(),tmp.c_str(),tmp.c_str() + tmp.length());
+  vec.headers.insert(vec.headers.end(),tmp.c_str(),tmp.c_str() + tmp.length());
 }
 
 std::pair<libhttp::Methods::error,libhttp::Methods::GetRes> libhttp::Get(libhttp::Request &request,std::string path)
@@ -270,7 +271,7 @@ std::pair<libhttp::Methods::error,libhttp::Methods::GetRes> libhttp::Get(libhttp
   libhttp::Methods::GetRes getReq;
 
   if(!findResource(path))
-    return  std::make_pair(libhttp::Methods::error::FILE_NOT_FOUND,getReq);
+    return  std::make_pair(libhttp::Methods::FILE_NOT_FOUND,getReq);
 
   initGetRes(getReq,path);
 
@@ -278,7 +279,7 @@ std::pair<libhttp::Methods::error,libhttp::Methods::GetRes> libhttp::Get(libhttp
   {
     getReq.fd = getFile(path,200);
     if (getReq.fd == -1)
-      return  std::make_pair(libhttp::Methods::error::FORBIDDEN,getReq);
+      return  std::make_pair(libhttp::Methods::FORBIDDEN,getReq);
 
     if(checkRangeRequest(request.headers))
       setRange(getReq,getStartandEndRangeRequest(request.headers[libhttp::Headers::Content_Range]));
@@ -300,24 +301,37 @@ std::pair<libhttp::Methods::error,libhttp::Methods::GetRes> libhttp::Get(libhttp
   return std::make_pair(libhttp::Methods::OK,getReq);
 }
 
-libhttp::Methods::error libhttp::Deletes(std::string &path)
+std::vector<char > generateHeaders(std::string contentType, int ContentLenght , int statusCode, std::string status)
+{
+  std::string tmp;
+  std::vector<char > headers;
+
+  tmp = "HTTP/1.1 "+std::to_string(statusCode)+ " " +status + "\r\n";
+  headers.insert(headers.end(),tmp.c_str(),tmp.c_str() + tmp.length());
+  tmp = "Content-Length: "+ std::to_string(ContentLenght) + "\r\n";
+  headers.insert(headers.end(),tmp.c_str(),tmp.c_str() + tmp.length());
+  tmp = "Content-Type: "+contentType+"\r\n\r\n";
+  headers.insert(headers.end(),tmp.c_str(),tmp.c_str() + tmp.length());
+  return headers;
+}
+std::pair<libhttp::Methods::error,std::vector<char> > libhttp::Deletes(std::string &path)
 {
   if(findResource(path))
   {
     if(isFolder(path))
     {
       if (deleteDirectory(path.c_str()))
-        return libhttp::Methods::OK;
+        return std::make_pair(libhttp::Methods::OK,generateHeaders(libparse::getTypeFile(libparse::Types(),path),getFileSize(path),200,"OK"));
       else
-        return libhttp::Methods::FORBIDDEN;
+        return std::make_pair(libhttp::Methods::FORBIDDEN,generateHeaders(libparse::getTypeFile(libparse::Types(),path),getFileSize(path),403,"Forbidden"));
     }
     else
     {
       if (remove(path.c_str()) != 0)
-        return libhttp::Methods::FORBIDDEN;
+        return std::make_pair(libhttp::Methods::FORBIDDEN,generateHeaders(libparse::getTypeFile(libparse::Types(),path),getFileSize(path),403,"Forbidden"));
       else
-        return libhttp::Methods::OK;
+        return std::make_pair(libhttp::Methods::OK,generateHeaders(libparse::getTypeFile(libparse::Types(),path),getFileSize(path),200,"OK"));
     }
   }
-  return libhttp::Methods::FILE_NOT_FOUND;
+  return std::make_pair(libhttp::Methods::FILE_NOT_FOUND,generateHeaders(libparse::getTypeFile(libparse::Types(),path),getFileSize(path),404,"File Not Found"));
 }

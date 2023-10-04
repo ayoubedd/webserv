@@ -33,12 +33,12 @@ namespace libhttp {
       int fd;
       std::vector<char > headers;
       std::pair<int,int> range;
-      std::string contentType;
     };
 
  };    
   std::pair<Methods::error,Methods::GetRes> Get(Request &request, std::string path);
-  Methods::error Deletes(std::string &path);
+  // Methods::error Deletes(std::string &path);
+  std::pair<Methods::error,std::vector<char> > Deletes(std::string &path);
   ssize_t getFile(std::string &path,int status);
 }
 std::string generateTemplate(std::string &path);
