@@ -7,6 +7,7 @@
 #include <ctime>
 #include <stdlib.h>
 #include <string>
+#include <utility>
 
 bool directoryExists(std::string &path);
 bool findResource(std::string &path);
@@ -90,6 +91,8 @@ bool deleteDirectory(const char* path) {
 
 bool checkRangeRequest(libhttp::Headers &headers)
 {
+  if(headers.headers.empty())
+    return false;
   if(headers.headers.find(libhttp::Headers::Content_Range) != headers.headers.end())
     return true;
   return false;
@@ -272,7 +275,8 @@ std::pair<libhttp::Methods::error,libhttp::Methods::GetRes> libhttp::Get(libhttp
   getReq.contentType =libparse::getTypeFile(libparse::Types(),path);
     if(checkRangeRequest(request.headers))
         setRange(getReq,getStartandEndRangeRequest(request.headers[libhttp::Headers::Content_Range]));
-
+    else
+        setRange(getReq,std::make_pair(0,getFileSize(path)));
     return std::make_pair(libhttp::Methods::OK,getReq);
   }
 
