@@ -257,11 +257,11 @@ void setHeaders(libhttp::Methods::GetRes &vec,std::string contentType, int Conte
 {
   std::string tmp;
 
-  tmp = "HTTP/1.1 "+std::to_string(statusCode)+status + "\n";
+  tmp = "HTTP/1.1 "+std::to_string(statusCode)+status + "\r\n";
   vec.headers.insert(vec.headers.begin(),tmp.c_str(),tmp.c_str() + tmp.length());
-  tmp = "Content-Length: "+ std::to_string(ContentLenght) + "\n";
+  tmp = "Content-Length: "+ std::to_string(ContentLenght) + "\r\n";
   vec.headers.insert(vec.headers.begin(),tmp.c_str(),tmp.c_str() + tmp.length());
-  tmp = "Content-Type: "+contentType+"\n";
+  tmp = "Content-Type: "+contentType+"\r\n\r\n";
   vec.headers.insert(vec.headers.begin(),tmp.c_str(),tmp.c_str() + tmp.length());
 }
 
