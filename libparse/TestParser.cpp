@@ -71,14 +71,17 @@ void printVectorToken(std::vector<libparse::tokens> v) {
   }
 }
 
-void printConfig(libparse::Domains d) {
+void printConfig(libparse::Config config) {
+  libparse::Domains           d = config.domains;
   libparse::Domains::iterator itD;
-  libparse::Routes::iterator itR;
+  libparse::Routes::iterator  itR;
+
+  std::cout << config.defaultServer << std::endl;
   itD = d.begin();
   itR = itD->second.routes.begin();
   while (itD != d.end()) {
     std::cout << "Domain: " << itD->first << std::endl;
-    std::cout << "\t\t\t\tsever default: " << itD->second.defaultServer<< std::endl;
+    std::cout << "\t\t\t\tsever default: " << itD->second.defaultServer << std::endl;
     std::cout << "\t\t\t\troot: " << itD->second.root << std::endl;
     std::cout << "\t\t\t\tindex: " << itD->second.index << std::endl;
     std::cout << "\t\t\t\terror: " << itD->second.error << std::endl;

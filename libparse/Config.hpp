@@ -12,17 +12,17 @@ namespace libparse {
   struct RouteProps;
   struct Domain;
   typedef std::map<std::string, RouteProps> Routes;
-  typedef std::map<std::string, Domain> Domains;
+  typedef std::map<std::string, Domain>     Domains;
 
   struct RouteProps {
-    std::string path;
-    std::string root;
-    std::string index;
-    std::vector<std::string> methods;
-    bool dirListening;
-    std::pair<bool, std::string> upload;
+    std::string                         path;
+    std::string                         root;
+    std::string                         index;
+    std::vector<std::string>            methods;
+    bool                                dirListening;
+    std::pair<bool, std::string>        upload;
     std::pair<std::string, std::string> cgi;
-    std::string redir;
+    std::string                         redir;
   };
 
   struct Domain {
@@ -31,8 +31,13 @@ namespace libparse {
     std::string root;
     std::string index;
     std::string port;
-    Routes routes;
+    Routes      routes;
     std::string defaultServer;
+  };
+
+  struct Config {
+    Domain *defaultServer;
+    Domains domains;
   };
 
   typedef struct token {
@@ -62,8 +67,8 @@ namespace libparse {
     std::string lexeme;
   } tokens;
 
-  void lexer(std::vector<tokens> &tokens, std::vector<std::string> content);
+  void        lexer(std::vector<tokens> &tokens, std::vector<std::string> content);
   std::string readFile(std::string filename);
-  std::string matching(libparse::Domain domain,std::string path);
-  void parser(std::string filename, libparse::Domains &domains);
+  std::string matching(libparse::Domain domain, std::string path);
+  void        parser(std::string filename, libparse::Config &config);
 }; // namespace libparse

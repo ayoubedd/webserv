@@ -18,12 +18,12 @@ int main(int argc, char *argv[]) {
     return 0;
   }
 
-  libparse::Domains domains;
-  libnet::Netenv    net;
+  libparse::Config config;
+  libnet::Netenv   net;
 
-  libparse::parser(argv[1], domains);
+  libparse::parser(argv[1], config);
 
-  net.setupSockets(domains);
+  net.setupSockets(config);
 
   while (true) {
     net.prepFdSets();

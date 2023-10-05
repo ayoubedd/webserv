@@ -1,23 +1,36 @@
 #include "Config.hpp"
 #include "utilities.hpp"
-void setDefeaultSever(libparse::Domains &domains, std::string server)
-{
-  for(libparse::Domains::iterator it = domains.begin(); it != domains.end() ; it++)
-    it->second.defaultServer = server;
+
+static bool strStartWith(const std::string str, const std::string prefix) {
+  std::string::size_type i;
+
+  for (i = 0; i < prefix.size(); i++) {
+    if (prefix[i] != str[i])
+      return false;
+  }
+  return true;
 }
 
-void libparse::parser(std::string filename, libparse::Domains &domains) {
-  std::vector<std::string> content;
-  std::string contentFile;
+libparse::Domain *getDefeaultSever(libparse::Domains &domains, std::string server) {
+  for (libparse::Domains::iterator it = domains.begin(); it != domains.end(); it++) {
+    if (strStartWith(it->first, server))
+      return &it->second;
+  };
+  return NULL;
+}
+
+void libparse::parser(std::string filename, libparse::Config &config) {
+  std::vector<std::string>      content;
+  std::string                   contentFile;
   std::vector<libparse::tokens> tokens;
-  size_t i = 0;
+  size_t                        i = 0;
 
   contentFile = readFile(filename);
   check(contentFile);
   content = split(contentFile);
   content.push_back("endifle");
   lexer(tokens, content);
-  domains = setTokenInStruct(tokens);
-  if(checkDefaulfServer(content,i))
-    setDefeaultSever(domains,content[1]);
+  config.domains = setTokenInStruct(tokens);
+  if (checkDefaulfServer(content, i))
+    config.defaultServer = getDefeaultSever(config.domains, content[1]);
 }
