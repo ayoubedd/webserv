@@ -20,8 +20,9 @@ struct Writer{
   off_t                 offSet;
   std::queue<Response *> responses;
   int                   fd;
+  int                    sock;
 
-  Writer(int fd,off_t offSet = -1 ,int bufferSize = 8192);
+  Writer(int fd,off_t offSet = -1 ,int bufferSize = 8192, int sock = 0);
   off_t advanceOffSet(int fd, size_t start);
   erorr write();
 };

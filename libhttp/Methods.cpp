@@ -260,7 +260,7 @@ void setHeaders(libhttp::Methods::GetRes &vec,std::string contentType, int Conte
 
   tmp = "HTTP/1.1 "+std::to_string(statusCode)+ " " +status + "\r\n";
   vec.headers.insert(vec.headers.end(),tmp.c_str(),tmp.c_str() + tmp.length());
-  tmp = "Content-Length: "+ std::to_string(ContentLenght) + "\r\n";
+  tmp = "Content-Length: "+ std::to_string(ContentLenght -1 ) + "\r\n";
   vec.headers.insert(vec.headers.end(),tmp.c_str(),tmp.c_str() + tmp.length());
   tmp = "Content-Type: "+contentType+"\r\n\r\n";
   vec.headers.insert(vec.headers.end(),tmp.c_str(),tmp.c_str() + tmp.length());
@@ -308,7 +308,7 @@ std::vector<char > generateHeaders(std::string contentType, int ContentLenght , 
 
   tmp = "HTTP/1.1 "+std::to_string(statusCode)+ " " +status + "\r\n";
   headers.insert(headers.end(),tmp.c_str(),tmp.c_str() + tmp.length());
-  tmp = "Content-Length: "+ std::to_string(ContentLenght) + "\r\n";
+  tmp = "Content-Length: "+ std::to_string(ContentLenght -1) + "\r\n";
   headers.insert(headers.end(),tmp.c_str(),tmp.c_str() + tmp.length());
   tmp = "Content-Type: "+contentType+"\r\n\r\n";
   headers.insert(headers.end(),tmp.c_str(),tmp.c_str() + tmp.length());
