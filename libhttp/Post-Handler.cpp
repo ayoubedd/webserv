@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <fstream>
 #include <iostream>
+#include <utility>
 
 enum BODY_FORMAT {
   NORMAL,
@@ -115,8 +116,10 @@ static HANDLER_ERROR multipartFormDataPostHandler(libhttp::Request           &re
   return DONE;
 }
 
-void libhttp::postHandler(libhttp::Request &req, libhttp::TransferEncoding &te,
-                          libhttp::Multipart &mp, const std::string &uploadRoot) {
+std::pair<libhttp::PostHandlerError, void *> libhttp::postHandler(libhttp::Request          &req,
+                                                                  libhttp::TransferEncoding &te,
+                                                                  libhttp::Multipart        &mp,
+                                                                  const std::string &uploadRoot) {
   BODY_FORMAT   bodyFormat;
   HANDLER_ERROR err;
 
@@ -125,16 +128,18 @@ void libhttp::postHandler(libhttp::Request &req, libhttp::TransferEncoding &te,
   switch (bodyFormat) {
     case NORMAL:
       err = normalPostHandler(req, uploadRoot);
+      break;
     case CHUNKED:
       err = chunkedPostHandler(req, te.chunk.decoder, uploadRoot);
+      break;
     case MULTIPART_FORMDATA:
       err = multipartFormDataPostHandler(req, mp.formData, uploadRoot);
       break;
   }
 
   // Uploading still ongoing.
-  if (err == OK) {
-    return;
+  if (err == HANDLER_ERROR::OK) {
+    return std::make_pair(libhttp::PostHandlerError::OK, nullptr);
   }
 
   if (err != DONE) {
@@ -143,4 +148,6 @@ void libhttp::postHandler(libhttp::Request &req, libhttp::TransferEncoding &te,
 
   // Success.
   // Start building response.
+
+  return std::make_pair(libhttp::PostHandlerError::OK, nullptr);
 }

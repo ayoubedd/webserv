@@ -6,6 +6,11 @@
 #include "libhttp/TransferEncoding.hpp"
 
 namespace libhttp {
-  void postHandler(libhttp::Request &, libhttp::TransferEncoding &, libhttp::Multipart &,
-                   const std::string &);
-}
+  enum PostHandlerError {
+    OK,
+  };
+  std::pair<libhttp::PostHandlerError, void *> postHandler(libhttp::Request &,
+                                                           libhttp::TransferEncoding &,
+                                                           libhttp::Multipart &,
+                                                           const std::string &);
+} // namespace libhttp
