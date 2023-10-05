@@ -116,10 +116,9 @@ static HANDLER_ERROR multipartFormDataPostHandler(libhttp::Request           &re
   return DONE;
 }
 
-std::pair<libhttp::PostHandlerError, void *> libhttp::postHandler(libhttp::Request          &req,
-                                                                  libhttp::TransferEncoding &te,
-                                                                  libhttp::Multipart        &mp,
-                                                                  const std::string &uploadRoot) {
+std::pair<libhttp::PostHandlerError, libhttp::Response *>
+libhttp::postHandler(libhttp::Request &req, libhttp::TransferEncoding &te, libhttp::Multipart &mp,
+                     const std::string &uploadRoot) {
   BODY_FORMAT   bodyFormat;
   HANDLER_ERROR err;
 
@@ -142,12 +141,23 @@ std::pair<libhttp::PostHandlerError, void *> libhttp::postHandler(libhttp::Reque
     return std::make_pair(libhttp::PostHandlerError::OK, nullptr);
   }
 
+  // Errors
   if (err != DONE) {
-    // 500 Internal Server Error
+    if (err == BAD_REQUEST)
+      return std::make_pair(libhttp::PostHandlerError::ERROR_400, nullptr);
+    else
+      return std::make_pair(libhttp::PostHandlerError::ERROR_500, nullptr);
   }
 
   // Success.
   // Start building response.
 
-  return std::make_pair(libhttp::PostHandlerError::OK, nullptr);
+  libhttp::Response *res = new libhttp::Response();
+  std::string        headers = "HTTP/1.1 201 Created\r\n\r\n";
+
+  res->headers.insert(res->headers.begin(), headers.begin(), headers.end());
+  res->fd = -1;
+  res->inReady = true;
+
+  return std::make_pair(libhttp::PostHandlerError::OK, res);
 }

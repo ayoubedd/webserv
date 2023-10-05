@@ -8,9 +8,12 @@
 namespace libhttp {
   enum PostHandlerError {
     OK,
+    ERROR_400,
+    ERROR_500,
   };
-  std::pair<libhttp::PostHandlerError, void *> postHandler(libhttp::Request &,
-                                                           libhttp::TransferEncoding &,
-                                                           libhttp::Multipart &,
-                                                           const std::string &);
+
+  std::pair<libhttp::PostHandlerError, libhttp::Response *> postHandler(libhttp::Request &,
+                                                                        libhttp::TransferEncoding &,
+                                                                        libhttp::Multipart &,
+                                                                        const std::string &);
 } // namespace libhttp
