@@ -10,7 +10,7 @@ std::map<std::string, std::string> libparse::Types(void)
         while (std::getline(file, line)) {
             if(line == "\n")
                 break;
-            types.insert({line.substr(0,line.find("=")), line.substr(line.rfind("=")+1, line.length() -1)});
+            types.insert(std::make_pair(line.substr(0,line.find("=")), line.substr(line.rfind("=")+1, line.length() -1)));
         }
     file.close();
     }
