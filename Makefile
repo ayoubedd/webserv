@@ -9,7 +9,9 @@ LIBHTTP=libhttp/Headers.cpp libhttp/Request.cpp libhttp/Reader.cpp \
 LIBHTTP_TEST=libhttp/Headers_test.cpp libhttp/Reader_test.cpp
 
 LIBPARSE=libparse/TestParser.cpp libparse/ReadFile.cpp \
-				 libparse/utilities.cpp libparse/Lexer.cpp libparse/Parser.cpp libparse/matching-location.cpp libparse/Types.cpp
+				 libparse/utilities.cpp libparse/Lexer.cpp libparse/Parser.cpp libparse/match.cpp \
+				 libparse/Types.cpp
+
 LIBNET=libnet/Net.cpp libnet/Session.cpp libnet/SessionState.cpp
 
 CXXFILES=$(CORE) $(LIBHTTP) $(LIBHTTP_TEST) $(LIBPARSE) $(LIBNET)
