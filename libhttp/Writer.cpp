@@ -1,4 +1,5 @@
 #include "libhttp/Writer.hpp"
+#include <iostream>
 #include <sys/types.h>
 #include <cstring>
 #include <vector>
@@ -41,7 +42,6 @@ libhttp::Writer::erorr libhttp::Writer::write()
   {
       sizeBufferWriting = send(this->sock, &responses.front()->headers.front(), responses.front()->headers.size(),0);
 
-
       if(sizeBufferWriting != (int)responses.front()->headers.size())
         responses.front()->headers.erase(responses.front()->headers.begin()+sizeBufferWriting);
 
@@ -59,9 +59,8 @@ libhttp::Writer::erorr libhttp::Writer::write()
         return libhttp::Writer::ERORR;
   }
 
-    this->responses.front()->buffer.insert(responses.front()->buffer.end(), buffer,buffer+sizeBufferReading);  
-    sizeBufferWriting = send(this->sock, &responses.front()->buffer, responses.front()->buffer.size(),0);
-
+    this->responses.front()->buffer.insert(responses.front()->buffer.end(), buffer,buffer+sizeBufferReading);
+    sizeBufferWriting = send(this->sock, &responses.front()->buffer.front(), responses.front()->buffer.size(),0);
     if(sizeBufferReading == -1)
       return libhttp::Writer::ERORR;
 
