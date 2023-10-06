@@ -7,13 +7,14 @@
 #include "libhttp/TransferEncoding.hpp"
 
 namespace libhttp {
-  enum PostHandlerError {
+  enum PostHandlerState {
     OK,
     ERROR_400,
     ERROR_500,
+    DONE,
   };
 
-  std::pair<libhttp::PostHandlerError, libhttp::Response *> postHandler(libhttp::Request &,
+  std::pair<libhttp::PostHandlerState, libhttp::Response *> postHandler(libhttp::Request &,
                                                                         libhttp::TransferEncoding &,
                                                                         libhttp::Multipart &,
                                                                         const std::string &);
