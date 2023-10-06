@@ -22,6 +22,10 @@ void sessionsHandler(libnet::Netenv &net, libparse::Config &config) {
 
     libhttp::MultiplexerError muxErr = libhttp::multiplexer(session, config);
 
+    if (muxErr != libhttp::MultiplexerError::OK) {
+      // Call errors handler.
+    }
+
     // Calling the writer.
     session->writer.write();
 
