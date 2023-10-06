@@ -2,7 +2,7 @@
 #include "libnet/Net.hpp"
 #include "libparse/Config.hpp"
 
-void sessionshandler(libnet::Netenv &net, libparse::Domains &domains) {
+void sessionsHandler(libnet::Netenv &net, libparse::Config &config) {
   libnet::Sessions::iterator sessionIter;
   libnet::Sessions          &readysessions = net.readyClients;
 
@@ -20,7 +20,7 @@ void sessionshandler(libnet::Netenv &net, libparse::Domains &domains) {
     // Calling the reader.
     session->reader.read();
 
-    libhttp::multiplexer(session, domains);
+    libhttp::multiplexer(session, config.domains);
 
     // should call the writter here.
 
@@ -34,12 +34,12 @@ int main(int argc, char *argv[]) {
     return 0;
   }
 
-  libparse::Domains domains;
-  libnet::Netenv    net;
+  libparse::Config config;
+  libnet::Netenv   net;
 
-  libparse::parser(argv[1], domains);
+  libparse::parser(argv[1], config);
 
-  net.setupSockets(domains);
+  net.setupSockets(config);
 
   while (true) {
     net.prepFdSets();
@@ -48,7 +48,7 @@ int main(int argc, char *argv[]) {
     if (!net.readReadySockets.empty())
       net.acceptNewClients();
 
-    sessionshandler(net, domains);
+    sessionsHandler(net, config);
   };
   return 0;
 }

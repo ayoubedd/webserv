@@ -33,3 +33,4 @@ void SetValue(std::vector<libparse::tokens> &tokens, libparse::RouteProps &route
 void SetConfigInRoute(std::vector<libparse::tokens> &tokens, libparse::RouteProps &routeProps,
                       libparse::Domain &domain);
 libparse::Domains setTokenInStruct(std::vector<libparse::tokens> &tokens);
+bool checkDefaulfServer(std::vector<std::string> content,size_t &i);
