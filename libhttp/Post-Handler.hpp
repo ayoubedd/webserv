@@ -3,6 +3,7 @@
 #include "libhttp/Chunk.hpp"
 #include "libhttp/Multipart.hpp"
 #include "libhttp/Request.hpp"
+#include "libhttp/Response.hpp"
 #include "libhttp/TransferEncoding.hpp"
 
 namespace libhttp {

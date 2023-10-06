@@ -1,6 +1,17 @@
 #include "Config.hpp"
 #include <cstddef>
 #include <string>
+
+bool checkDefaulfServer(std::vector<std::string> content,size_t &i)
+{
+  if(content[i] == "default" && content.size() > 2)
+  { 
+    i+=2 ;
+    return  true;
+  } 
+  return false;
+}
+
 std::vector<std::string > split(const std::string input) {
   std::vector<std::string > tokens;
   std::stringstream sstream(input);

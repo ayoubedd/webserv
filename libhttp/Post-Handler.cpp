@@ -155,9 +155,7 @@ libhttp::postHandler(libhttp::Request &req, libhttp::TransferEncoding &te, libht
   libhttp::Response *res = new libhttp::Response();
   std::string        headers = "HTTP/1.1 201 Created\r\n\r\n";
 
-  res->headers.insert(res->headers.begin(), headers.begin(), headers.end());
-  res->fd = -1;
-  res->inReady = true;
+  res->buffer.insert(res->buffer.begin(), headers.begin(), headers.end());
 
   return std::make_pair(libhttp::PostHandlerError::OK, res);
 }
