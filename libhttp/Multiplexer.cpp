@@ -39,20 +39,27 @@ static bool isRequestHandlerCgi(const libparse::RouteProps *route) {
   return false;
 }
 
-void libhttp::multiplexer(libnet::Session *session, const libparse::Config &config) {
+libhttp::MultiplexerError libhttp::multiplexer(libnet::Session        *session,
+                                               const libparse::Config &config) {
   libhttp::Request           *req = session->reader.requests.front();
   std::string                 host = extractHost(req->headers.headers);
   const libparse::Domain     *domain = matchDomain(config, host);
   const libparse::RouteProps *route = matchRoute(*domain, req->reqTarget.path);
 
   if (isRequestHandlerCgi(route)) {
-    // Cgi
+
   }
 
-  else if (req->method == "GET" || req->method == "DELETE") {
+  else if (req->method == "GET") {
+
+  }
+
+  else if (req->method == "DELETE") {
 
   }
 
   else if (req->method == "POST") {
   }
+
+  return libhttp::MultiplexerError::UNMATCHED_HANDLER;
 }

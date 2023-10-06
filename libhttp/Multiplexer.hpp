@@ -4,5 +4,11 @@
 #include "libparse/Config.hpp"
 
 namespace libhttp {
-  void multiplexer(libnet::Session *session, const libparse::Config &config);
-};
+
+  enum MultiplexerError {
+    OK,
+    UNMATCHED_HANDLER
+  };
+
+  MultiplexerError multiplexer(libnet::Session *session, const libparse::Config &config);
+}; // namespace libhttp
