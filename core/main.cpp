@@ -20,7 +20,7 @@ void sessionsHandler(libnet::Netenv &net, libparse::Config &config) {
     // Calling the reader.
     session->reader.read();
 
-    libhttp::multiplexer(session, config);
+    libhttp::MultiplexerError muxErr = libhttp::multiplexer(session, config);
 
     // Calling the writer.
     session->writer.write();
