@@ -4,14 +4,14 @@
 #include "libparse/Config.hpp"
 #include <string>
 
-static const libparse::Domain *matchDomain(const libparse::Domains &domains,
-                                           const std::string       &domain) {
-  libparse::Domains::const_iterator iter = domains.find(domain);
+static const libparse::Domain *matchDomain(const libparse::Config &config,
+                                           const std::string      &domain) {
+  libparse::Domains::const_iterator iter = config.domains.find(domain);
 
-  if (iter != domains.end())
+  if (iter != config.domains.end())
     return &iter->second;
   else
-    return &domains.begin()->second;
+    return config.defaultServer;
 }
 
 static const libparse::RouteProps *matchRoute(const libparse::Domain &domain,
@@ -39,30 +39,11 @@ static bool isRequestHandlerCgi(const libparse::RouteProps *route) {
   return false;
 }
 
-static bool isMethodAllowedOnRoute(const libparse::RouteProps *route, const std::string &method) {
-  std::vector<std::string>::const_iterator begin = route->methods.begin();
-  std::vector<std::string>::const_iterator end = route->methods.end();
-
-  while (begin != end) {
-    if (*begin == method)
-      return true;
-    begin++;
-  }
-
-  return false;
-}
-
-void libhttp::multiplexer(libnet::Session *session, const libparse::Domains &domains) {
+void libhttp::multiplexer(libnet::Session *session, const libparse::Config &config) {
   libhttp::Request           *req = session->reader.requests.front();
   std::string                 host = extractHost(req->headers.headers);
-  const libparse::Domain     *domain = matchDomain(domains, host);
+  const libparse::Domain     *domain = matchDomain(config, host);
   const libparse::RouteProps *route = matchRoute(*domain, req->reqTarget.path);
-
-  if (isMethodAllowedOnRoute(route, req->method) == false) {
-    // Method not allowed
-    // 405 Method Not Allowed
-    return;
-  }
 
   if (isRequestHandlerCgi(route)) {
     // Cgi
