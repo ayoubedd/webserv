@@ -6,7 +6,9 @@
 #include <string>
 
 namespace libcgi {
-  struct CgiRequest {
+  struct Request {
+    typedef std::map<std::string, std::string> CgiEnv;
+
     static const char *AUTH_TYPE; // not used
     static const char *CONTENT_LENGTH;
     static const char *CONTENT_TYPE;
@@ -23,6 +25,8 @@ namespace libcgi {
     static const char *SERVER_PORT;
     static const char *SERVER_PROTOCOL;
     static const char *SERVER_SOFTWARE;
+    static const char *REDIRECT_STATUS;
+
     struct Ctx {
       std::string serverName;
       std::string scriptName;
@@ -32,17 +36,18 @@ namespace libcgi {
       std::string localReqPath;
     };
 
-    typedef std::map<std::string, std::string> CgiEnv;
+    std::string scriptPath;
 
     CgiEnv env;
     Ctx    ctx;
 
-    void init(std::string serverName, std::string scriptName, std::string localReqPath,
-              std::string serverPort = "80", std::string protocol = "HTTP/1.1",
-              std::string serverSoftware = "WebServ");
+    void init(std::string scriptPath, std::string serverName, std::string scriptName,
+              std::string localReqPath, std::string serverPort = "80",
+              std::string protocol = "HTTP/1.1", std::string serverSoftware = "WebServ");
     void build(libhttp::Request *httpReq);
 
     void convertReqHeadersToCgiHeaders(libhttp::Headers *httpHeaders);
     void addCgiStandardHeaders(libhttp::Request *httpReq);
+    void clean();
   };
 } // namespace libcgi

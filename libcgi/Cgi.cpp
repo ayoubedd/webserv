@@ -11,14 +11,6 @@
 #include <unistd.h>
 #include <utility>
 
-#define assertm(ex, msg)                                                                           \
-  (ex == false ? ({                                                                                \
-    log(msg);                                                                                      \
-    assert(ex);                                                                                    \
-  })                                                                                               \
-               : (assert(ex)))
-#define log(msg) printf("%s\n", msg);
-
 char libcgi::Cgi::temp[] = "/tmp/webserv/webserv_cgi_in_XXXXXX";
 
 ssize_t doesContainerHasBuff(const char *raw, size_t rLen, const char *ptr, size_t pLen) {
@@ -36,28 +28,30 @@ std::string asStr(int fd) {
   return ss.str();
 };
 
-std::pair<libcgi::Cgi::error, libnet::SessionState> libcgi::Cgi::handleCgiBuff(char  *ptr,
-                                                                               size_t len) {
+std::pair<libcgi::Cgi::Error, libcgi::Cgi::State> libcgi::Cgi::handleCgiBuff(char  *ptr,
+                                                                             size_t len) {
   ssize_t        idx;
   const char    *del = "\n\n";
   Respons::error err;
 
-  if (this->state == libnet::CGI_READING_HEADERS) {
+  if (this->state == READING_HEADERS) {
     idx = doesContainerHasBuff(ptr, len, del, strlen(del));
     if (idx == -1) {
       this->res.cgiHeader.insert(this->res.cgiHeader.end(), ptr, ptr + len);
-      return std::make_pair(OK, libnet::CGI_READING_HEADERS);
+      return std::make_pair(OK, READING_HEADERS);
     }
-    this->state = libnet::CGI_READING_BODY;
+    this->state = READING_BODY;
     this->res.cgiHeader.insert(this->res.cgiHeader.end(), ptr, ptr + idx + 1); // plus the \n
-    this->res.body.insert(this->res.body.end(), ptr + idx + 2, ptr + len);     // plus 2 cus \n\n
     err = this->res.build();
     if (err != Respons::OK)
-      return std::make_pair(MALFORMED, libnet::CGI_READING_BODY);
-    return std::make_pair(OK, libnet::CGI_READING_BODY);
+      return std::make_pair(MALFORMED, READING_BODY);
+    this->res.sockBuff.insert(this->res.sockBuff.end(), ptr + idx + 2,
+                              ptr + len); // plus 2 cus \n\n
+    return std::make_pair(OK, READING_BODY);
   }
-  this->res.body.insert(this->res.body.end(), ptr, ptr + len);
-  return std::make_pair(OK, libnet::CGI_READING_BODY);
+  // this->res.body.insert(this->res.body.end(), ptr, ptr + len);
+  this->res.sockBuff.insert(this->res.sockBuff.end(), ptr, ptr + len);
+  return std::make_pair(OK, READING_BODY);
 }
 
 char *keyAndValAsStr(const std::string &key, const std::string &val) {
@@ -106,26 +100,24 @@ void delete2d(char **env) {
   delete[] env;
 }
 
-libcgi::Cgi::Cgi(libhttp::Request *httpReq, std::string scriptPath, sockaddr_in *clientAddr,
-                 size_t bufferSize)
-    : httpReq(httpReq)
-    , scriptPath(scriptPath)
-    , clientAddr(clientAddr)
+libcgi::Cgi::Cgi(sockaddr_in *clientAddr, size_t bufferSize)
+    : clientAddr(clientAddr)
     , req()
-    , state(libnet::CGI_INIT)
+    , state(INIT)
     , fd{-1, -1}
     , pid(-1)
     , bodySize(0)
     , bufferSize(bufferSize) {}
 
-libcgi::Cgi::error libcgi::Cgi::init(std::string serverName, std::string localReqPath,
+libcgi::Cgi::Error libcgi::Cgi::init(libhttp::Request *httpReq, std::string scriptPath,
+                                     std::string serverName, std::string localReqPath,
                                      std::string serverPort, std::string protocol,
                                      std::string serverSoftware) {
   struct stat            s;
   std::string::size_type i;
   std::string            scriptName;
 
-  if (::stat(this->scriptPath.c_str(), &s) != 0)
+  if (::stat(scriptPath.c_str(), &s) != 0)
     return FAILED_OPEN_SCRIPT;
   if (!(s.st_mode & S_IXUSR))
     return FAILED_EXEC_PERM;
@@ -135,20 +127,20 @@ libcgi::Cgi::error libcgi::Cgi::init(std::string serverName, std::string localRe
   this->cgiInput = ::mkstemp(temp);
   if (cgiInput < 0)
     return FAILED_OPEN_FILE;
-  i = this->scriptPath.rfind('/');
+  i = scriptPath.rfind('/');
   if (i == std::string::npos)
-    scriptName = this->scriptPath;
+    scriptName = scriptPath;
   else
-    scriptName = this->scriptPath.substr(i + 1, this->scriptPath.size() - i);
+    scriptName = scriptPath.substr(i + 1, scriptPath.size() - i);
 
-  this->req.init(serverName, scriptName, localReqPath, serverPort, protocol, serverSoftware);
-  this->req.build(this->httpReq);
-  std::cerr << this->req.ctx.scriptName << std::endl;
+  this->req.init(scriptPath, serverName, scriptName, localReqPath, serverPort, protocol,
+                 serverSoftware);
+  this->req.build(httpReq);
   return OK;
 }
 
-libcgi::Cgi::error libcgi::Cgi::write(std::vector<char> &body) {
-  int len;
+libcgi::Cgi::Error libcgi::Cgi::write(std::vector<char> &body) {
+  ssize_t len;
 
   len = ::write(this->cgiInput, &body.front(), body.size());
   if (len < 0)
@@ -157,7 +149,7 @@ libcgi::Cgi::error libcgi::Cgi::write(std::vector<char> &body) {
   return OK;
 };
 
-libcgi::Cgi::error libcgi::Cgi::exec() {
+libcgi::Cgi::Error libcgi::Cgi::exec() {
   char **env, **argv;
 
   lseek(this->cgiInput, 0, SEEK_SET);
@@ -165,35 +157,48 @@ libcgi::Cgi::error libcgi::Cgi::exec() {
   if (pid == 0) {
     dup2(this->cgiInput, STDIN_FILENO);
     dup2(this->fd[1], STDOUT_FILENO);
-    argv = getScriptArgs(this->scriptPath);
+    argv = getScriptArgs(req.scriptPath);
     env = headersAsEnv(req.env);
-    ::execve(this->scriptPath.c_str(), argv, env);
+    ::execve(req.scriptPath.c_str(), argv, env);
     delete2d(argv);
     delete2d(env);
     std::cout << "Status: 500 Internal Server Error\n\n";
     // write to the fd the error
     exit(1);
   } else if (pid > 0) {
+    this->state = READING_HEADERS;
     close(fd[1]);
     return OK;
   }
   return FAILED_FORK;
 }
 
-libcgi::Cgi::error libcgi::Cgi::read() {
-  char                                   buff[4096 * 2];
-  ssize_t                                len;
-  std::pair<error, libnet::SessionState> newState;
+libcgi::Cgi::Error libcgi::Cgi::read() {
+  char                    buff[bufferSize];
+  ssize_t                 len;
+  std::pair<Error, State> newState;
 
-  if (this->state == libnet::CGI_INIT)
-    this->state = libnet::CGI_READING_HEADERS;
+  if (this->state == INIT)
+    this->state = READING_HEADERS;
   len = ::read(this->fd[0], buff, sizeof buff);
   if (len == 0) {
-    this->state = libnet::CGI_FIN;
+    this->state = FIN;
     return OK;
   }
   if (len < 0)
     return FAILED_READ;
+
+  ssize_t i = 0;
+  std::cerr << len << std::endl;
+  while (i < len - 1) {
+    std::cout << buff[i] << std::endl;
+    if (buff[i] == '\n' && buff[i + 1] == '\n') {
+      std::cout << "found" << std::endl;
+    }
+    i++;
+  }
+  exit(0);
+
   newState = this->handleCgiBuff(buff, len);
   this->state = newState.second;
   if (newState.first != OK)
@@ -204,6 +209,7 @@ libcgi::Cgi::error libcgi::Cgi::read() {
 void libcgi::Cgi::clean() {
   close(this->fd[0]);
   close(this->cgiInput);
+  this->req.clean();
   // waitpid(this->pid, 0, 0); // this will block
   kill(this->pid, SIGKILL);
 }

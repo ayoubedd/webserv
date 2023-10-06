@@ -2,6 +2,9 @@
 #include "libhttp/constants.hpp"
 #include <utility>
 
+libcgi::Respons::Respons()
+    : statusLineExists(false){};
+
 bool stringPrefixWith(const std::string &str, const std::string pre) {
   for (std::string::size_type i = 0; i < pre.size(); i++) {
     if (str[i] != pre[i])
@@ -38,28 +41,32 @@ libcgi::Respons::error libcgi::Respons::cgiHeaderToHttpHeader(const std::string 
   std::vector<char>::size_type  j, k;
   const std::string             crlf = "\r\n";
   std::pair<error, std::string> parsedStatusLine;
+
   if (stringPrefixWith(h, "Status:")) {
     parsedStatusLine = fromHeaderToStatusLine(h);
     if (parsedStatusLine.first != OK)
       return MALFORMED;
-    this->statusLine = parsedStatusLine.second;
+    this->sockBuff.insert(sockBuff.begin(), parsedStatusLine.second.begin(),
+                          parsedStatusLine.second.end());
+    this->statusLineExists = true;
     return OK;
   }
+
   std::string::size_type i = h.find(':');
   if (i == std::string::npos)
     return MALFORMED;
   i++;
-  j = httpHeaders.size();
-  this->httpHeaders.insert(this->httpHeaders.end(), h.begin(), h.begin() + i);
-  k = httpHeaders.size();
+  j = this->sockBuff.size();
+  this->sockBuff.insert(this->sockBuff.end(), h.begin(), h.begin() + i);
+  k = this->sockBuff.size();
   if (j + 1 >= k)
     return MALFORMED;
-  this->httpHeaders.insert(this->httpHeaders.end(), h.begin() + i, h.end());
-  j = httpHeaders.size();
+  this->sockBuff.insert(this->sockBuff.end(), h.begin() + i, h.end());
+  j = sockBuff.size();
   if (j <= k + 1)
     return MALFORMED;
-  this->httpHeaders.insert(this->httpHeaders.end(), crlf.begin(), crlf.end());
-  k = httpHeaders.size();
+  this->sockBuff.insert(this->sockBuff.end(), crlf.begin(), crlf.end());
+  k = sockBuff.size();
   if (j == k)
     return MALFORMED;
   return OK;
@@ -77,7 +84,10 @@ libcgi::Respons::error libcgi::Respons::build() {
       return MALFORMED;
     this->cgiHeader.erase(this->cgiHeader.begin(), this->cgiHeader.begin() + i + 1);
   }
-  if (this->statusLine.size() == 0)
-    statusLine = "HTTP/1.1 200 OK\n";
+  if (!this->statusLineExists) {
+    std::string defaultStatusLine = "HTTP/1.1 200 OK\r\n";
+    this->sockBuff.insert(this->sockBuff.begin(), defaultStatusLine.begin(),
+                          defaultStatusLine.end());
+  }
   return OK;
 }

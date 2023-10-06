@@ -10,7 +10,7 @@ namespace libcgi {
 
   struct Cgi {
     static char temp[35];
-    enum error {
+    enum Error {
       OK,
       FAILED_OPEN_FILE,
       FAILED_OPEN_SCRIPT,
@@ -23,36 +23,36 @@ namespace libcgi {
       MALFORMED
     };
 
-    libhttp::Request    *httpReq;
-    std::string          scriptPath;
-    sockaddr_in         *clientAddr;
-    CgiRequest           req;
-    Respons              res;
-    libnet::SessionState state;
-    int                  fd[2];
-    pid_t                pid;
-    size_t               bodySize;
-    size_t               bufferSize;
-    int                  cgiInput;
+    enum State { INIT, READING_HEADERS, READING_BODY, FIN, ERR };
 
-    Cgi(libhttp::Request *httpReq, std::string scriptPath, sockaddr_in *clientInfo,
-        size_t bufferSize = 8192);
+    sockaddr_in *clientAddr;
+    Request      req;
+    Respons      res;
+    State        state;
+    int          fd[2];
+    pid_t        pid;
+    size_t       bodySize;
+    size_t       bufferSize;
+    int          cgiInput;
 
-    error init(std::string serverName, std::string localReqPath, std::string serverPort = "80",
+    Cgi(sockaddr_in *clientInfo, size_t bufferSize = 8192);
+
+    Error init(libhttp::Request *httpReq, std::string scriptPath, std::string serverName,
+               std::string localReqPath, std::string serverPort = "80",
                std::string protocol = "HTTP/1.1", std::string serverSoftware = "WebServ");
 
     /**
      * this function does not ensure that all bytes were written
      */
-    error write(std::vector<char> &body);
-    error exec();
-    error read();
+    Error write(std::vector<char> &body);
+    Error exec();
+    Error read();
 
     /**
      *  this funcion should be run only when status is CGI_FIN
      */
     void clean();
 
-    std::pair<error, libnet::SessionState> handleCgiBuff(char *ptr, size_t len);
+    std::pair<Error, State> handleCgiBuff(char *ptr, size_t len);
   };
 } // namespace libcgi
