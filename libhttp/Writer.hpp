@@ -1,7 +1,7 @@
 #pragma once
 
 #include "libhttp/Response.hpp"
-#include "libnet/Session.hpp"
+#include <queue>
 #include <sys/types.h>
 
 namespace libhttp {
