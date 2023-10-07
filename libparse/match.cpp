@@ -48,7 +48,7 @@ static inline std::string::size_type hasPrefix(std::string str, std::string pref
   return 0;
 }
 
-const libparse::RouteProps *libparse::matchPathWithLocaiton(const libparse::Domain &domain,
+const libparse::RouteProps *libparse::matchPathWithLocation(const libparse::Domain &domain,
                                                             const std::string      &path) {
   std::map<std::string, libparse::RouteProps>           routes = domain.routes;
   std::map<std::string, libparse::RouteProps>::iterator it = routes.begin();

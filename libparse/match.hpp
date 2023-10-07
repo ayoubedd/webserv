@@ -7,5 +7,5 @@ namespace libparse {
 
   const Domain *matchReqWithServer(const libhttp::Request &req, const libparse::Config &config);
 
-  const RouteProps *matchPathWithLocaiton(const libparse::Domain &domain, const std::string &path);
+  const RouteProps *matchPathWithLocation(const libparse::Domain &domain, const std::string &path);
 } // namespace libparse
