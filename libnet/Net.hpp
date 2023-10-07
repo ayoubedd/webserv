@@ -7,14 +7,14 @@
 
 namespace libnet {
   typedef std::map<int, Session *> Sessions;
-  typedef std::vector<int> Sockets;
+  typedef std::vector<int>         Sockets;
 
   struct Netenv {
-    Sockets readReadySockets;
+    Sockets  readReadySockets;
     Sessions readyClients;
     Sessions sessions;
 
-    void setupSockets(libparse::Domains &domains);
+    void setupSockets(libparse::Config &domains);
     void prepFdSets(void);
     void awaitEvents(void);
     void acceptNewClients(void);

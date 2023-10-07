@@ -1,15 +1,18 @@
 NAME=webserv
 CXX=g++
-CXXFLAGS+=-Wall -Wextra -Wreorder -I . -I/usr/include/c++/11 -I/usr/include/x86_64-linux-gnu/c++/11 -L /usr/lib/gcc/x86_64-linux-gnu/11
+CXXFLAGS+=-Wall -Wextra -Wreorder -I .
 
 CORE=core/main.cpp
 
 LIBHTTP=libhttp/Headers.cpp libhttp/Request.cpp libhttp/Reader.cpp \
-				 libhttp/Request-target.cpp libhttp/Chunk.cpp libhttp/MultipartFormData.cpp
+				 libhttp/Request-target.cpp libhttp/Chunk.cpp libhttp/MultipartFormData.cpp \
+				 libhttp/Writer.cpp libhttp/Response.cpp
 LIBHTTP_TEST=libhttp/Headers_test.cpp libhttp/Reader_test.cpp
 
-LIBPARSE=libparse/TestParser.cpp libparse/ReadFile.cpp \
-				 libparse/utilities.cpp libparse/Lexer.cpp libparse/Parser.cpp libparse/matching-location.cpp libparse/Types.cpp
+LIBPARSE=libparse/test-parser.cpp libparse/ReadFile.cpp \
+				 libparse/utilities.cpp libparse/Lexer.cpp libparse/Parser.cpp \
+				 libparse/matching-location.cpp libparse/Types.cpp 
+
 LIBNET=libnet/Net.cpp libnet/Session.cpp libnet/SessionState.cpp
 
 LIBCGI=libcgi/Cgi-req.cpp libcgi/Cgi.cpp libcgi/Cgi-res.cpp

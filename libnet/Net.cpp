@@ -42,9 +42,9 @@ static int openSocket(std::string &port) {
   return sockfd;
 }
 
-void libnet::Netenv::setupSockets(libparse::Domains &domains) {
-  libparse::Domains::iterator begin = domains.begin();
-  libparse::Domains::iterator end = domains.end();
+void libnet::Netenv::setupSockets(libparse::Config &config) {
+  libparse::Domains::iterator begin = config.domains.begin();
+  libparse::Domains::iterator end = config.domains.end();
 
   while (begin != end) {
     libparse::Domain domain = begin->second;

@@ -16,16 +16,17 @@ void sessionsHandler(libnet::Netenv &net) {
 }
 
 int main(int argc, char *argv[]) {
-  libparse::Domains domains;
-  libnet::Netenv    net;
+  libparse::Config config;
+  libnet::Netenv   net;
 
   if (argc < 2) {
     std::cerr << "error: Missing config file \n";
     return 0;
   }
-  libparse::parser(argv[1], domains);
 
-  net.setupSockets(domains);
+  libparse::parser(argv[1], config);
+
+  net.setupSockets(config);
 
   while (true) {
     net.prepFdSets();
