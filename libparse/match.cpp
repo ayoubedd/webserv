@@ -1,18 +1,21 @@
 #include "libparse/match.hpp"
+#include "libparse/Config.hpp"
 #include <algorithm>
 #include <string>
 
-bool matchHostHeaderWithDomain(const std::string &domain, const std::string &header) {
+bool matchHostHeaderPortWithDomain(const std::string &domain, const std::string &header) {
   std::string::size_type i;
+  std::string            host;
 
-  i = domain.find(':');
+  i = header.find(':');
+  host = header;
   if (i == std::string::npos)
-    return domain == header;
-  return domain.substr(0, i) == header;
+    host += ":80";
+  return domain == host;
 }
 
-const libparse::Domain *matchReqWithServer(const libhttp::Request &req,
-                                           const libparse::Config &config) {
+const libparse::Domain *libparse::matchReqWithServer(const libhttp::Request &req,
+                                                     const libparse::Config &config) {
   libhttp::HeadersMap::const_iterator host;
   libparse::Domains::const_iterator   start, end;
 
@@ -23,8 +26,7 @@ const libparse::Domain *matchReqWithServer(const libhttp::Request &req,
   start = config.domains.begin();
   end = config.domains.end();
   while (start != end) {
-    std::cout << start->first << " == " << host->second << std::endl;
-    if (matchHostHeaderWithDomain(start->first, host->second)) {
+    if (matchHostHeaderPortWithDomain(start->first, host->second)) {
       return &start->second;
     }
     start++;
@@ -46,19 +48,23 @@ static inline std::string::size_type hasPrefix(std::string str, std::string pref
   return 0;
 }
 
-std::string libparse::matchPathWithLocaiton(libparse::Domain domain, std::string path) {
+const libparse::RouteProps *libparse::matchPathWithLocaiton(const libparse::Domain &domain,
+                                                            const std::string      &path) {
   std::map<std::string, libparse::RouteProps>           routes = domain.routes;
   std::map<std::string, libparse::RouteProps>::iterator it = routes.begin();
 
   std::string::size_type score = 0;
   std::string            maxMatch;
 
+  maxMatch = "";
   while (it != routes.end()) {
-
     score = hasPrefix(path, it->first);
     if (score > maxMatch.size())
       maxMatch = it->first;
     it++;
   }
-  return maxMatch;
+  std::cerr << maxMatch << std::endl;
+  if (!maxMatch.size())
+    return NULL;
+  return &domain.routes.at(maxMatch);
 }
