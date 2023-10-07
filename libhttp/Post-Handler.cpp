@@ -41,7 +41,7 @@ static HANDLER_ERROR chunkedPostHandler(libhttp::Request &req, libhttp::ChunkDec
   libhttp::ChunkDecoder::ErrorStatusPair res;
 
   while (true) {
-    libhttp::ChunkDecoder::ErrorStatusPair res = chunkDecoder.read(req, uploadRoot);
+    res = chunkDecoder.read(req, uploadRoot);
     if (res.first == libhttp::ChunkDecoder::RERUN)
       continue;
     break;
