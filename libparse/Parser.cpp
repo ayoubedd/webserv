@@ -3,64 +3,13 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-#include <assert.h>
-#include <cstdlib>
-#include <cstring>
-#include <fcntl.h>
-#include <sstream>
-#include <stdlib.h>
-#include <sys/stat.h>
-#include <sys/wait.h>
-#include <unistd.h>
-#include <utility>
-
-bool checkRoutes(libparse::Routes routes, std::string root)
+void createTmpWebserv(void)
 {
-  for(libparse::Routes::iterator it = routes.begin(); it != routes.end(); it++)
-  {
-
-  }
-  return true;
+  createFolder("tmp");
+  createFolder("tmp/webserv")
+  ;
 }
 
-bool IsExist(std::string path)
-{
-  if (access(path.c_str(),F_OK) == 0) 
-    return true;
-  return false;
-}
-
-bool IsExecutable(std::string path)
-{
-
-  struct stat            s;
-
-  if (stat(path.c_str(), &s) == 0)
-    return true;
-  return false;
-}
-
-bool checkIsValideFile(libparse::Domain domain)
-{
-  std::string temp;
-  temp = domain.error;
-
-  if(!IsExist(domain.error) || !IsExist(domain.root) || !IsExist(domain.root+domain.index))
-    return false;
-
-  if(!checkRoutes(domain.routes,domain.root))
-    return false;
-}
-
-static bool valideConfig(libparse::Domains &domain)
-{
-  for(libparse::Domains::iterator it = domain.begin(); it != domain.end();it++)
-  {
-    if(checkIsValideFile(it->second))
-      return false;
-  }
-  return true;
-}
 static bool strStartWith(const std::string str, const std::string prefix) {
   std::string::size_type i;
 
@@ -93,4 +42,10 @@ void libparse::parser(std::string filename, libparse::Config &config) {
   config.domains = setTokenInStruct(tokens);
   if (checkDefaulfServer(content, i))
     config.defaultServer = getDefeaultSever(config.domains, content[1]);
+  // if(!valideConfig(config.domains))
+  // {
+  //   std::cout << "File Not Exist or Executable " << std::endl;
+  // exit(1);
+  // }
+  createTmpWebserv();
 }

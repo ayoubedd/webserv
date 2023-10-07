@@ -1,6 +1,79 @@
 #include "Config.hpp"
 #include <cstddef>
 #include <string>
+#include <assert.h>
+#include <cstdlib>
+#include <cstring>
+#include <fcntl.h>
+#include <sstream>
+#include <stdlib.h>
+#include <sys/stat.h>
+#include <sys/wait.h>
+#include <unistd.h>
+#include <utility>
+
+bool IsExist(std::string path);
+
+bool createFolder(std::string path)
+{
+  if(IsExist(path))
+    return true;
+  if(mkdir(path.c_str(),0777) != 0)
+    return true;
+  return false;
+}
+
+bool IsExist(std::string path)
+{
+  if (access(path.c_str(),F_OK) == 0) 
+    return true;
+  return false;
+}
+
+bool IsExecutable(std::string path)
+{
+  struct stat            s;
+
+  if (stat(path.c_str(), &s) == 0)
+    return true;
+  return false;
+}
+
+bool checkRoutes(libparse::Routes routes)
+{
+  for(libparse::Routes::iterator it = routes.begin(); it != routes.end(); it++)
+  {
+    if(!IsExist(it->second.root) || !IsExist(it->second.root+"/"+it->second.index) || !IsExist(it->second.cgi.second) 
+        || !IsExecutable(it->second.root+"/"+it->second.cgi.second) || !IsExist(it->second.upload.second))
+      return false;
+  }
+  return true;
+}
+
+bool checkIsValideFile(libparse::Domain domain)
+{
+  if(!IsExist(domain.error) || !IsExist(domain.root) || !IsExist(domain.root+domain.index))
+  {
+    std::cout << "file \"error \" , \"root\" or \" index \" is not exsit " << std::endl; 
+    return false;
+  }
+  if(!checkRoutes(domain.routes))
+  {
+    std::cout << "Error in Routes " << std::endl; 
+    return false;
+  }
+  return true;
+}
+
+bool valideConfig(libparse::Domains &domain)
+{
+  for(libparse::Domains::iterator it = domain.begin(); it != domain.end();it++)
+  {
+    if(!checkIsValideFile(it->second))
+      return false;
+  }
+  return true;
+}
 
 bool checkDefaulfServer(std::vector<std::string> content,size_t &i)
 {

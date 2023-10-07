@@ -34,3 +34,9 @@ void SetConfigInRoute(std::vector<libparse::tokens> &tokens, libparse::RouteProp
                       libparse::Domain &domain);
 libparse::Domains setTokenInStruct(std::vector<libparse::tokens> &tokens);
 bool checkDefaulfServer(std::vector<std::string> content,size_t &i);
+
+bool createFolder(std::string path);
+bool IsExecutable(std::string path);
+bool checkRoutes(libparse::Routes routes);
+bool checkIsValideFile(libparse::Domain domain);
+bool valideConfig(libparse::Domains &domain);
