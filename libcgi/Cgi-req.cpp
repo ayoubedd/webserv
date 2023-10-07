@@ -19,6 +19,7 @@ const char *libcgi::Request::SERVER_PORT = "SERVER_PORT";
 const char *libcgi::Request::SERVER_PROTOCOL = "SERVER_PROTOCOL";
 const char *libcgi::Request::SERVER_SOFTWARE = "SERVER_SOFTWARE";
 const char *libcgi::Request::REDIRECT_STATUS = "REDIRECT_STATUS";
+const char *libcgi::Request::SCRIPT_FILENAME = "SCRIPT_FILENAME";
 
 static std::string convertHeaderKey(std::string key) {
   std::transform(key.begin(), key.end(), key.begin(), ::toupper);
@@ -65,12 +66,12 @@ void libcgi::Request::addCgiStandardHeaders(libhttp::Request *httpReq) {
   env[REMOTE_IDENT] = "";
   env[REQUEST_METHOD] = httpReq->method;
   env[SCRIPT_NAME] = ctx.scriptName;
+  env[SCRIPT_FILENAME] = this->scriptPath;
   env[SERVER_NAME] = ctx.serverName;
   env[SERVER_PORT] = ctx.serverPort;
   env[SERVER_PROTOCOL] = ctx.protocol;
   env[SERVER_SOFTWARE] = ctx.serverSoftware;
   env[REDIRECT_STATUS] = std::string("200");
-
   if (httpReq->reqTarget.path.size() > 0)
     env[PATH_TRANSLATED] = ctx.localReqPath;
 }
@@ -79,12 +80,12 @@ void libcgi::Request::init(std::string scriptPath, std::string serverName, std::
                            std::string localReqPath, std::string serverPort, std::string protocol,
                            std::string serverSoftware) {
   this->scriptPath = scriptPath;
-  ctx.serverName = serverName;
-  ctx.scriptName = scriptName;
-  ctx.localReqPath = localReqPath;
-  ctx.serverSoftware = serverPort;
-  ctx.protocol = protocol;
-  ctx.serverSoftware = serverSoftware;
+  this->ctx.serverName = serverName;
+  this->ctx.scriptName = scriptName;
+  this->ctx.localReqPath = localReqPath;
+  this->ctx.serverSoftware = serverPort;
+  this->ctx.protocol = protocol;
+  this->ctx.serverSoftware = serverSoftware;
 }
 
 void libcgi::Request::build(libhttp::Request *httpReq) {

@@ -26,6 +26,7 @@ namespace libcgi {
     static const char *SERVER_PROTOCOL;
     static const char *SERVER_SOFTWARE;
     static const char *REDIRECT_STATUS;
+    static const char *SCRIPT_FILENAME;
 
     struct Ctx {
       std::string serverName;

@@ -9,7 +9,6 @@ namespace libcgi {
     std::vector<char> cgiHeader;
     std::vector<char> sockBuff;
     bool              statusLineExists;
-    // std::vector<char> body;
 
     enum error { OK, MALFORMED };
 

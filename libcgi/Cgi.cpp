@@ -31,7 +31,7 @@ std::string asStr(int fd) {
 std::pair<libcgi::Cgi::Error, libcgi::Cgi::State> libcgi::Cgi::handleCgiBuff(char  *ptr,
                                                                              size_t len) {
   ssize_t        idx;
-  const char    *del = "\n\n";
+  const char    *del = "\r\n\r\n";
   Respons::error err;
 
   if (this->state == READING_HEADERS) {
@@ -41,11 +41,11 @@ std::pair<libcgi::Cgi::Error, libcgi::Cgi::State> libcgi::Cgi::handleCgiBuff(cha
       return std::make_pair(OK, READING_HEADERS);
     }
     this->state = READING_BODY;
-    this->res.cgiHeader.insert(this->res.cgiHeader.end(), ptr, ptr + idx + 1); // plus the \n
+    this->res.cgiHeader.insert(this->res.cgiHeader.end(), ptr, ptr + idx + 2); // plus the \r\n
     err = this->res.build();
     if (err != Respons::OK)
       return std::make_pair(MALFORMED, READING_BODY);
-    this->res.sockBuff.insert(this->res.sockBuff.end(), ptr + idx + 2,
+    this->res.sockBuff.insert(this->res.sockBuff.end(), ptr + idx + 3,
                               ptr + len); // plus 2 cus \n\n
     return std::make_pair(OK, READING_BODY);
   }
@@ -187,17 +187,6 @@ libcgi::Cgi::Error libcgi::Cgi::read() {
   }
   if (len < 0)
     return FAILED_READ;
-
-  ssize_t i = 0;
-  std::cerr << len << std::endl;
-  while (i < len - 1) {
-    std::cout << buff[i] << std::endl;
-    if (buff[i] == '\n' && buff[i + 1] == '\n') {
-      std::cout << "found" << std::endl;
-    }
-    i++;
-  }
-  exit(0);
 
   newState = this->handleCgiBuff(buff, len);
   this->state = newState.second;
