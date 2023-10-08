@@ -4,9 +4,7 @@
 #include <assert.h>
 #include <cstring>
 
-const libparse::Domain *matchReqWithServer(const libhttp::Request &req,
-                                           const libparse::Config &config);
-void                    sessionsHandler(libnet::Netenv &net) {
+void sessionsHandler(libnet::Netenv &net) {
   libnet::Sessions::iterator session;
   libnet::Sessions          &readySessions = net.readyClients;
 
