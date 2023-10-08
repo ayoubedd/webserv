@@ -305,7 +305,6 @@ ssize_t libhttp::getFile(std::string &path,int status)
 void setHeaders(libhttp::Response &response,std::string contentType, int ContentLenght , int statusCode, std::string status)
 {
   std::string tmp;
-
   tmp = "HTTP/1.1 "+std::to_string(statusCode)+ " " +status + "\r\n";
   response.buffer.insert(response.buffer.end(),tmp.c_str(),tmp.c_str() + tmp.length());
   tmp = "Content-Length: "+ std::to_string(ContentLenght -1 ) + "\r\n";
@@ -358,7 +357,8 @@ std::pair<libhttp::Methods::error,libhttp::Response > libhttp::Get(libhttp::Requ
 
     if(checkRangeRequest(request.headers))
       setRange(response,getStartandEndRangeRequest(request.headers[libhttp::Headers::CONTENT_RANGE]));
-
+    else 
+      response.bytesToServe = getFileSize(path);
     setHeaders(response,libparse::getTypeFile(libparse::Types(),path),response.bytesToServe,200,"OK");
     
     return std::make_pair(libhttp::Methods::OK,response);
