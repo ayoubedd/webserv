@@ -1,9 +1,11 @@
 #include "libhttp/Post-Handler.hpp"
 #include "libhttp/MultipartFormData.hpp"
+#include "libhttp/Sized-Post.hpp"
 #include "libhttp/TransferEncoding.hpp"
 #include <algorithm>
 #include <fstream>
 #include <iostream>
+#include <string>
 #include <utility>
 
 enum BODY_FORMAT {
@@ -60,34 +62,53 @@ static HANDLER_ERROR chunkedPostHandler(libhttp::Request &req, libhttp::ChunkDec
   return DONE;
 }
 
-static HANDLER_ERROR normalPostHandler(libhttp::Request &req, const std::string &uploadRoot) {
-  std::fstream file;
+static HANDLER_ERROR normalPostHandler(libhttp::Request &req, libhttp::SizedPost &sizedPost,
+                                       const std::string &uploadRoot) {
 
-  std::string fileName = req.reqTarget.path;
-  if (fileName == "/" || fileName.length() == 0)
-    fileName = "/uploaded_file";
+  // if SizedPost state is READY. Initialize it.
+  if (sizedPost.state == libhttp::SizedPost::READY) {
+    std::string path = libhttp::generateFileName(uploadRoot + req.reqTarget.path);
 
-  std::string fullPath = libhttp::generateFileName(uploadRoot + fileName);
-  file.open(fullPath, std::ios::out);
+    libhttp::HeadersMap::iterator iter = req.headers.headers.find(libhttp::Headers::CONTENT_LENGTH);
 
-  if (file.is_open() == false) {
-    // Error opening the file
-    return ERROR_OPENING_FILE;
+    // Check for Content-Length header existance in headers
+    if (iter == req.headers.headers.end())
+      return HANDLER_ERROR::BAD_REQUEST;
+
+    ssize_t contentLength;
+    try {
+      contentLength = std::stoi(iter->first);
+    } catch (...) {
+      return HANDLER_ERROR::BAD_REQUEST;
+    }
+
+    sizedPost.init(path, contentLength);
+
+    if (sizedPost.state != libhttp::SizedPost::WRITTING)
+      return HANDLER_ERROR::ERROR_OPENING_FILE;
   }
 
-  file.write(&req.body[0], req.body.size());
+  // Write
+  std::pair<libhttp::SizedPost::Error, libhttp::SizedPost::State> ErrStatePair =
+      sizedPost.write(req.body);
 
-  // Error wrtting to fs
-  if (file.bad() == true) {
-    std::remove(fullPath.c_str());
-    file.close();
-    return ERROR_WRITTING_TO_FILE;
+  // Propagating errors
+  if (ErrStatePair.first != libhttp::SizedPost::OK) {
+    if (ErrStatePair.first == libhttp::SizedPost::ERROR_OPENING_FILE)
+      return HANDLER_ERROR::ERROR_OPENING_FILE;
+    if (ErrStatePair.first == libhttp::SizedPost::ERROR_WRITTING_TO_FILE)
+      return HANDLER_ERROR::ERROR_WRITTING_TO_FILE;
+    if (ErrStatePair.first == libhttp::SizedPost::ERROR_FILE_NOT_OPEN)
+      return HANDLER_ERROR::ERROR_OPENING_FILE;
+    sizedPost.reset();
   }
 
-  // Success
-  file.close();
+  if (ErrStatePair.second == libhttp::SizedPost::DONE) {
+    sizedPost.reset();
+    return HANDLER_ERROR::DONE;
+  }
 
-  return DONE;
+  return HANDLER_ERROR::OK;
 }
 
 static HANDLER_ERROR multipartFormDataPostHandler(libhttp::Request           &req,
@@ -118,7 +139,7 @@ static HANDLER_ERROR multipartFormDataPostHandler(libhttp::Request           &re
 
 std::pair<libhttp::PostHandlerState, libhttp::Response *>
 libhttp::postHandler(libhttp::Request &req, libhttp::TransferEncoding &te, libhttp::Multipart &mp,
-                     const std::string &uploadRoot) {
+                     libhttp::SizedPost &sp, const std::string &uploadRoot) {
   BODY_FORMAT   bodyFormat;
   HANDLER_ERROR err;
 
@@ -126,7 +147,7 @@ libhttp::postHandler(libhttp::Request &req, libhttp::TransferEncoding &te, libht
 
   switch (bodyFormat) {
     case NORMAL:
-      err = normalPostHandler(req, uploadRoot);
+      err = normalPostHandler(req, sp, uploadRoot);
       break;
     case CHUNKED:
       err = chunkedPostHandler(req, te.chunk.decoder, uploadRoot);

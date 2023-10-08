@@ -4,6 +4,7 @@
 #include "libhttp/Multipart.hpp"
 #include "libhttp/Request.hpp"
 #include "libhttp/Response.hpp"
+#include "libhttp/Sized-Post.hpp"
 #include "libhttp/TransferEncoding.hpp"
 
 namespace libhttp {
@@ -14,8 +15,7 @@ namespace libhttp {
     DONE,
   };
 
-  std::pair<libhttp::PostHandlerState, libhttp::Response *> postHandler(libhttp::Request &,
-                                                                        libhttp::TransferEncoding &,
-                                                                        libhttp::Multipart &,
-                                                                        const std::string &);
+  std::pair<libhttp::PostHandlerState, libhttp::Response *>
+  postHandler(libhttp::Request &, libhttp::TransferEncoding &, libhttp::Multipart &,
+              libhttp::SizedPost &sp, const std::string &);
 } // namespace libhttp
