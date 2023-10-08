@@ -2,8 +2,10 @@
 #include "libparse/Config.hpp"
 #include <algorithm>
 #include <string>
+#include <utility>
 
-bool matchHostHeaderPortWithDomain(const std::string &domain, const std::string &header) {
+static inline bool matchHostHeaderPortWithDomain(const std::string &domain,
+                                                 const std::string &header) {
   std::string::size_type i;
   std::string            host;
 
@@ -48,10 +50,9 @@ static inline std::string::size_type hasPrefix(std::string str, std::string pref
   return 0;
 }
 
-const libparse::RouteProps *libparse::matchPathWithLocation(const libparse::Domain &domain,
-                                                            const std::string      &path) {
-  std::map<std::string, libparse::RouteProps>           routes = domain.routes;
-  std::map<std::string, libparse::RouteProps>::iterator it = routes.begin();
+std::pair<std::string, const libparse::RouteProps *>
+libparse::matchPathWithLocation(const libparse::Routes &routes, const std::string &path) {
+  std::map<std::string, libparse::RouteProps>::const_iterator it = routes.begin();
 
   std::string::size_type score = 0;
   std::string            maxMatch;
@@ -63,8 +64,7 @@ const libparse::RouteProps *libparse::matchPathWithLocation(const libparse::Doma
       maxMatch = it->first;
     it++;
   }
-  std::cerr << maxMatch << std::endl;
   if (!maxMatch.size())
-    return NULL;
-  return &domain.routes.at(maxMatch);
+    return std::make_pair("", static_cast<const RouteProps *>(NULL));
+  return std::make_pair(maxMatch, &routes.at(maxMatch));
 }
