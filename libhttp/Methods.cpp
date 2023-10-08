@@ -87,6 +87,38 @@ bool deleteDirectory(const char* path) {
       return false;
     return true;
 }
+bool deleteDirectoryFirst(const char* path) {
+
+    struct dirent* entry;
+    DIR* dir = opendir(path);
+
+    if (dir == nullptr) {
+        return false;
+    }
+    while ((entry = readdir(dir))) {
+      if(!strcmp(entry->d_name,".") || !strcmp(entry->d_name ,".."))
+          continue ;
+      else {
+        std::string entryPath = std::string(path) + entry->d_name;
+        struct stat statBuf;
+        if (stat(entryPath.c_str(), &statBuf) == 0) {
+          if (S_ISDIR(statBuf.st_mode)) {
+              deleteDirectory(entryPath.c_str());
+          }
+          else {
+            std::cout << entryPath << std::endl;
+            if (remove(entryPath.c_str()) != 0) {
+              return false;
+          }
+        }
+      }
+    }
+    }
+    closedir(dir);
+    // if(rmdir(path) != 0)
+    //   return false;
+    return true;
+}
 
 bool checkRangeRequest(libhttp::Headers &headers)
 {
@@ -308,10 +340,10 @@ std::vector<char > generateHeaders(std::string contentType, int ContentLenght , 
 
   tmp = "HTTP/1.1 "+std::to_string(statusCode)+ " " +status + "\r\n";
   headers.insert(headers.end(),tmp.c_str(),tmp.c_str() + tmp.length());
-  tmp = "Content-Length: "+ std::to_string(ContentLenght -1) + "\r\n";
-  headers.insert(headers.end(),tmp.c_str(),tmp.c_str() + tmp.length());
-  tmp = "Content-Type: "+contentType+"\r\n\r\n";
-  headers.insert(headers.end(),tmp.c_str(),tmp.c_str() + tmp.length());
+  // tmp = "Content-Length: "+ std::to_string(ContentLenght -1) + "\r\n";
+  // headers.insert(headers.end(),tmp.c_str(),tmp.c_str() + tmp.length());
+  // tmp = "Content-Type: "+contentType+"\r\n\r\n";
+  // headers.insert(headers.end(),tmp.c_str(),tmp.c_str() + tmp.length());
   return headers;
 }
 std::pair<libhttp::Methods::error,std::vector<char> > libhttp::Deletes(std::string &path)
@@ -320,7 +352,7 @@ std::pair<libhttp::Methods::error,std::vector<char> > libhttp::Deletes(std::stri
   {
     if(isFolder(path))
     {
-      if (deleteDirectory(path.c_str()))
+      if (deleteDirectoryFirst(path.c_str()))
         return std::make_pair(libhttp::Methods::OK,generateHeaders(libparse::getTypeFile(libparse::Types(),path),getFileSize(path),200,"OK"));
       else
         return std::make_pair(libhttp::Methods::FORBIDDEN,generateHeaders(libparse::getTypeFile(libparse::Types(),path),getFileSize(path),403,"Forbidden"));
