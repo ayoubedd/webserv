@@ -169,6 +169,7 @@ libhttp::postHandler(libhttp::Request &req, libhttp::TransferEncoding &te, libht
 
     case HANDLER_ERROR::ERROR_WRITTING_TO_FILE:
     case HANDLER_ERROR::ERROR_OPENING_FILE:
+    case ERROR_FILE_NOT_OPEN:
       return std::make_pair(libhttp::PostHandlerState::ERROR_500, nullptr);
 
     case HANDLER_ERROR::BAD_REQUEST:
