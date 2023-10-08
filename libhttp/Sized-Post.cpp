@@ -24,16 +24,18 @@ libhttp::SizedPost::Error libhttp::SizedPost::init(const std::string &filePath,
 
 std::pair<libhttp::SizedPost::Error, libhttp::SizedPost::State>
 libhttp::SizedPost::write(std::vector<char> &buff) {
-  switch (state) {
-    case READY: {
-      if (file.is_open() == false) {
-        reset();
-        return std::make_pair(ERROR_FILE_NOT_OPEN, state);
-      }
-
-      state = WRITTING;
+  if (state == READY) {
+    if (file.is_open() == false) {
+      reset();
+      return std::make_pair(ERROR_FILE_NOT_OPEN, state);
     }
 
+    state = WRITTING;
+  }
+
+  switch (state) {
+    case READY:
+      break;
     case WRITTING: {
       file.write(&buff[0], buff.size());
       writtenBytes += buff.size();
