@@ -17,3 +17,4 @@ const char *libhttp::Headers::CONTENT_RANGE = "Content-Range";
 const char *libhttp::Headers::CONTENT_TYPE = "Content-Type";
 const char *libhttp::Headers::TRANSFER_ENCODING = "Transfer-Encoding";
 const char *libhttp::Headers::CONTENT_LENGTH = "Content-Length";
+const char *libhttp::Headers::HOST = "Host";
