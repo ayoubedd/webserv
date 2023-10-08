@@ -11,7 +11,7 @@ libhttp::SizedPost::Error libhttp::SizedPost::init(const std::string &filePath,
                                                    ssize_t            contentLength) {
   this->contentLength = contentLength;
 
-  file.open(filePath);
+  file.open(filePath, std::fstream::out);
   if (file.is_open() == false) {
     reset();
     return ERROR_OPENING_FILE;
@@ -48,9 +48,8 @@ libhttp::SizedPost::write(std::vector<char> &buff) {
 
       // Done wrtting
       if (contentLength == writtenBytes) {
-        state = DONE;
         reset();
-        return std::make_pair(OK, state);
+        return std::make_pair(OK, DONE);
       }
 
       break;
