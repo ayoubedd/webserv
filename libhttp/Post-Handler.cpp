@@ -157,17 +157,20 @@ libhttp::postHandler(libhttp::Request &req, libhttp::TransferEncoding &te, libht
       break;
   }
 
-  // Uploading still ongoing.
-  if (err == HANDLER_ERROR::OK) {
-    return std::make_pair(libhttp::PostHandlerState::OK, nullptr);
-  }
+  // Error handling
+  switch (err) {
+    case HANDLER_ERROR::OK:
+      return std::make_pair(libhttp::PostHandlerState::OK, nullptr);
 
-  // Errors
-  if (err != HANDLER_ERROR::DONE) {
-    if (err == HANDLER_ERROR::BAD_REQUEST)
-      return std::make_pair(libhttp::PostHandlerState::ERROR_400, nullptr);
-    else
+    case HANDLER_ERROR::ERROR_WRITTING_TO_FILE:
+    case HANDLER_ERROR::ERROR_OPENING_FILE:
       return std::make_pair(libhttp::PostHandlerState::ERROR_500, nullptr);
+
+    case HANDLER_ERROR::BAD_REQUEST:
+      return std::make_pair(libhttp::PostHandlerState::ERROR_400, nullptr);
+
+    case HANDLER_ERROR::DONE:
+      break;
   }
 
   // Success.
