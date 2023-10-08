@@ -77,14 +77,14 @@ static HANDLER_ERROR normalPostHandler(libhttp::Request &req, libhttp::SizedPost
 
     ssize_t contentLength;
     try {
-      contentLength = std::stoi(iter->first);
+      contentLength = std::stoi(iter->second);
     } catch (...) {
       return HANDLER_ERROR::BAD_REQUEST;
     }
 
-    sizedPost.init(path, contentLength);
+    libhttp::SizedPost::Error err = sizedPost.init(path, contentLength);
 
-    if (sizedPost.state != libhttp::SizedPost::WRITTING)
+    if (err != libhttp::SizedPost::OK)
       return HANDLER_ERROR::ERROR_OPENING_FILE;
   }
 
