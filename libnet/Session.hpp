@@ -1,5 +1,6 @@
 #pragma once
 
+#include "libcgi/Cgi.hpp"
 #include "libhttp/Multipart.hpp"
 #include "libhttp/Reader.hpp"
 #include "libhttp/Request.hpp"
@@ -18,6 +19,7 @@ namespace libnet {
     libhttp::Multipart        multipart;
     libhttp::Reader           reader;
     libhttp::Writer           writer;
+    libcgi::Cgi               cgi;
     sockaddr_in              *clientAddr;
   };
 } // namespace libnet
