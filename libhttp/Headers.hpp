@@ -15,6 +15,7 @@ namespace libhttp {
     static const char *CONTENT_TYPE;
     static const char *TRANSFER_ENCODING;
     static const char *CONTENT_LENGTH;
+    static const char *CONTENT_RANGE;
 
     void delHeader(std::string);
     std::string &operator[](std::string);
