@@ -2,51 +2,23 @@
 #include "libhttp/Headers.hpp"
 #include "libnet/Session.hpp"
 #include "libparse/Config.hpp"
+#include "libparse/match.hpp"
 #include <string>
 
-static const libparse::Domain *matchDomain(const libparse::Config &config,
-                                           const std::string      &domain) {
-  libparse::Domains::const_iterator iter = config.domains.find(domain);
-
-  if (iter != config.domains.end())
-    return &iter->second;
-  else
-    return config.defaultServer;
-}
-
-static const libparse::RouteProps *matchRoute(const libparse::Domain &domain,
-                                              const std::string      &path) {
-  std::string matchedRoute = libparse::matching(domain, path);
-
-  if (matchedRoute.length())
-    return &domain.routes.find(matchedRoute)->second;
-
-  return NULL;
-}
-
-static std::string extractHost(libhttp::HeadersMap &headers) {
-  libhttp::HeadersMap::iterator hostIter = headers.find("Host");
-
-  if (hostIter != headers.end())
-    return hostIter->second;
-
-  return "";
-}
-
 static bool isRequestHandlerCgi(const libparse::RouteProps *route) {
-  if (route->cgi.first.length() > 0 && route->cgi.second.length() > 0)
+  if (route->cgi.second != "defautl path")
     return true;
   return false;
 }
 
 libhttp::MultiplexerError libhttp::multiplexer(libnet::Session        *session,
                                                const libparse::Config &config) {
-  libhttp::Request           *req = session->reader.requests.front();
-  std::string                 host = extractHost(req->headers.headers);
-  const libparse::Domain     *domain = matchDomain(config, host);
-  const libparse::RouteProps *route = matchRoute(*domain, req->reqTarget.path);
+  libhttp::Request       *req = session->reader.requests.front();
+  const libparse::Domain *domain = libparse::matchReqWithServer(*req, config);
+  const std::pair<std::string, const libparse::RouteProps *> route =
+      libparse::matchPathWithLocation(domain->routes, req->reqTarget.path);
 
-  if (isRequestHandlerCgi(route)) {
+  if (isRequestHandlerCgi(route.second)) {
 
   }
 
@@ -59,6 +31,7 @@ libhttp::MultiplexerError libhttp::multiplexer(libnet::Session        *session,
   }
 
   else if (req->method == "POST") {
+
   }
 
   return libhttp::MultiplexerError::UNMATCHED_HANDLER;
