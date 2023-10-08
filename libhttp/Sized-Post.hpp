@@ -23,6 +23,7 @@ namespace libhttp {
 
     State        state;
     std::fstream file;
+    std::string  filePath;
     ssize_t      contentLength;
     ssize_t      writtenBytes;
 

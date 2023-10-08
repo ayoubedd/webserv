@@ -1,4 +1,5 @@
 #include "libhttp/Sized-Post.hpp"
+#include <cstdio>
 #include <utility>
 
 libhttp::SizedPost::SizedPost() {
@@ -15,6 +16,8 @@ libhttp::SizedPost::Error libhttp::SizedPost::init(const std::string &filePath,
     reset();
     return ERROR_OPENING_FILE;
   }
+
+  this->filePath = filePath;
 
   return OK;
 }
@@ -43,8 +46,8 @@ libhttp::SizedPost::write(std::vector<char> &buff) {
 
       // Done wrtting
       if (contentLength == writtenBytes) {
-        reset();
         state = DONE;
+        reset();
         return std::make_pair(OK, state);
       }
 
@@ -62,7 +65,13 @@ void libhttp::SizedPost::reset() {
   if (file.is_open())
     file.close();
 
+  // If reseted while writting
+  // should removed the file.
+  if (state == WRITTING)
+    std::remove(filePath.c_str());
+
   state = READY;
   contentLength = 0;
   writtenBytes = 0;
+  filePath = "";
 }
