@@ -1,6 +1,8 @@
 #include "libnet/Net.hpp"
 #include "libparse/Config.hpp"
 #include "libparse/utilities.hpp"
+#include <assert.h>
+#include <cstring>
 
 void sessionsHandler(libnet::Netenv &net) {
   libnet::Sessions::iterator session;
@@ -22,6 +24,11 @@ int main(int argc, char *argv[]) {
   libnet::Netenv   net;
 
   libparse::parser(argv[1], config);
+
+  if (!config.defaultServer) {
+    std::cerr << "missing default server in the config" << std::endl;
+    return 1;
+  }
 
   net.setupSockets(config);
 

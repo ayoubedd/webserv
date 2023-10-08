@@ -31,6 +31,7 @@ void libparse::parser(std::string filename, libparse::Config &config) {
   content.push_back("endifle");
   lexer(tokens, content);
   config.domains = setTokenInStruct(tokens);
+  config.defaultServer = NULL;
   if (checkDefaulfServer(content, i))
     config.defaultServer = getDefeaultSever(config.domains, content[1]);
 }

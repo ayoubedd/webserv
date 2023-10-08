@@ -15,3 +15,4 @@ std::ostream &operator<<(std::ostream &os, const libhttp::Headers &h) {
 const char *libhttp::Headers::CONTENT_TYPE = "Content-Type";
 const char *libhttp::Headers::TRANSFER_ENCODING = "Transfer-Encoding";
 const char *libhttp::Headers::CONTENT_LENGTH = "Content-Length";
+const char *libhttp::Headers::HOST = "Host";
