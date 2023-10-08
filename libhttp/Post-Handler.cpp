@@ -18,6 +18,7 @@ enum HANDLER_ERROR {
   OK,
   ERROR_WRITTING_TO_FILE,
   ERROR_OPENING_FILE,
+  ERROR_FILE_NOT_OPEN,
   BAD_REQUEST,
   DONE,
 };
@@ -93,14 +94,18 @@ static HANDLER_ERROR normalPostHandler(libhttp::Request &req, libhttp::SizedPost
       sizedPost.write(req.body);
 
   // Propagating errors
-  if (ErrStatePair.first != libhttp::SizedPost::OK) {
-    if (ErrStatePair.first == libhttp::SizedPost::ERROR_OPENING_FILE)
+  switch (ErrStatePair.first) {
+    case libhttp::SizedPost::ERROR_OPENING_FILE:
+      sizedPost.reset();
       return HANDLER_ERROR::ERROR_OPENING_FILE;
-    if (ErrStatePair.first == libhttp::SizedPost::ERROR_WRITTING_TO_FILE)
+    case libhttp::SizedPost::ERROR_WRITTING_TO_FILE:
+      sizedPost.reset();
       return HANDLER_ERROR::ERROR_WRITTING_TO_FILE;
-    if (ErrStatePair.first == libhttp::SizedPost::ERROR_FILE_NOT_OPEN)
-      return HANDLER_ERROR::ERROR_OPENING_FILE;
-    sizedPost.reset();
+    case libhttp::SizedPost::ERROR_FILE_NOT_OPEN:
+      sizedPost.reset();
+      return HANDLER_ERROR::ERROR_FILE_NOT_OPEN;
+    case libhttp::SizedPost::OK:
+      break;
   }
 
   if (ErrStatePair.second == libhttp::SizedPost::DONE) {
