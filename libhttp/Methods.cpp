@@ -314,17 +314,13 @@ void setHeaders(libhttp::Response &response,std::string contentType, int Content
 }
 
 
-std::vector<char > generateHeaders(std::string contentType, int ContentLenght , int statusCode, std::string status)
+std::vector<char > generateHeaders(int statusCode, std::string status)
 {
   std::string tmp;
   std::vector<char > headers;
 
   tmp = "HTTP/1.1 "+std::to_string(statusCode)+ " " +status + "\r\n";
   headers.insert(headers.end(),tmp.c_str(),tmp.c_str() + tmp.length());
-//   tmp = "Content-Length: "+ std::to_string(ContentLenght -1) + "\r\n";
-//   headers.insert(headers.end(),tmp.c_str(),tmp.c_str() + tmp.length());
-//   tmp = "Content-Type: "+contentType+"\r\n\r\n";
-//   headers.insert(headers.end(),tmp.c_str(),tmp.c_str() + tmp.length());
   return headers;
 }
 
@@ -388,18 +384,18 @@ std::pair<libhttp::Methods::error,libhttp::Response> libhttp::Delete(std::string
         if (deleteDirectory(path.c_str()))
         {
             return std::make_pair(libhttp::Methods::OK,setResponse(response,-1,getFileSize(path),
-            generateHeaders(libparse::getTypeFile(libparse::Types(),path),getFileSize(path),202,"OK")));
+            generateHeaders(202,"OK")));
         }
         else
-            return std::make_pair(libhttp::Methods::FORBIDDEN,setResponse(response, -1,0,generateHeaders(libparse::getTypeFile(libparse::Types(),path),getFileSize(path),403,"Forbidden")));
+            return std::make_pair(libhttp::Methods::FORBIDDEN,setResponse(response, -1,0,generateHeaders(403,"Forbidden")));
     }
     else
     {
       if (remove(path.c_str()) != 0)
-        return std::make_pair(libhttp::Methods::FORBIDDEN,setResponse(response, -1,0,generateHeaders(libparse::getTypeFile(libparse::Types(),path),getFileSize(path),403,"Forbidden")));
+        return std::make_pair(libhttp::Methods::FORBIDDEN,setResponse(response, -1,0,generateHeaders(403,"Forbidden")));
       else
-        return std::make_pair(libhttp::Methods::OK,setResponse(response, -1,0,generateHeaders(libparse::getTypeFile(libparse::Types(),path),getFileSize(path),202,"OK")));
+        return std::make_pair(libhttp::Methods::OK,setResponse(response, -1,0,generateHeaders(202,"OK")));
     }
   }
-  return std::make_pair(libhttp::Methods::FILE_NOT_FOUND,setResponse(response, -1,0,generateHeaders(libparse::getTypeFile(libparse::Types(),path),getFileSize(path),404,"File Not Found")));
+  return std::make_pair(libhttp::Methods::FILE_NOT_FOUND,setResponse(response, -1,0,generateHeaders(404,"FileNotFound")));
 }
