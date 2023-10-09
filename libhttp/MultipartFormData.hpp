@@ -27,6 +27,7 @@ namespace libhttp {
 
   struct MultipartFormData {
     MultipartFormData(void);
+    ~MultipartFormData(void);
 
     // Reader states
     enum Status {
