@@ -9,14 +9,14 @@
 
 namespace libhttp {
   struct Post {
-    enum Error {
+    enum Intel {
       OK,
       ERROR_400,
       ERROR_500,
       DONE,
     };
 
-    static std::pair<libhttp::Post::Error, libhttp::Response *>
+    static std::pair<libhttp::Post::Intel, libhttp::Response *>
     post(libhttp::Request &, libhttp::TransferEncoding &, libhttp::Multipart &,
          libhttp::SizedPost &sp, const std::string &);
   };

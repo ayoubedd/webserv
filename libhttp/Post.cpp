@@ -140,7 +140,7 @@ static HANDLER_ERROR multipartFormDataPostHandler(libhttp::Request           &re
   return DONE;
 }
 
-std::pair<libhttp::Post::Error, libhttp::Response *>
+std::pair<libhttp::Post::Intel, libhttp::Response *>
 libhttp::Post::post(libhttp::Request &req, libhttp::TransferEncoding &te, libhttp::Multipart &mp,
                      libhttp::SizedPost &sp, const std::string &uploadRoot) {
   BODY_FORMAT   bodyFormat;
@@ -163,15 +163,15 @@ libhttp::Post::post(libhttp::Request &req, libhttp::TransferEncoding &te, libhtt
   // Error handling
   switch (err) {
     case HANDLER_ERROR::OK:
-      return std::make_pair(libhttp::Post::Error::OK, nullptr);
+      return std::make_pair(libhttp::Post::Intel::OK, nullptr);
 
     case HANDLER_ERROR::ERROR_WRITTING_TO_FILE:
     case HANDLER_ERROR::ERROR_OPENING_FILE:
     case ERROR_FILE_NOT_OPEN:
-      return std::make_pair(libhttp::Post::Error::ERROR_500, nullptr);
+      return std::make_pair(libhttp::Post::Intel::ERROR_500, nullptr);
 
     case HANDLER_ERROR::BAD_REQUEST:
-      return std::make_pair(libhttp::Post::Error::ERROR_400, nullptr);
+      return std::make_pair(libhttp::Post::Intel::ERROR_400, nullptr);
 
     case HANDLER_ERROR::DONE:
       break;
@@ -185,5 +185,5 @@ libhttp::Post::post(libhttp::Request &req, libhttp::TransferEncoding &te, libhtt
 
   res->buffer.insert(res->buffer.begin(), headers.begin(), headers.end());
 
-  return std::make_pair(libhttp::Post::Error::DONE, res);
+  return std::make_pair(libhttp::Post::Intel::DONE, res);
 }
