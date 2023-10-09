@@ -13,6 +13,11 @@ libhttp::ChunkDecoder::ChunkDecoder(void) {
   remainingBytes = 0;
 }
 
+libhttp::ChunkDecoder::~ChunkDecoder(void) {
+  // Calling reest cleanup
+  reset();
+}
+
 static std::pair<libhttp::ChunkDecoder::Error, std::vector<char>::size_type>
 extractChunkSize(std::vector<char> &vec) {
   std::vector<char>::const_iterator begin = vec.begin();

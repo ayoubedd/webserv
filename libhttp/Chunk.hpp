@@ -10,6 +10,7 @@
 namespace libhttp {
   struct ChunkDecoder {
     ChunkDecoder(void);
+    ~ChunkDecoder(void);
 
     enum Error {
       OK,                     // Nothing to worry about
