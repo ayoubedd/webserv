@@ -1,3 +1,4 @@
+#include "libcgi/Cgi.hpp"
 #include "libnet/Net.hpp"
 #include "libparse/Config.hpp"
 #include "libparse/utilities.hpp"
@@ -15,13 +16,13 @@ void sessionsHandler(libnet::Netenv &net) {
 }
 
 int main(int argc, char *argv[]) {
+  libparse::Config config;
+  libnet::Netenv   net;
+
   if (argc < 2) {
     std::cerr << "error: Missing config file \n";
     return 0;
   }
-
-  libparse::Config config;
-  libnet::Netenv   net;
 
   libparse::parser(argv[1], config);
 
@@ -41,6 +42,5 @@ int main(int argc, char *argv[]) {
 
     sessionsHandler(net);
   };
-
   return 0;
 }

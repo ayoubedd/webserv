@@ -1,6 +1,5 @@
 #include "libhttp/Request.hpp"
 #include <arpa/inet.h>
-#include <netinet/in.h>
 
 libhttp::Request::Request(sockaddr_in *clientAddr)
     : method()
