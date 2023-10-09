@@ -7,6 +7,7 @@
 namespace libhttp {
   struct SizedPost {
     SizedPost();
+    ~SizedPost();
 
     enum State {
       READY,

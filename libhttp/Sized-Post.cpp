@@ -8,6 +8,11 @@ libhttp::SizedPost::SizedPost() {
   reset();
 }
 
+libhttp::SizedPost::~SizedPost() {
+  // Clean up and set state to READY
+  reset();
+}
+
 libhttp::SizedPost::Error libhttp::SizedPost::init(const std::string &filePath,
                                                    ssize_t            contentLength) {
   this->contentLength = contentLength;
