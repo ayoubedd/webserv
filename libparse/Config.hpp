@@ -61,7 +61,12 @@ namespace libparse {
       ENDFILE,
       ENDROUTE,
       ENDDOMAIN,
+      ENDLINE,
       PATH,
+      DEFAULT,
+      LOGERROR,
+      LOGINFO,
+      SEMICOLON,
       NONO
     } type;
     std::string lexeme;

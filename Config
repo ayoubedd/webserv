@@ -1,0 +1,29 @@
+log_info /test/hello;
+log_error /log/error;
+
+default  www.google.com:5000 {
+
+  error 404 /var/www/404.html;
+
+  max_body_size 4096;
+
+  root /var/www;
+
+  index index.html;
+
+  route /login {
+    root /var/www/;
+
+    methods  GET POST DELETE ;
+
+    redir /login/;
+
+    index index.php;
+
+    dir_listing on;
+
+    upload on /var/www/upload/;
+
+    cgi php cgi-bin/php/index.php;
+  }
+}

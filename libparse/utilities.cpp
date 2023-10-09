@@ -59,8 +59,12 @@ libparse::token::t_type getTypeFromString(std::string typeStr) {
     return libparse::token::UPLOAD;
   else if (typeStr == "cgi")
     return libparse::token::CGI;
-  else if (typeStr == "ENDDOMAIN")
-    return libparse::token::DOMAINS;
+  else if (typeStr == "default")
+    return libparse::token::DEFAULT;
+  else if(typeStr == "log_info")
+    return libparse::tokens::LOGINFO;
+  else if(typeStr == "log_error")
+    return libparse::tokens::LOGERROR; 
   else
     return libparse::token::KEYWORD;
 }

@@ -21,8 +21,6 @@ std::string libparse::readFile(std::string filename) {
   buffer << inputFile.rdbuf();
   inputFile.close();
   fileContent = buffer.str();
-
-  ft_replace(fileContent, "\n\n", "\n");
-  ft_replace(fileContent, "\n", " endline ");
+  
   return fileContent;
 }
