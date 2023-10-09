@@ -1,7 +1,7 @@
 #include "Config.hpp"
 #include <algorithm>
 
-void ft_replace(std::string &str, const std::string &old_value, const std::string &new_value) {
+static void ft_replace(std::string &str, const std::string &old_value, const std::string &new_value) {
   size_t pos = 0;
   while ((pos = str.find(old_value, pos)) != std::string::npos) {
     str.replace(pos, old_value.length(), new_value);
