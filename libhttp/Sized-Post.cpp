@@ -4,6 +4,7 @@
 
 libhttp::SizedPost::SizedPost() {
   // Clean up and set state to READY
+  state = libhttp::SizedPost::READY;
   reset();
 }
 
@@ -19,7 +20,7 @@ libhttp::SizedPost::Error libhttp::SizedPost::init(const std::string &filePath,
 
   this->filePath = filePath;
 
-  return OK;
+  return libhttp::SizedPost::OK;
 }
 
 std::pair<libhttp::SizedPost::Error, libhttp::SizedPost::State>
