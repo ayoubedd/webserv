@@ -63,12 +63,12 @@ libhttp::SizedPost::write(std::vector<char> &buff) {
 }
 
 void libhttp::SizedPost::reset() {
-  if (file.is_open())
+  if (file.is_open() == true)
     file.close();
 
-  // If reseted while writting
+  // If reseted while writting and didn't finish writting
   // should removed the file.
-  if (state == WRITTING)
+  if (state == WRITTING && contentLength != writtenBytes)
     std::remove(filePath.c_str());
 
   state = READY;
