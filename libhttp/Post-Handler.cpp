@@ -108,10 +108,8 @@ static HANDLER_ERROR normalPostHandler(libhttp::Request &req, libhttp::SizedPost
       break;
   }
 
-  if (ErrStatePair.second == libhttp::SizedPost::DONE) {
-    sizedPost.reset();
+  if (ErrStatePair.second == libhttp::SizedPost::DONE)
     return HANDLER_ERROR::DONE;
-  }
 
   return HANDLER_ERROR::OK;
 }
