@@ -20,6 +20,10 @@ void libhttp::MultipartEntity::MultipartEntity::clean() {
 
 libhttp::MultipartEntity::~MultipartEntity(){};
 
+libhttp::MultipartFormData::~MultipartFormData() {
+  cleanup(READY);
+}
+
 void libhttp::MultipartFormData::cleanup(libhttp::MultipartFormData::Status newStatus) {
   if (newStatus != DONE && entities.size()) {
     std::vector<libhttp::MultipartEntity>::iterator entitiesIter = entities.begin();

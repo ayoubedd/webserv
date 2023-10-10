@@ -8,4 +8,5 @@ libnet::Session::Session(int fd, sockaddr_in *clientAddr)
     : fd(fd)
     , reader(fd, *clientAddr)
     , writer(fd)
+    , cgi(clientAddr)
     , clientAddr(clientAddr) {}

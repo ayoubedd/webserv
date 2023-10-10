@@ -37,13 +37,13 @@ void sessionsHandler(libnet::Netenv &net, libparse::Config &config) {
 }
 
 int main(int argc, char *argv[]) {
+  libparse::Config config;
+  libnet::Netenv   net;
+
   if (argc < 2) {
     std::cerr << "error: missing config file \n";
     return 0;
   }
-
-  libparse::Config config;
-  libnet::Netenv   net;
 
   libparse::parser(argv[1], config);
 
