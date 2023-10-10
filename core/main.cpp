@@ -1,8 +1,38 @@
 #include "libnet/Net.hpp"
 #include "libparse/Config.hpp"
 #include "libparse/utilities.hpp"
+#include "libparse/TestParser.hpp"
+#include <iostream>
+#include <utility>
+#include <vector>
 
+// bool checkIsKey(libparse::tokens type)
+// {
+//   if(libparse::tokens::ROOT == type || libparse::tokens::METHODS == type || libparse::tokens::REDIR == type
+//     || libparse::tokens::INDEX || libparse::tokens::ERROR || libparse::tokens::MAXBODYSIZE || libparse::tokens:: DIRLISTENING
+//       || libparse::tokens::UPLOAD || libparse::tokens::CGI || libparse::tokens::LOGERROR || libparse::tokens::LOGINFO)
+//        return true;
+//   return false;
+// }
 
+bool checkIsKeyServer(libparse::token::t_type type)
+{
+  if(libparse::tokens::ROOT == type || libparse::tokens::METHODS == type || libparse::tokens::REDIR == type
+    || libparse::tokens::INDEX || type == libparse::tokens::ERROR || type == libparse::tokens::MAXBODYSIZE )
+    return true;
+  return false;
+
+}
+
+bool checkIsKeyRoute(libparse::token::t_type type)
+{
+  if(libparse::tokens::ROOT == type || libparse::tokens::METHODS == type || libparse::tokens::REDIR == type
+    || type == libparse::tokens::INDEX || type == libparse::tokens:: DIRLISTENING || type == libparse::tokens::UPLOAD 
+    || type == libparse::tokens::CGI)
+       return true;
+  return false;
+
+}
 
 void skipWithSpace(std::string &content, size_t *i)
 {
@@ -22,6 +52,7 @@ std::string getWord(std::string &content, size_t *i)
   value =  content.substr(j,*i-j);
   return value;
 }
+
 bool isWhiteSpace(char c)
 {
     if(c == ' ' || c == '\t' || c == '\n')
@@ -29,7 +60,8 @@ bool isWhiteSpace(char c)
     return false;
 }
 
-void steUpTokens(std::vector<libparse::tokens> &tokens,std::string content)
+
+void Lexer(std::vector<libparse::tokens> &tokens,std::string content)
 {
     size_t i = 0;
     std::string key;
@@ -55,121 +87,177 @@ void steUpTokens(std::vector<libparse::tokens> &tokens,std::string content)
     setNewToken(libparse::token::ENDFILE," ",tokens);
 }
 
-// std::string help(std::vector<libparse::tokens> tokens, int start, int end)
-// {
-//   std::string values;
 
-//   for(size_t i = start, i < end ;i++)
-//   {
-//     values = " " + tokens[i].lexeme;
-//   }
-//   return values;
-// }
+bool setUpLog(libparse::Config &config,std::vector<libparse::tokens> &tokens, size_t *i){
 
+  if(tokens[*i].lexeme == "log_error")
+  {
+    (*i)++;
+    if(tokens[*i].type == libparse::tokens::ENDLINE)
+      return false;
+    config.log_error = tokens[*i].lexeme;
+  }
 
-// bool checkIsKey(libparse::type type)
-// {
-//   if(libparse::ROOT || libparse::METHODS || libparse::REDIR
-//     || libparse::INDEX || libparse::ERROR || libparse:: MAXBODYSIZE || libparse:: DIRLISTENING
-//       || libparse:: UPLOAD || libparse::CGI || libparse::LOGERROR || libparse::LOGINFO)
-//        return true;
-//   return false;
-//}
+  else if(tokens[*i].lexeme == "log_info")
+  {
+    (*i)++;
+    if(tokens[*i].type == libparse::tokens::ENDLINE )
+      return false;
+    config.log_info = tokens[*i].lexeme;
+  }
+  (*i)++;
+  if(tokens[*i].lexeme != "_")
+    return false;
 
-bool isToken()
-{
-
+  return true;
 }
 
-void consumeServer(std::vector<libparse::tokens> &tokens, size_t *i)
+bool checkMethod(std::string method)
 {
+  if(method == "GET" || method == "POST" || method == "DELETE")
+    return true;
+  return false;
 }
 
-void consumeLog(std::vector<libparse::tokens> &tokens, size_t *i)
+bool setUpMethods(libparse::Config &config,std::vector<libparse::tokens> &tokens, size_t *i)
 {
+  (*i)++;
+  std::vector<std::string > vec;
 
+   while(tokens[*i].type != libparse::tokens::ENDLINE)
+    {
+      if(checkMethod(tokens[*i].lexeme))
+        vec.push_back(tokens[*i].lexeme);
+      else
+      return false;
+       (*i)++; 
+    }
+   // setUp methods config
+
+   return true;
 }
 
-void consumeToken(std::vector<libparse::tokens> &tokens, size_t *i)
+bool setUpCgi(libparse::Config &config,std::vector<libparse::tokens> &tokens, size_t *i)
 {
-  
+    (*i)++; 
+    int j = *i; 
+    while(tokens[*i].type != libparse::tokens::ENDLINE)
+    {
+            
+    }
+    if(*i - j > 3)
+      return  false;
+    (*i)++;
+  return true;
 }
 
-bool Lexer(std::vector<libparse::tokens> &tokens)
+bool setUpRout(libparse::Config &config,std::vector<libparse::tokens> &tokens, size_t *i)
 {
-  std::vector<libparse::tokens> tmp;
+  // cousum route
+  // cousum path
+  // {
+   while(tokens[*i].type != libparse::tokens::CURLYBARCKETLEFT)
+    {
+      if(!checkIsKeyRoute(tokens[*i].type))
+      {
+        if(tokens[*i].type == libparse::tokens::METHODS)
+          setUpMethods(config,tokens,i);
+        if(tokens[*i].type == libparse::tokens::CGI)
+          setUpMethods(config,tokens,i);
+      }
+      else
+      {
+        std::cout << "Error " << tokens[*i].lexeme << std::endl;
+        return false;
+      }
+    }
+   return true;
+}
+
+bool setUpDomain(libparse::Config &config,std::vector<libparse::tokens> &tokens, size_t *i)
+{
+  if(!checkDomain(tokens[*i].lexeme))
+    return false;
+  // setup value domain
+  return true; 
+}
+
+bool setUpKey(libparse::Config &config,std::vector<libparse::tokens> &tokens, size_t *i)
+{
+  return true;
+}
+
+bool SetUpServer(libparse::Config &config,std::vector<libparse::tokens> &tokens, size_t *i)
+{
+  std::string strDomain, strRoute;
+  libparse::Routes route;
+    if(!setUpDomain(config,tokens,i))
+        return false;
+    (*i)++;
+    if(tokens[*i].type != libparse::tokens::CURLYBARCKETRIGTH)
+      return false;
+
+   while(tokens[*i].type != libparse::tokens::ENDFILE)
+  {
+      if(checkIsKeyServer(tokens[*i].type))
+      {
+        if(!setUpKey(config,tokens,i))
+          return false;
+      }
+      if(tokens[*i].type != libparse::tokens::ROUTE)
+      {
+        if(!setUpRout(config,tokens,i))
+          return false;
+      }
+      else
+      {
+        std::cout << "Error " << tokens[*i].lexeme << std::endl;
+        return false;
+      }
+  }
+   return true;
+}
+
+bool setUpDefaultSever( libparse::Config &config,std::vector<libparse::tokens> &tokens, size_t *i)
+{
+  return true;
+}
+
+bool parser(libparse::Config &config,std::vector<libparse::tokens> &tokens)
+{
     size_t i = 0;
     while(tokens[i].type != libparse::tokens::ENDFILE)
     {
       if(tokens[i].lexeme == "log_error" || tokens[i].lexeme == "log_info")
       {
-        consumeLog(tokens,&i);
+        if(!setUpLog(config,tokens,&i))
+          return false;
       }
       else if(tokens[i].lexeme == "default")
       {
-        consumeToken(tokens,&i);
-        consumeServer(tokens,&i);
+        setUpDefaultSever(config,tokens,&i);
+        SetUpServer(config,tokens,&i);
       }
       else
-        consumeServer(tokens,&i);;
-      continue;
+        SetUpServer(config,tokens,&i);
+      i++;
     }
-
+  return true;
 }
 
-bool test(std::vector<libparse::tokens> tokens)
-{
-    std::vector<libparse::tokens> tokenss;
-    size_t i = 0;
-    size_t j= 0;
-    while(tokens[i].type != libparse::tokens::ENDFILE)
-    {
-        if(checkIsKey(tokens[i].type))
-        {
-          j = i++;
-          while(tokens[i].type != libparse::ENDLINE && tokens[i].type != libparse::ENDFILE)
-                i++;
-          
-          setNewToken(libparse::tokens::METHODS, help(tokens,j,i), tokenss);
-
-        }
-        else if(tokens[i].type ==libparse::DEFAULT)
-        {
-          j =i++;
-          if(tokens[i].type != libparse::KEYWORD)
-            std::cout << "error \n";
-          i++;
-          if(tokens[i].type != libparse::CURLYBARCKETLEFT)
-            std::cout << "error \n";
-          setNewToken(libparse::tokens::DOMAIN,tokens[i-1], tokenss);
-        }
-        else if(tokens[i].type ==libparse::CURLYBARCKETRIGTH)
-        {
-          // set name domain
-          if(i != 0)
-          {
-          if(tokens[i-1].type == libparse::KEYWORD)
-              setNewToken(libparse::tokens::DOMAIN,tokens[i-1], tokenss);
-          }
-          else
-              std::cout << "error \n";
-          
-        }
-        else if(tokens[i].type ==libparse::ROUTE)
-        {
-          // set route
-
-        }
-        i++;
-    }
-    printTokens(tokenss);
-}
 
 void printTokens(  std::vector<libparse::tokens> tokens) {
 
   for(auto i = 0; i < tokens.size(); i++)
-    std::cout << tokens[i].type << "|" << tokens[i].lexeme <<"|"<< std::endl;
+    std::cout << getTypeFromInt(tokens[i].type) << "|" << tokens[i].lexeme <<"|"<< std::endl;
 
+}
+
+
+void printConfig(libparse::Config &config)
+{
+  std::cout << "|"<<config.log_error << "|"<<std::endl;
+  std::cout << "|"<<config.log_info << "|"<<std::endl;
 }
 
 int main(int argc, char *argv[]) {
@@ -179,8 +267,41 @@ int main(int argc, char *argv[]) {
   }
   std::vector<libparse::tokens> tokens;
   std::string content = libparse::readFile(argv[1]);
-  steUpTokens(tokens,content);
-  //test(tokens);
+  libparse::Config config;
+  Lexer(tokens,content);
   printTokens(tokens);
+  // int a = parser(config,tokens);
+  // std::cout << "=====> "  << a << std::endl;
+  // printConfig(config);
   return 0;
 }
+
+
+
+
+    // if(tokens[*i].type == libparse::token::ROOT)
+    // {
+
+    // }
+    // if(tokens[*i].type == libparse::tokens::METHODS)
+    // {
+
+    // }
+    // if(tokens[*i].type == libparse::tokens::REDIR)
+    // {
+
+    // }
+    // if(tokens[*i].type == libparse::INDEX)
+    // {
+
+    // }
+    // if(tokens[*i].lexeme == libparse::ERROR)
+    // {
+
+    // }
+    // if(libparse:: MAXBODYSIZE)
+    // if(libparse:: DIRLISTENING)
+    // if(libparse:: UPLOAD )
+    // if(libparse::CGI)
+    // if(libparse::LOGERROR) 
+    // if(libparse::LOGINFO)

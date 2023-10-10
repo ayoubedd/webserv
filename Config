@@ -22,7 +22,7 @@ default  www.google.com:5000 {
 
     dir_listing on;
 
-    upload on /var/www/upload/;
+    upload /var/www/upload/;
 
     cgi php cgi-bin/php/index.php;
   }

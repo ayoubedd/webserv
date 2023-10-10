@@ -39,7 +39,23 @@ std::string getTypeFromInt(int type) {
     case 15:
       return "ENDFILE";
     case 16:
+      return "ENDROUTE";
+    case 17:
+      return "ENDDOMAIN";
+    case 18:
+      return "ENDLINE";
+    case 19:
+      return "ENDFILE";
+    case 20:
       return "PATH";
+    case 21:
+      return "DEFAULT";
+    case 22:
+      return "LOGERROR";
+    case 23:
+        return "LOGINFO";
+    case 24:
+        return "SMEICOLON";
     default:
       return "NONO";
   }

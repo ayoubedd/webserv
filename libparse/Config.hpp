@@ -37,6 +37,9 @@ namespace libparse {
 
   struct Config {
     Domain *defaultServer;
+    std::string log_error;
+    std::string log_info;
+    std::string defaultS;
     Domains domains;
   };
 
