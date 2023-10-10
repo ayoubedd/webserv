@@ -4,6 +4,7 @@
 #include "libhttp/Multipart.hpp"
 #include "libhttp/Reader.hpp"
 #include "libhttp/Request.hpp"
+#include "libhttp/Sized-Post.hpp"
 #include "libhttp/TransferEncoding.hpp"
 #include "libhttp/Writer.hpp"
 #include "libnet/SessionState.hpp"
@@ -17,6 +18,7 @@ namespace libnet {
     int                       fd;
     libhttp::TransferEncoding transferEncoding;
     libhttp::Multipart        multipart;
+    libhttp::SizedPost        sizedPost;
     libhttp::Reader           reader;
     libhttp::Writer           writer;
     libcgi::Cgi               cgi;

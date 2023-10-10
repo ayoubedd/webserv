@@ -6,7 +6,8 @@ CORE=core/main.cpp
 
 LIBHTTP=libhttp/Headers.cpp libhttp/Request.cpp libhttp/Reader.cpp \
 				 libhttp/Request-target.cpp libhttp/Chunk.cpp libhttp/MultipartFormData.cpp \
-				 libhttp/Writer.cpp libhttp/Response.cpp libhttp/Methods.cpp
+				 libhttp/Writer.cpp libhttp/Response.cpp libhttp/Post.cpp \
+				 libhttp/Sized-Post.cpp
 LIBHTTP_TEST=libhttp/Headers_test.cpp libhttp/Reader_test.cpp
 
 
