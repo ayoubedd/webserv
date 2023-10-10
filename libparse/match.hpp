@@ -9,4 +9,7 @@ namespace libparse {
 
   std::pair<std::string, const RouteProps *> matchPathWithLocation(const Routes      &routes,
                                                                    const std::string &path);
+
+  std::string findRouteRoot(const libparse::Domain *domain, const libparse::RouteProps *route);
+  std::string findRouteIndex(const libparse::Domain *domain, const libparse::RouteProps *route);
 } // namespace libparse
