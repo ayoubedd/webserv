@@ -1,17 +1,38 @@
-#include "libcgi/Cgi.hpp"
+#include "libhttp/Multiplexer.hpp"
 #include "libnet/Net.hpp"
 #include "libparse/Config.hpp"
 #include "libparse/utilities.hpp"
 #include <assert.h>
 #include <cstring>
 
-void sessionsHandler(libnet::Netenv &net) {
-  libnet::Sessions::iterator session;
-  libnet::Sessions          &readySessions = net.readyClients;
+void sessionsHandler(libnet::Netenv &net, libparse::Config &config) {
+  libnet::Sessions::iterator sessionIter;
+  libnet::Sessions          &readysessions = net.readyClients;
 
-  session = readySessions.begin();
-  while (session != readySessions.end()) {
-    session++;
+  sessionIter = readysessions.begin();
+  char buff[2];
+  while (sessionIter != readysessions.end()) {
+    // Temporary solutin for closed clients
+    if (recv(sessionIter->second->fd, buff, 1, MSG_PEEK) <= 0) {
+      sessionIter++;
+      continue;
+    }
+
+    libnet::Session *session = sessionIter->second;
+
+    // Calling the reader.
+    session->reader.read();
+
+    libhttp::MultiplexerError muxErr = libhttp::multiplexer(session, config);
+
+    if (muxErr != libhttp::MultiplexerError::OK) {
+      // Call errors handler.
+    }
+
+    // Calling the writer.
+    session->writer.write();
+
+    sessionIter++;
   };
 }
 
@@ -20,7 +41,7 @@ int main(int argc, char *argv[]) {
   libnet::Netenv   net;
 
   if (argc < 2) {
-    std::cerr << "error: Missing config file \n";
+    std::cerr << "error: missing config file \n";
     return 0;
   }
 
@@ -40,7 +61,7 @@ int main(int argc, char *argv[]) {
     if (!net.readReadySockets.empty())
       net.acceptNewClients();
 
-    sessionsHandler(net);
+    sessionsHandler(net, config);
   };
   return 0;
 }
