@@ -1,6 +1,7 @@
 #include "libcgi/Cgi-req.hpp"
 #include <algorithm>
 #include <arpa/inet.h>
+#include <signal.h>
 
 const char *libcgi::Request::AUTH_TYPE = "AUTH_TYPE";
 const char *libcgi::Request::CONTENT_LENGTH = "CONTENT_LENGTH";
