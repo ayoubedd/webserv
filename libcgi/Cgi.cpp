@@ -104,10 +104,12 @@ libcgi::Cgi::Cgi(sockaddr_in *clientAddr, size_t bufferSize)
     : clientAddr(clientAddr)
     , req()
     , state(INIT)
-    , fd{-1, -1}
     , pid(-1)
     , bodySize(0)
-    , bufferSize(bufferSize) {}
+    , bufferSize(bufferSize) {
+  fd[0] = -1;
+  fd[1] = -1;
+}
 
 libcgi::Cgi::Error libcgi::Cgi::init(libhttp::Request *httpReq, std::string scriptPath,
                                      std::string serverName, std::string localReqPath,
@@ -201,4 +203,7 @@ void libcgi::Cgi::clean() {
   this->req.clean();
   // waitpid(this->pid, 0, 0); // this will block
   kill(this->pid, SIGKILL);
+  fd[0] = -1;
+  fd[1] = -1;
+  cgiInput = -1;
 }
