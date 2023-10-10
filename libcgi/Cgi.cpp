@@ -4,6 +4,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <fcntl.h>
+#include <signal.h>
 #include <sstream>
 #include <stdlib.h>
 #include <sys/stat.h>
