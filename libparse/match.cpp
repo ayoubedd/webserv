@@ -68,3 +68,27 @@ libparse::matchPathWithLocation(const libparse::Routes &routes, const std::strin
     return std::make_pair("", static_cast<const RouteProps *>(NULL));
   return std::make_pair(maxMatch, &routes.at(maxMatch));
 }
+
+std::string libparse::findRouteRoot(const libparse::Domain *domain, const std::string &routeName) {
+  std::map<std::string, libparse::RouteProps>::const_iterator routeIter = domain->routes.find(routeName);
+
+  if (routeIter == domain->routes.end())
+    return "";
+
+  if (routeIter->second.root.empty() == false)
+    return routeIter->second.root;
+  else
+    return domain->root;
+}
+
+std::string libparse::findRouteIndex(const libparse::Domain *domain, const std::string &routeName) {
+  std::map<std::string, libparse::RouteProps>::const_iterator routeIter = domain->routes.find(routeName);
+
+  if (routeIter == domain->routes.end())
+    return "";
+
+  if (routeIter->second.index.empty() == false)
+    return routeIter->second.index;
+  else
+    return domain->index;
+}
