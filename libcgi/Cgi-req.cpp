@@ -62,7 +62,7 @@ void libcgi::Request::addCgiStandardHeaders(libhttp::Request *httpReq) {
   env[QUERY_STRING] = httpReq->reqTarget.rawPramas;
   env[REMOTE_ADDR] = clientAddrBuff;
   env[REMOTE_HOST] = clientAddrBuff;
-  env[SERVER_PORT] = ::ntohs(httpReq->clientAddr->sin_port);
+  env[SERVER_PORT] = ntohs(httpReq->clientAddr->sin_port);
   env[REMOTE_IDENT] = "";
   env[REQUEST_METHOD] = httpReq->method;
   env[SCRIPT_NAME] = ctx.scriptName;
