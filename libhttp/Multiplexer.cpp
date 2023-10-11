@@ -149,18 +149,6 @@ libhttp::Mux::Error libhttp::Mux::multiplexer(libnet::Session        *session,
   MuxErrResPair errRes;
 
   if (route.second->redir.empty() == false) {
-    std::string        rawHeaders("HTTP/1.1 301 Moved Permanently\r\n"
-                                         "Location: " +
-                                  route.second->redir +
-                                  "\r\n"
-                                         "Content-Length: 0\r\n\r\n");
-    libhttp::Response *res = new libhttp::Response();
-    res->buffer.insert(res->buffer.begin(), rawHeaders.begin(), rawHeaders.end());
-    session->writer.responses.push(res);
-    return libhttp::Mux::OK;
-  }
-
-  if (route.second->redir.empty() == false) {
     errRes.first = libhttp::Mux::OK;
     errRes.second = libhttp::redirect(route.second);
   }
