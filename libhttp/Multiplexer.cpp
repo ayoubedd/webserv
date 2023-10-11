@@ -3,6 +3,7 @@
 #include "libhttp/Headers.hpp"
 #include "libhttp/Methods.hpp"
 #include "libhttp/Post.hpp"
+#include "libhttp/Response.hpp"
 #include "libnet/Session.hpp"
 #include "libparse/Config.hpp"
 #include "libparse/match.hpp"
@@ -13,9 +14,68 @@
 typedef std::pair<libhttp::Mux::Error, libhttp::Response *> MuxErrResPair;
 
 static bool isRequestHandlerCgi(const libparse::RouteProps *route) {
-  // if (route->cgi.second != "defautl path")
-  //   return true;
+  if (route->cgi.second != "defautl path")
+    return true;
   return false;
+}
+
+static MuxErrResPair cgiHandler(libcgi::Cgi &cgi, const libparse::RouteProps *route,
+                                libhttp::Request *req) {
+  libcgi::Cgi::Error cgiError;
+
+  cgiError = libcgi::Cgi::OK;
+
+  switch (cgi.state) {
+    case libcgi::Cgi::INIT:
+      cgiError = cgi.init(req, route->cgi.second, "localhost", "./static/");
+      if (cgiError != libcgi::Cgi::OK)
+        break;
+      cgi.exec();
+    case libcgi::Cgi::READING_HEADERS:
+    case libcgi::Cgi::READING_BODY:
+      cgiError = cgi.read(); // Only read after passing through select or equivalent
+      break;
+    case libcgi::Cgi::ERR:
+    case libcgi::Cgi::FIN:
+      break;
+  }
+
+  switch (cgiError) {
+    case libcgi::Cgi::FAILED_OPEN_FILE:
+    case libcgi::Cgi::FAILED_OPEN_SCRIPT:
+    case libcgi::Cgi::FAILED_EXEC_PERM:
+    case libcgi::Cgi::FAILED_OPEN_PIPE:
+    case libcgi::Cgi::FAILED_OPEN_DIR:
+    case libcgi::Cgi::FAILED_FORK:
+    case libcgi::Cgi::FAILED_WRITE:
+    case libcgi::Cgi::FAILED_READ:
+    case libcgi::Cgi::MALFORMED:
+      return std::make_pair(libhttp::Mux::ERROR_500, nullptr);
+    case libcgi::Cgi::OK:
+      break;
+  }
+
+
+  // FOR TESTING ONLY
+  // Simulating passing through select each time
+  while (true) {
+    cgi.read();
+    if (cgi.state == libcgi::Cgi::FIN)
+      break;
+  }
+  
+  if (cgi.state != libcgi::Cgi::READING_BODY && cgi.state != libcgi::Cgi::FIN)
+    return std::make_pair(libhttp::Mux::OK, nullptr);
+
+  // TODO:
+  // - should create the response only one time
+  // - and read till FIN
+  libhttp::Response *response = new libhttp::Response();
+
+  response->buffer = cgi.res.sockBuff;
+  response->fd = cgi.fd[0];
+
+  return std::make_pair(libhttp::Mux::OK, response);
 }
 
 static MuxErrResPair deleteHandler(const std::string &path) {
@@ -88,7 +148,7 @@ libhttp::Mux::Error libhttp::Mux::multiplexer(libnet::Session        *session,
   MuxErrResPair errRes;
 
   if (isRequestHandlerCgi(route.second)) {
-
+    errRes = cgiHandler(session->cgi, route.second, req);
   }
 
   else if (req->method == "GET") {
