@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <string>
 #include <sys/stat.h>
+#include <unistd.h>
 #include <utility>
 
 static inline bool matchHostHeaderPortWithDomain(const std::string &domain,
@@ -113,6 +114,23 @@ std::string libparse::findResourceInFs(const libhttp::Request &req,
     fs.push_back('/');
   fs += index;
   if (stat(fs.c_str(), &st) != 0)
+    return "";
+  return fs;
+}
+
+std::string libparse::findUploadDir(const libhttp::Request &req, const libparse::Domain &domain) {
+  std::pair<std::string, const libparse::RouteProps *> route =
+      matchPathWithLocation(domain.routes, req.reqTarget.path);
+  if (!route.second || !route.second->upload.first)
+    return "";
+  std::string root = findRouteRoot(&domain, route.second);
+  if (route.second->upload.second[0] == '/') {
+    if (access(route.second->upload.second.c_str(), W_OK) != 0)
+      return "";
+    return route.second->upload.second;
+  }
+  std::string fs = root + route.second->upload.second;
+  if (access(fs.c_str(), W_OK) != 0)
     return "";
   return fs;
 }
