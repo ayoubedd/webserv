@@ -23,9 +23,9 @@ void sessionsHandler(libnet::Netenv &net, libparse::Config &config) {
     // Calling the reader.
     session->reader.read();
 
-    libhttp::MultiplexerError muxErr = libhttp::multiplexer(session, config);
+    libhttp::Mux::Error muxErr = libhttp::Mux::multiplexer(session, config);
 
-    if (muxErr != libhttp::MultiplexerError::OK) {
+    if (muxErr != libhttp::Mux::OK) {
       // Call errors handler.
     }
 
