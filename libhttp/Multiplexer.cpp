@@ -3,11 +3,13 @@
 #include "libhttp/Headers.hpp"
 #include "libhttp/Methods.hpp"
 #include "libhttp/Post.hpp"
+#include "libhttp/Redirect.hpp"
 #include "libhttp/Response.hpp"
 #include "libnet/Session.hpp"
 #include "libparse/Config.hpp"
 #include "libparse/match.hpp"
 #include <cstdio>
+#include <cstring>
 #include <string>
 #include <utility>
 
@@ -55,7 +57,6 @@ static MuxErrResPair cgiHandler(libcgi::Cgi &cgi, const libparse::RouteProps *ro
       break;
   }
 
-
   // FOR TESTING ONLY
   // Simulating passing through select each time
   while (true) {
@@ -63,7 +64,7 @@ static MuxErrResPair cgiHandler(libcgi::Cgi &cgi, const libparse::RouteProps *ro
     if (cgi.state == libcgi::Cgi::FIN)
       break;
   }
-  
+
   if (cgi.state != libcgi::Cgi::READING_BODY && cgi.state != libcgi::Cgi::FIN)
     return std::make_pair(libhttp::Mux::OK, nullptr);
 
@@ -147,7 +148,24 @@ libhttp::Mux::Error libhttp::Mux::multiplexer(libnet::Session        *session,
 
   MuxErrResPair errRes;
 
-  if (isRequestHandlerCgi(route.second)) {
+  if (route.second->redir.empty() == false) {
+    std::string        rawHeaders("HTTP/1.1 301 Moved Permanently\r\n"
+                                         "Location: " +
+                                  route.second->redir +
+                                  "\r\n"
+                                         "Content-Length: 0\r\n\r\n");
+    libhttp::Response *res = new libhttp::Response();
+    res->buffer.insert(res->buffer.begin(), rawHeaders.begin(), rawHeaders.end());
+    session->writer.responses.push(res);
+    return libhttp::Mux::OK;
+  }
+
+  if (route.second->redir.empty() == false) {
+    errRes.first = libhttp::Mux::OK;
+    errRes.second = libhttp::redirect(route.second);
+  }
+
+  else if (isRequestHandlerCgi(route.second)) {
     errRes = cgiHandler(session->cgi, route.second, req);
   }
 
