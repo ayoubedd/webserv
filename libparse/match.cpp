@@ -2,6 +2,7 @@
 #include "libparse/Config.hpp"
 #include <algorithm>
 #include <string>
+#include <sys/stat.h>
 #include <utility>
 
 static inline bool matchHostHeaderPortWithDomain(const std::string &domain,
@@ -71,6 +72,8 @@ libparse::matchPathWithLocation(const libparse::Routes &routes, const std::strin
 
 std::string libparse::findRouteRoot(const libparse::Domain     *domain,
                                     const libparse::RouteProps *route) {
+  if (!route)
+    return domain->root;
   if (route->root.empty() == false)
     return route->root;
   else
@@ -79,8 +82,37 @@ std::string libparse::findRouteRoot(const libparse::Domain     *domain,
 
 std::string libparse::findRouteIndex(const libparse::Domain     *domain,
                                      const libparse::RouteProps *route) {
+  if (!route)
+    return domain->root;
   if (route->index.empty() == false)
     return route->index;
   else
     return domain->index;
+}
+
+std::string libparse::findResourceInFs(const libhttp::Request &req,
+                                       const libparse::Domain &domain) {
+  std::pair<std::string, const libparse::RouteProps *> r =
+      matchPathWithLocation(domain.routes, req.reqTarget.path);
+  std::string fs = findRouteRoot(&domain, r.second);
+  if (fs.empty())
+    return "";
+  if (fs[fs.size() - 1] == '/')
+    fs.pop_back();
+  struct stat st;
+  if (stat(fs.c_str(), &st) != 0)
+    return "";
+  if (st.st_mode & S_IFREG)
+    return fs;
+  if (st.st_mode & S_IFDIR && r.second && r.second->dirListening)
+    return fs;
+  std::string index = findRouteIndex(&domain, r.second);
+  if (index.empty())
+    return 0;
+  if (fs[fs.size() - 1] != '/')
+    fs.push_back('/');
+  fs += index;
+  if (stat(fs.c_str(), &st) != 0)
+    return "";
+  return fs;
 }
