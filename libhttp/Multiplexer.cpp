@@ -5,6 +5,7 @@
 #include "libnet/Session.hpp"
 #include "libparse/Config.hpp"
 #include "libparse/match.hpp"
+#include <cstdio>
 #include <string>
 #include <utility>
 
@@ -19,7 +20,7 @@ static bool isRequestHandlerCgi(const libparse::RouteProps *route) {
 static MuxErrResPair getHandler(libhttp::Request &req, const std::string &path) {
   std::pair<libhttp::Methods::error, libhttp::Response> errResPair;
 
-  errResPair = libhttp::get(req, path);
+  errResPair = libhttp::Get(req, path);
 
   switch (errResPair.first) {
     case libhttp::Methods::FILE_NOT_FOUND:
@@ -70,8 +71,8 @@ libhttp::Mux::Error libhttp::Mux::multiplexer(libnet::Session        *session,
   }
 
   else if (req->method == "GET") {
-    std::string path = libparse::findResourceInFs(*req, *domain);
-    errRes = getHandler(*req, path);
+    std::string resourcePath = libparse::findResourceInFs(*req, *domain);
+    errRes = getHandler(*req, resourcePath);
   }
 
   else if (req->method == "DELETE") {
@@ -98,6 +99,7 @@ libhttp::Mux::Error libhttp::Mux::multiplexer(libnet::Session        *session,
   // Response ready
 
   session->writer.responses.push(errRes.second);
+  session->reader.requests.pop();
 
   return libhttp::Mux::UNMATCHED_HANDLER;
 }
