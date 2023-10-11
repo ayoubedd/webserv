@@ -1,4 +1,5 @@
 #include "libhttp/Multiplexer.hpp"
+#include "libcgi/Cgi-res.hpp"
 #include "libhttp/Headers.hpp"
 #include "libhttp/Methods.hpp"
 #include "libhttp/Post.hpp"
@@ -15,6 +16,23 @@ static bool isRequestHandlerCgi(const libparse::RouteProps *route) {
   // if (route->cgi.second != "defautl path")
   //   return true;
   return false;
+}
+
+static MuxErrResPair deleteHandler(const std::string &path) {
+  std::pair<libhttp::Methods::error, libhttp::Response> errResPair = libhttp::Delete(path);
+
+  switch (errResPair.first) {
+    case libhttp::Methods::FILE_NOT_FOUND:
+      return std::make_pair(libhttp::Mux::ERROR_404, nullptr);
+    case libhttp::Methods::FORBIDDEN:
+      return std::make_pair(libhttp::Mux::ERROR_403, nullptr);
+    case libhttp::Methods::OK:
+      break;
+  }
+
+  libhttp::Response *response = new libhttp::Response(errResPair.second);
+
+  return std::make_pair(libhttp::Mux::OK, response);
 }
 
 static MuxErrResPair getHandler(libhttp::Request &req, const std::string &path) {
@@ -64,6 +82,9 @@ libhttp::Mux::Error libhttp::Mux::multiplexer(libnet::Session        *session,
   const std::pair<std::string, const libparse::RouteProps *> route =
       libparse::matchPathWithLocation(domain->routes, req->reqTarget.path);
 
+  if (session->reader.requests.empty() == true)
+    return libhttp::Mux::OK;
+
   MuxErrResPair errRes;
 
   if (isRequestHandlerCgi(route.second)) {
@@ -76,7 +97,8 @@ libhttp::Mux::Error libhttp::Mux::multiplexer(libnet::Session        *session,
   }
 
   else if (req->method == "DELETE") {
-
+    std::string resourcePath = libparse::findResourceInFs(*req, *domain);
+    errRes = deleteHandler(resourcePath);
   }
 
   else if (req->method == "POST") {
@@ -85,16 +107,11 @@ libhttp::Mux::Error libhttp::Mux::multiplexer(libnet::Session        *session,
                          uploadRoot);
   }
 
-  switch (errRes.first) {
-    case UNMATCHED_HANDLER:
-    case ERROR_400:
-    case ERROR_403:
-    case ERROR_404:
-    case ERROR_500:
-    case ERROR_501:
-    case OK:
-      break;
-  }
+  if (errRes.first != OK)
+    return errRes.first;
+
+  if (errRes.second == nullptr)
+    return libhttp::Mux::OK;
 
   // Response ready
 
