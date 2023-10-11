@@ -2,20 +2,18 @@
 #include <cstddef>
 #include <string>
 
-bool checkDefaulfServer(std::vector<std::string> content,size_t &i)
-{
-  if(content[i] == "default" && content.size() > 2)
-  { 
-    i+=2 ;
-    return  true;
-  } 
+bool checkDefaulfServer(std::vector<std::string> content, size_t &i) {
+  if (content[i] == "default" && content.size() > 2) {
+    i += 2;
+    return true;
+  }
   return false;
 }
 
 std::vector<std::string > split(const std::string input) {
   std::vector<std::string > tokens;
-  std::stringstream sstream(input);
-  std::string token;
+  std::stringstream         sstream(input);
+  std::string               token;
 
   if (input.empty())
     return tokens;
@@ -115,7 +113,7 @@ bool checkValidKeyOfRoute(std::string key) {
 }
 
 int methodes(std::vector<libparse::tokens> &tokens, std::vector<std::string> content, size_t &i) {
-  int error = 0;
+  int    error = 0;
   size_t j = i;
   size_t k = j;
   while (content[i] != "endline") {
@@ -146,9 +144,9 @@ int checkValue(std::string value) {
 int consumeToken(std::vector<libparse::tokens> &tokens, std::vector<std::string> &content,
                  size_t &i) {
   std::string token = content[i];
-  size_t j = ++i;
-  size_t k = j;
-  int error = 0;
+  size_t      j = ++i;
+  size_t      k = j;
+  int         error = 0;
 
   if (content[j - 1] == "methods") {
     error += methodes(tokens, content, i);
@@ -179,7 +177,7 @@ int consumeToken(std::vector<libparse::tokens> &tokens, std::vector<std::string>
 }
 
 int domain(std::vector<libparse::tokens> &tokens, std::string domain) {
-  int error = 0;
+  int    error = 0;
   size_t pos = domain.find(':');
   if (checkDomain(domain)) {
     if (pos != std::string::npos) {
@@ -232,7 +230,7 @@ int configRout(std::vector<libparse::tokens> &tokens, std::vector<std::string> &
 
 int configOutRout(std::vector<libparse::tokens> &tokens, std::vector<std::string> &content,
                   size_t &i) {
-  int error = 0;
+  int    error = 0;
   size_t j = ++i;
   size_t k = j;
 
@@ -316,7 +314,7 @@ void setDefautlValue(libparse::Domain &domain, libparse::RouteProps &routeProps)
 
   domain.error = "default error";
   domain.index = "index.html";
-  domain.max_body_size = 1028;
+  domain.maxBodySize = MAX_REQ_BODY_SIZE;
   domain.root = "default root";
   domain.port = "80";
 }
@@ -336,7 +334,7 @@ std::string SetDomain(std::vector<libparse::tokens> &tokens, libparse::Domain &d
 }
 
 int converToInt(std::string str) {
-  int num;
+  int               num;
   std::stringstream ss;
   ss << str;
   ss >> num;
@@ -358,7 +356,7 @@ void SetRoute(std::vector<libparse::tokens> &tokens, libparse::Domain &domain) {
   }
   if (tokens[0].type == libparse::token::MAXBODYSIZE) {
     if (isNumber(tokens[0].lexeme)) {
-      domain.max_body_size = converToInt(tokens[0].lexeme);
+      domain.maxBodySize = converToInt(tokens[0].lexeme);
       tokens.erase(tokens.begin());
     } else
       std::cout << "error is not number \n";
@@ -443,14 +441,14 @@ void SetConfigInRoute(std::vector<libparse::tokens> &tokens, libparse::RouteProp
 }
 
 libparse::Domains setTokenInStruct(std::vector<libparse::tokens> &tokens) {
-  libparse::Domains domains;
-  libparse::Domains tmp;
-  libparse::Routes routes;
-  struct libparse::Domain domain;
+  libparse::Domains           domains;
+  libparse::Domains           tmp;
+  libparse::Routes            routes;
+  struct libparse::Domain     domain;
   struct libparse::RouteProps routeProps;
 
-  std::string strDomain;
-  std::string strRoute;
+  std::string              strDomain;
+  std::string              strRoute;
   std::vector<std::string> tmpSplit;
 
   if (tokens.size() == 0)
