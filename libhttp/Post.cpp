@@ -183,7 +183,7 @@ libhttp::Post::post(libhttp::Request &req, libhttp::TransferEncoding &te, libhtt
   libhttp::Response *res = new libhttp::Response();
   std::string        headers = "HTTP/1.1 201 Created\r\n\r\n";
 
-  res->buffer.insert(res->buffer.begin(), headers.begin(), headers.end());
+  res->buffer->insert(res->buffer->begin(), headers.begin(), headers.end());
 
   return std::make_pair(libhttp::Post::Intel::DONE, res);
 }
