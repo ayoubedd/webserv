@@ -6,13 +6,13 @@
 
 namespace libcgi {
   struct Respons {
-    std::vector<char> cgiHeader;
-    std::vector<char> sockBuff;
-    bool              statusLineExists;
+    std::vector<char>  cgiHeader;
+    std::vector<char> *sockBuff;
+    bool               statusLineExists;
 
     enum error { OK, MALFORMED };
 
-    Respons();
+          Respons();
     error build();
     error cgiHeaderToHttpHeader(const std::string &h);
   };
