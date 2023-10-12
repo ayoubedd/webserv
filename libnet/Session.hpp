@@ -13,6 +13,14 @@
 
 namespace libnet {
   struct Session {
+
+    enum Permission {
+      SOCK_READ = 1,   // Ability to read from socket fd
+      SOCK_WRITE = 2,  // Ability to write to socket fd
+      CGI_READ = 4,    // Ability of cgi to read from its read end of the pipe
+      WRITER_READ = 8, // Ability of writer to read from its fd
+    };
+
     Session(int fd, sockaddr_in *clientAddr);
 
     int                       fd;
@@ -23,5 +31,16 @@ namespace libnet {
     libhttp::Writer           writer;
     libcgi::Cgi               cgi;
     sockaddr_in              *clientAddr;
+
+    int permitedIo;
+    // Bit-maping
+    // 1: Able to read from socket
+    // 2: Able to write to socket
+    // 3: CGI able to read from the pipe
+    // 4: Writer able to read from its fd
+
+    // Utility to check if the corresponding
+    // io operation going to block or not
+    bool isNonBlocking(Permission);
   };
 } // namespace libnet

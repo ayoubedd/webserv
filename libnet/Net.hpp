@@ -10,9 +10,11 @@ namespace libnet {
   typedef std::vector<int>         Sockets;
 
   struct Netenv {
-    Sockets  readReadySockets;
-    Sessions readyClients;
+    Sockets  sockets;
     Sessions sessions;
+
+    Sockets  readySockets;
+    Sessions readySessions;
 
     void setupSockets(libparse::Config &domains);
     void prepFdSets(void);
@@ -23,8 +25,6 @@ namespace libnet {
   private:
     fd_set fdReadSet;
     fd_set fdWriteSet;
-
-    Sockets sockets;
 
     int largestFd(void);
   };
