@@ -57,14 +57,6 @@ static MuxErrResPair cgiHandler(libcgi::Cgi &cgi, const libparse::RouteProps *ro
       break;
   }
 
-  // FOR TESTING ONLY
-  // Simulating passing through select each time
-  while (true) {
-    cgi.read();
-    if (cgi.state == libcgi::Cgi::FIN)
-      break;
-  }
-
   if (cgi.state != libcgi::Cgi::READING_BODY && cgi.state != libcgi::Cgi::FIN)
     return std::make_pair(libhttp::Mux::OK, nullptr);
 
@@ -74,7 +66,6 @@ static MuxErrResPair cgiHandler(libcgi::Cgi &cgi, const libparse::RouteProps *ro
   libhttp::Response *response = new libhttp::Response();
 
   response->buffer = cgi.res.sockBuff;
-  response->fd = cgi.fd[0];
 
   return std::make_pair(libhttp::Mux::OK, response);
 }
