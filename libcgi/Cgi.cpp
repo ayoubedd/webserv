@@ -46,12 +46,12 @@ std::pair<libcgi::Cgi::Error, libcgi::Cgi::State> libcgi::Cgi::handleCgiBuff(cha
     err = this->res.build();
     if (err != Respons::OK)
       return std::make_pair(MALFORMED, READING_BODY);
-    this->res.sockBuff.insert(this->res.sockBuff.end(), ptr + idx + 3,
-                              ptr + len); // plus 2 cus \n\n
+    this->res.sockBuff->insert(this->res.sockBuff->end(), ptr + idx + 3,
+                               ptr + len); // plus 2 cus \n\n
     return std::make_pair(OK, READING_BODY);
   }
   // this->res.body.insert(this->res.body.end(), ptr, ptr + len);
-  this->res.sockBuff.insert(this->res.sockBuff.end(), ptr, ptr + len);
+  this->res.sockBuff->insert(this->res.sockBuff->end(), ptr, ptr + len);
   return std::make_pair(OK, READING_BODY);
 }
 
