@@ -9,6 +9,6 @@ libhttp::Response *libhttp::redirect(const std::string &location) {
                          "\r\n"
                          "Content-Length: 0\r\n\r\n");
 
-  response->buffer.insert(response->buffer.begin(), rawHeaders.begin(), rawHeaders.end());
+  response->buffer->insert(response->buffer->begin(), rawHeaders.begin(), rawHeaders.end());
   return response;
 }
