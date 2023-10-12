@@ -22,16 +22,12 @@ void sessionsHandler(libnet::Netenv &net, libparse::Config &config) {
 
     libhttp::Reader::error readerErr;
     libhttp::Writer::erorr writerError;
-    libhttp::Mux::Error    muxErr;
+    libhttp::Status::Code  httpCode;
 
     // Calling the reader.
     readerErr = session->reader.read();
 
-    muxErr = libhttp::Mux::multiplexer(session, config);
-
-    if (muxErr != libhttp::Mux::OK && muxErr != libhttp::Mux::DONE) {
-      // Call errors handler.
-    }
+    httpCode = libhttp::Mux::multiplexer(session, config);
 
     // Calling the writer.
     writerError = session->writer.write();
