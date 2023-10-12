@@ -16,7 +16,7 @@
 typedef std::pair<libhttp::Mux::Error, libhttp::Response *> MuxErrResPair;
 
 static bool isRequestHandlerCgi(const libparse::RouteProps *route) {
-  if (route->cgi.second != "defautl path")
+  if (route->cgi.second != "")
     return true;
   return false;
 }
@@ -27,15 +27,22 @@ static MuxErrResPair cgiHandler(libcgi::Cgi &cgi, const libparse::RouteProps *ro
 
   cgiError = libcgi::Cgi::OK;
 
+  libcgi::Cgi::State prevState = cgi.state;
+
   switch (cgi.state) {
     case libcgi::Cgi::INIT:
+      std::cout << "CGI: init" << std::endl;
       cgiError = cgi.init(req, route->cgi.second, "localhost", "./static/");
       if (cgiError != libcgi::Cgi::OK)
         break;
-      cgi.exec();
+      std::cout << "CGI: exec" << std::endl;
+      cgiError = cgi.exec();
+      break;
     case libcgi::Cgi::READING_HEADERS:
     case libcgi::Cgi::READING_BODY:
+      std::cout << "CGI: read" << std::endl;
       cgiError = cgi.read(); // Only read after passing through select or equivalent
+      std::cout << "CGI: read after" << std::endl;
       break;
     case libcgi::Cgi::ERR:
     case libcgi::Cgi::FIN:
@@ -52,22 +59,42 @@ static MuxErrResPair cgiHandler(libcgi::Cgi &cgi, const libparse::RouteProps *ro
     case libcgi::Cgi::FAILED_WRITE:
     case libcgi::Cgi::FAILED_READ:
     case libcgi::Cgi::MALFORMED:
+      std::cout << "CGI: failure" << std::endl;
+      std::cout << cgiError << std::endl;
+      cgi.clean();
+      std::cout << "---" << std::endl;
       return std::make_pair(libhttp::Mux::ERROR_500, nullptr);
     case libcgi::Cgi::OK:
       break;
   }
 
-  if (cgi.state != libcgi::Cgi::READING_BODY && cgi.state != libcgi::Cgi::FIN)
+  if (cgi.state != libcgi::Cgi::READING_BODY && cgi.state != libcgi::Cgi::FIN) {
+    std::cout << "---" << std::endl;
     return std::make_pair(libhttp::Mux::OK, nullptr);
+  }
 
-  // TODO:
-  // - should create the response only one time
-  // - and read till FIN
-  libhttp::Response *response = new libhttp::Response();
+  if (cgi.state == libcgi::Cgi::FIN) {
+    std::cout << "CGI: fin" << std::endl;
+    cgi.clean();
+    std::cout << "CGI: cleaning" << std::endl;
+    std::cout << "---" << std::endl;
+    return std::make_pair(libhttp::Mux::DONE, nullptr);
+  }
 
-  response->buffer = cgi.res.sockBuff;
+  // here and onward the state must be READING_BODY
 
-  return std::make_pair(libhttp::Mux::OK, response);
+  if (prevState == libcgi::Cgi::READING_HEADERS && cgi.state == libcgi::Cgi::READING_BODY) {
+    std::cout << "CGI: created response" << std::endl;
+
+    libhttp::Response *response = new libhttp::Response(cgi.res.sockBuff);
+
+    std::cout << "---" << std::endl;
+
+    return std::make_pair(libhttp::Mux::OK, response);
+  }
+
+  std::cout << "---" << std::endl;
+  return std::make_pair(libhttp::Mux::OK, nullptr);
 }
 
 static MuxErrResPair deleteHandler(const std::string &path) {
@@ -84,7 +111,7 @@ static MuxErrResPair deleteHandler(const std::string &path) {
 
   libhttp::Response *response = new libhttp::Response(errResPair.second);
 
-  return std::make_pair(libhttp::Mux::OK, response);
+  return std::make_pair(libhttp::Mux::DONE, response);
 }
 
 static MuxErrResPair getHandler(libhttp::Request &req, const std::string &path) {
@@ -101,9 +128,13 @@ static MuxErrResPair getHandler(libhttp::Request &req, const std::string &path) 
       break;
   }
 
-  libhttp::Response *res = new libhttp::Response(errResPair.second);
+  libhttp::Response *res = new libhttp::Response();
 
-  return std::make_pair(libhttp::Mux::OK, res);
+  // TODO:
+  // - SHOULD AVOID COPYING.
+  *res->buffer = *errResPair.second.buffer;
+
+  return std::make_pair(libhttp::Mux::DONE, res);
 }
 
 static MuxErrResPair postHandler(libhttp::Request &req, libhttp::Multipart &ml,
@@ -124,7 +155,7 @@ static MuxErrResPair postHandler(libhttp::Request &req, libhttp::Multipart &ml,
       break;
   }
 
-  return std::make_pair(libhttp::Mux::OK, errResPair.second);
+  return std::make_pair(libhttp::Mux::DONE, errResPair.second);
 }
 
 libhttp::Mux::Error libhttp::Mux::multiplexer(libnet::Session        *session,
@@ -164,16 +195,19 @@ libhttp::Mux::Error libhttp::Mux::multiplexer(libnet::Session        *session,
                          uploadRoot);
   }
 
-  if (errRes.first != OK)
+  // Errors
+  if (errRes.first != OK && errRes.first != DONE)
     return errRes.first;
 
-  if (errRes.second == nullptr)
-    return libhttp::Mux::OK;
+  if (errRes.second != nullptr)
+    session->writer.responses.push(errRes.second);
 
-  // Response ready
+  if (errRes.first == DONE) {
+    // Marking last resonse as done.
+    session->writer.responses.back()->doneReading = true;
+    // Pooping request since its done.
+    session->reader.requests.pop();
+  }
 
-  session->writer.responses.push(errRes.second);
-  session->reader.requests.pop();
-
-  return libhttp::Mux::UNMATCHED_HANDLER;
+  return errRes.first;
 }

@@ -14,6 +14,7 @@ namespace libhttp {
       ERROR_404,
       ERROR_500,
       ERROR_501,
+      DONE,
     };
 
     static Error multiplexer(libnet::Session *session, const libparse::Config &config);
