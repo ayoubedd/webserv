@@ -13,7 +13,7 @@
 #include <string>
 #include <utility>
 
-typedef std::pair<libhttp::Mux::Error, libhttp::Response *> MuxErrResPair;
+typedef std::pair<libhttp::Mux::MuxHandlerError, libhttp::Response *> MuxErrResPair;
 
 static bool isRequestHandlerCgi(const libparse::RouteProps *route) {
   if (route->cgi.second != "")
@@ -158,15 +158,12 @@ static MuxErrResPair postHandler(libhttp::Request &req, libhttp::Multipart &ml,
   return std::make_pair(libhttp::Mux::DONE, errResPair.second);
 }
 
-libhttp::Mux::Error libhttp::Mux::multiplexer(libnet::Session        *session,
-                                              const libparse::Config &config) {
+libhttp::Status::Code libhttp::Mux::multiplexer(libnet::Session        *session,
+                                                const libparse::Config &config) {
   libhttp::Request       *req = session->reader.requests.front();
   const libparse::Domain *domain = libparse::matchReqWithServer(*req, config);
   const std::pair<std::string, const libparse::RouteProps *> route =
       libparse::matchPathWithLocation(domain->routes, req->reqTarget.path);
-
-  if (session->reader.requests.empty() == true)
-    return libhttp::Mux::OK;
 
   MuxErrResPair errRes;
 
@@ -196,8 +193,22 @@ libhttp::Mux::Error libhttp::Mux::multiplexer(libnet::Session        *session,
   }
 
   // Errors
-  if (errRes.first != OK && errRes.first != DONE)
-    return errRes.first;
+  switch (errRes.first) {
+    case UNMATCHED_HANDLER:
+    case ERROR_400:
+      return libhttp::Status::BAD_REQUEST;
+    case ERROR_403:
+      return libhttp::Status::FORBIDDEN;
+    case ERROR_404:
+      return libhttp::Status::NOT_FOUND;
+    case ERROR_500:
+      return libhttp::Status::INTERNAL_SERVER_ERROR;
+    case ERROR_501:
+      return libhttp::Status::NOT_IMPLEMENTED;
+    case DONE:
+    case OK:
+      break;
+  }
 
   if (errRes.second != nullptr)
     session->writer.responses.push(errRes.second);
@@ -209,5 +220,8 @@ libhttp::Mux::Error libhttp::Mux::multiplexer(libnet::Session        *session,
     session->reader.requests.pop();
   }
 
-  return errRes.first;
+  // It might be other than ok in the actual response.
+  // Rational:
+  //  dons't matter what status code returned as long as denotes success.
+  return libhttp::Status::OK;
 }
