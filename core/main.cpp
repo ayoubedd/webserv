@@ -7,7 +7,7 @@
 
 void sessionsHandler(libnet::Netenv &net, libparse::Config &config) {
   libnet::Sessions::iterator sessionIter;
-  libnet::Sessions          &readysessions = net.readyClients;
+  libnet::Sessions          &readysessions = net.readySessions;
 
   sessionIter = readysessions.begin();
   char buff[2];
@@ -25,12 +25,14 @@ void sessionsHandler(libnet::Netenv &net, libparse::Config &config) {
     libhttp::Status::Code  httpCode;
 
     // Calling the reader.
-    readerErr = session->reader.read();
+    if (session->isNonBlocking(libnet::Session::SOCK_READ))
+      session->reader.read();
 
     httpCode = libhttp::Mux::multiplexer(session, config);
 
     // Calling the writer.
-    writerError = session->writer.write();
+    if (session->isNonBlocking(libnet::Session::WRITER_READ | libnet::Session::SOCK_WRITE))
+      session->writer.write();
 
     sessionIter++;
   };
@@ -58,7 +60,7 @@ int main(int argc, char *argv[]) {
     net.prepFdSets();
     net.awaitEvents();
 
-    if (!net.readReadySockets.empty())
+    if (!net.readySockets.empty())
       net.acceptNewClients();
 
     sessionsHandler(net, config);
