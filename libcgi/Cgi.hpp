@@ -34,6 +34,7 @@ namespace libcgi {
     size_t       bodySize;
     size_t       bufferSize;
     int          cgiInput;
+    bool         shouldRead;
 
     Cgi(sockaddr_in *clientInfo, size_t bufferSize = 8192);
 

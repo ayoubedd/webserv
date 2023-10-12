@@ -107,7 +107,8 @@ libcgi::Cgi::Cgi(sockaddr_in *clientAddr, size_t bufferSize)
     , state(INIT)
     , pid(-1)
     , bodySize(0)
-    , bufferSize(bufferSize) {
+    , bufferSize(bufferSize)
+    , shouldRead(false) {
   fd[0] = -1;
   fd[1] = -1;
 }
@@ -181,6 +182,9 @@ libcgi::Cgi::Error libcgi::Cgi::read() {
   ssize_t                 len;
   std::pair<Error, State> newState;
 
+  if (!shouldRead)
+    return OK;
+  shouldRead = false;
   if (this->state == INIT)
     this->state = READING_HEADERS;
   len = ::read(this->fd[0], buff, sizeof buff);

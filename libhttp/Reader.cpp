@@ -18,7 +18,8 @@ libhttp::Reader::Reader(int fd, sockaddr_in clientAddr, unsigned int readBuffSiz
     , reqLineEnd(0)
     , headerEnd(0)
     , bodyEnd(0)
-    , clientAddr(clientAddr){};
+    , clientAddr(clientAddr)
+    , shouldRead(false) {};
 
 void libhttp::Reader::clearRawDataIndices() {
   this->reqLineEnd = 0;
@@ -340,7 +341,9 @@ libhttp::Reader::error libhttp::Reader::read() {
   ssize_t                                buffLen;
   std::pair<error, libnet::SessionState> futureState;
 
-  // buffLen = ::read(this->fd, buff, readBuffSize);
+  if (!shouldRead)
+    return OK;
+  shouldRead = false;
   buffLen = recv(this->fd, buff, readBuffSize, 0);
 
   if (buffLen < 0) {
