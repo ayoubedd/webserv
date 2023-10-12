@@ -41,6 +41,6 @@ namespace libnet {
 
     // Utility to check if the corresponding
     // io operation going to block or not
-    bool isNonBlocking(Permission);
+    bool isNonBlocking(int);
   };
 } // namespace libnet
