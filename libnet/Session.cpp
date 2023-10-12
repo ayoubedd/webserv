@@ -11,7 +11,7 @@ libnet::Session::Session(int fd, sockaddr_in *clientAddr)
     , cgi(clientAddr)
     , clientAddr(clientAddr) {}
 
-bool libnet::Session::isNonBlocking(libnet::Session::Permission perm) {
+bool libnet::Session::isNonBlocking(int perm) {
   if (perm & permitedIo)
     return true;
   return false;
