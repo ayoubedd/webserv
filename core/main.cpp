@@ -7,7 +7,7 @@
 
 void sessionsHandler(libnet::Netenv &net, libparse::Config &config) {
   libnet::Sessions::iterator sessionIter;
-  libnet::Sessions          &readysessions = net.readyClients;
+  libnet::Sessions          &readysessions = net.readySessions;
 
   sessionIter = readysessions.begin();
   char buff[2];
@@ -21,7 +21,8 @@ void sessionsHandler(libnet::Netenv &net, libparse::Config &config) {
     libnet::Session *session = sessionIter->second;
 
     // Calling the reader.
-    session->reader.read();
+    if (session->isNonBlocking(libnet::Session::SOCK_READ))
+      session->reader.read();
 
     libhttp::MultiplexerError muxErr = libhttp::multiplexer(session, config);
 
@@ -30,7 +31,8 @@ void sessionsHandler(libnet::Netenv &net, libparse::Config &config) {
     }
 
     // Calling the writer.
-    session->writer.write();
+    if (session->isNonBlocking(libnet::Session::WRITER_READ | libnet::Session::SOCK_WRITE))
+      session->writer.write();
 
     sessionIter++;
   };
@@ -58,7 +60,7 @@ int main(int argc, char *argv[]) {
     net.prepFdSets();
     net.awaitEvents();
 
-    if (!net.readReadySockets.empty())
+    if (!net.readySockets.empty())
       net.acceptNewClients();
 
     sessionsHandler(net, config);
