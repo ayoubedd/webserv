@@ -20,17 +20,21 @@ void sessionsHandler(libnet::Netenv &net, libparse::Config &config) {
 
     libnet::Session *session = sessionIter->second;
 
+    libhttp::Reader::error readerErr;
+    libhttp::Writer::erorr writerError;
+    libhttp::Mux::Error    muxErr;
+
     // Calling the reader.
-    session->reader.read();
+    readerErr = session->reader.read();
 
-    libhttp::Mux::Error muxErr = libhttp::Mux::multiplexer(session, config);
+    muxErr = libhttp::Mux::multiplexer(session, config);
 
-    if (muxErr != libhttp::Mux::OK) {
+    if (muxErr != libhttp::Mux::OK && muxErr != libhttp::Mux::DONE) {
       // Call errors handler.
     }
 
     // Calling the writer.
-    session->writer.write();
+    writerError = session->writer.write();
 
     sessionIter++;
   };
