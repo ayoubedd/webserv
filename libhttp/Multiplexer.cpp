@@ -150,7 +150,7 @@ libhttp::Mux::Error libhttp::Mux::multiplexer(libnet::Session        *session,
 
   if (route.second->redir.empty() == false) {
     errRes.first = libhttp::Mux::OK;
-    errRes.second = libhttp::redirect(route.second);
+    errRes.second = libhttp::redirect(route.second->redir);
   }
 
   else if (isRequestHandlerCgi(route.second)) {

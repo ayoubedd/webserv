@@ -1,11 +1,11 @@
 #include "libhttp/Redirect.hpp"
 
-libhttp::Response *libhttp::redirect(const libparse::RouteProps *route) {
+libhttp::Response *libhttp::redirect(const std::string &location) {
   libhttp::Response *response = new libhttp::Response();
 
-  std::string rawHeaders("HTTP/1.1 307 Temporary Redirect\r\n"
+  std::string rawHeaders("HTTP/1.1 308 Permanent Redirect\r\n"
                          "Location: " +
-                         route->redir +
+                         location +
                          "\r\n"
                          "Content-Length: 0\r\n\r\n");
 
