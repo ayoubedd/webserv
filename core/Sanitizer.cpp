@@ -112,8 +112,5 @@ WebServ::Sanitizer::sanitizeRequest(const libhttp::Request &req, const libparse:
   if (e != Status::OK)
     return e;
 
-  e = sanitizeBodySize(req, domain->maxBodySize);
-  if (e != Status::OK)
-    return e;
   return Status::OK;
 }
