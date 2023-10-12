@@ -81,8 +81,10 @@ libhttp::Writer::erorr libhttp::Writer::write() {
                            response->doneReading) &&
                           response->buffer->size() == 0;
 
-  if (shoudPopResponse == true)
+  if (shoudPopResponse == true) {
+    delete responses.front();
     responses.pop();
+  }
 
   return libhttp::Writer::OK;
 }
