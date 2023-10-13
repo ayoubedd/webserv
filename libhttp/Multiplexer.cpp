@@ -1,38 +1,227 @@
 #include "libhttp/Multiplexer.hpp"
+#include "libcgi/Cgi-res.hpp"
 #include "libhttp/Headers.hpp"
+#include "libhttp/Methods.hpp"
+#include "libhttp/Post.hpp"
+#include "libhttp/Redirect.hpp"
+#include "libhttp/Response.hpp"
 #include "libnet/Session.hpp"
 #include "libparse/Config.hpp"
 #include "libparse/match.hpp"
+#include <cstdio>
+#include <cstring>
 #include <string>
+#include <utility>
+
+typedef std::pair<libhttp::Mux::MuxHandlerError, libhttp::Response *> MuxErrResPair;
 
 static bool isRequestHandlerCgi(const libparse::RouteProps *route) {
-  if (route->cgi.second != "defautl path")
+  if (route->cgi.second != "")
     return true;
   return false;
 }
 
-libhttp::MultiplexerError libhttp::multiplexer(libnet::Session        *session,
-                                               const libparse::Config &config) {
+static MuxErrResPair cgiHandler(libcgi::Cgi &cgi, const libparse::RouteProps *route,
+                                libhttp::Request *req) {
+  libcgi::Cgi::Error cgiError;
+
+  cgiError = libcgi::Cgi::OK;
+
+  libcgi::Cgi::State prevState = cgi.state;
+
+  switch (cgi.state) {
+    case libcgi::Cgi::INIT:
+      std::cout << "CGI: init" << std::endl;
+      cgiError = cgi.init(req, route->cgi.second, "localhost", "./static/");
+      if (cgiError != libcgi::Cgi::OK)
+        break;
+      std::cout << "CGI: exec" << std::endl;
+      cgiError = cgi.exec();
+      break;
+    case libcgi::Cgi::READING_HEADERS:
+    case libcgi::Cgi::READING_BODY:
+      std::cout << "CGI: read" << std::endl;
+      cgiError = cgi.read(); // Only read after passing through select or equivalent
+      std::cout << "CGI: read after" << std::endl;
+      break;
+    case libcgi::Cgi::ERR:
+    case libcgi::Cgi::FIN:
+      break;
+  }
+
+  switch (cgiError) {
+    case libcgi::Cgi::FAILED_OPEN_FILE:
+    case libcgi::Cgi::FAILED_OPEN_SCRIPT:
+    case libcgi::Cgi::FAILED_EXEC_PERM:
+    case libcgi::Cgi::FAILED_OPEN_PIPE:
+    case libcgi::Cgi::FAILED_OPEN_DIR:
+    case libcgi::Cgi::FAILED_FORK:
+    case libcgi::Cgi::FAILED_WRITE:
+    case libcgi::Cgi::FAILED_READ:
+    case libcgi::Cgi::MALFORMED:
+      std::cout << "CGI: failure" << std::endl;
+      std::cout << cgiError << std::endl;
+      cgi.clean();
+      std::cout << "---" << std::endl;
+      return std::make_pair(libhttp::Mux::ERROR_500, nullptr);
+    case libcgi::Cgi::OK:
+      break;
+  }
+
+  if (cgi.state != libcgi::Cgi::READING_BODY && cgi.state != libcgi::Cgi::FIN) {
+    std::cout << "---" << std::endl;
+    return std::make_pair(libhttp::Mux::OK, nullptr);
+  }
+
+  if (cgi.state == libcgi::Cgi::FIN) {
+    std::cout << "CGI: fin" << std::endl;
+    cgi.clean();
+    std::cout << "CGI: cleaning" << std::endl;
+    std::cout << "---" << std::endl;
+    return std::make_pair(libhttp::Mux::DONE, nullptr);
+  }
+
+  // here and onward the state must be READING_BODY
+
+  if (prevState == libcgi::Cgi::READING_HEADERS && cgi.state == libcgi::Cgi::READING_BODY) {
+    std::cout << "CGI: created response" << std::endl;
+
+    libhttp::Response *response = new libhttp::Response(cgi.res.sockBuff);
+
+    std::cout << "---" << std::endl;
+
+    return std::make_pair(libhttp::Mux::OK, response);
+  }
+
+  std::cout << "---" << std::endl;
+  return std::make_pair(libhttp::Mux::OK, nullptr);
+}
+
+static MuxErrResPair deleteHandler(const std::string &path) {
+  std::pair<libhttp::Methods::error, libhttp::Response> errResPair = libhttp::Delete(path);
+
+  switch (errResPair.first) {
+    case libhttp::Methods::FILE_NOT_FOUND:
+      return std::make_pair(libhttp::Mux::ERROR_404, nullptr);
+    case libhttp::Methods::FORBIDDEN:
+      return std::make_pair(libhttp::Mux::ERROR_403, nullptr);
+    case libhttp::Methods::OK:
+      break;
+  }
+
+  libhttp::Response *response = new libhttp::Response(errResPair.second);
+
+  return std::make_pair(libhttp::Mux::DONE, response);
+}
+
+static MuxErrResPair getHandler(libhttp::Request &req, const std::string &path) {
+  std::pair<libhttp::Methods::error, libhttp::Response> errResPair;
+
+  errResPair = libhttp::Get(req, path);
+
+  switch (errResPair.first) {
+    case libhttp::Methods::FILE_NOT_FOUND:
+      return std::make_pair(libhttp::Mux::ERROR_404, nullptr);
+    case libhttp::Methods::FORBIDDEN:
+      return std::make_pair(libhttp::Mux::ERROR_403, nullptr);
+    case libhttp::Methods::OK:
+      break;
+  }
+
+  libhttp::Response *res = new libhttp::Response();
+
+  // TODO:
+  // - SHOULD AVOID COPYING.
+  *res->buffer = *errResPair.second.buffer;
+
+  return std::make_pair(libhttp::Mux::DONE, res);
+}
+
+static MuxErrResPair postHandler(libhttp::Request &req, libhttp::Multipart &ml,
+                                 libhttp::TransferEncoding &tr, libhttp::SizedPost &zp,
+                                 const std::string &uploadRoot) {
+  std::pair<libhttp::Post::Intel, libhttp::Response *> errResPair;
+
+  errResPair = libhttp::Post::post(req, tr, ml, zp, uploadRoot);
+
+  switch (errResPair.first) {
+    case libhttp::Post::ERROR_400:
+      return std::make_pair(libhttp::Mux::ERROR_400, nullptr);
+    case libhttp::Post::ERROR_500:
+      return std::make_pair(libhttp::Mux::ERROR_500, nullptr);
+    case libhttp::Post::OK:
+      return std::make_pair(libhttp::Mux::OK, nullptr);
+    case libhttp::Post::DONE:
+      break;
+  }
+
+  return std::make_pair(libhttp::Mux::DONE, errResPair.second);
+}
+
+libhttp::Status::Code libhttp::Mux::multiplexer(libnet::Session        *session,
+                                                const libparse::Config &config) {
   libhttp::Request       *req = session->reader.requests.front();
   const libparse::Domain *domain = libparse::matchReqWithServer(*req, config);
   const std::pair<std::string, const libparse::RouteProps *> route =
       libparse::matchPathWithLocation(domain->routes, req->reqTarget.path);
 
-  if (isRequestHandlerCgi(route.second)) {
+  MuxErrResPair errRes;
 
+  if (route.second->redir.empty() == false) {
+    errRes.first = libhttp::Mux::OK;
+    errRes.second = libhttp::redirect(route.second->redir);
+  }
+
+  else if (isRequestHandlerCgi(route.second)) {
+    errRes = cgiHandler(session->cgi, route.second, req);
   }
 
   else if (req->method == "GET") {
-
+    std::string resourcePath = libparse::findResourceInFs(*req, *domain);
+    errRes = getHandler(*req, resourcePath);
   }
 
   else if (req->method == "DELETE") {
-
+    std::string resourcePath = libparse::findResourceInFs(*req, *domain);
+    errRes = deleteHandler(resourcePath);
   }
 
   else if (req->method == "POST") {
-
+    std::string uploadRoot = libparse::findUploadDir(*req, *domain);
+    errRes = postHandler(*req, session->multipart, session->transferEncoding, session->sizedPost,
+                         uploadRoot);
   }
 
-  return libhttp::MultiplexerError::UNMATCHED_HANDLER;
+  // Errors
+  switch (errRes.first) {
+    case UNMATCHED_HANDLER:
+    case ERROR_400:
+      return libhttp::Status::BAD_REQUEST;
+    case ERROR_403:
+      return libhttp::Status::FORBIDDEN;
+    case ERROR_404:
+      return libhttp::Status::NOT_FOUND;
+    case ERROR_500:
+      return libhttp::Status::INTERNAL_SERVER_ERROR;
+    case ERROR_501:
+      return libhttp::Status::NOT_IMPLEMENTED;
+    case DONE:
+    case OK:
+      break;
+  }
+
+  if (errRes.second != nullptr)
+    session->writer.responses.push(errRes.second);
+
+  if (errRes.first == DONE) {
+    // Marking last resonse as done.
+    session->writer.responses.back()->doneReading = true;
+    // Pooping request since its done.
+    session->reader.requests.pop();
+  }
+
+  // It might be other than ok in the actual response.
+  // Rational:
+  //  dons't matter what status code returned as long as denotes success.
+  return libhttp::Status::OK;
 }
