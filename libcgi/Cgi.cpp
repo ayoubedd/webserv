@@ -1,4 +1,6 @@
 #include "libcgi/Cgi.hpp"
+#include "libhttp/Multipart.hpp"
+#include "libhttp/MultipartFormData.hpp"
 #include "libnet/SessionState.hpp"
 #include <assert.h>
 #include <cstdlib>
@@ -12,7 +14,7 @@
 #include <unistd.h>
 #include <utility>
 
-char libcgi::Cgi::temp[] = "/tmp/webserv/webserv_cgi_in_XXXXXX";
+const std::string libcgi::Cgi::blueprint = "/tmp/webserv/cgi/input";
 
 ssize_t doesContainerHasBuff(const char *raw, size_t rLen, const char *ptr, size_t pLen) {
   for (size_t i = 0; i < rLen - pLen + 1; i++) {
@@ -116,18 +118,16 @@ libcgi::Cgi::Error libcgi::Cgi::init(libhttp::Request *httpReq, std::string scri
                                      std::string serverName, std::string localReqPath,
                                      std::string serverPort, std::string protocol,
                                      std::string serverSoftware) {
-  struct stat            s;
   std::string::size_type i;
   std::string            scriptName;
 
-  if (::stat(scriptPath.c_str(), &s) != 0)
-    return FAILED_OPEN_SCRIPT;
-  if (!(s.st_mode & S_IXUSR))
-    return FAILED_EXEC_PERM;
-
   if (::pipe(fd) < 0)
     return FAILED_OPEN_PIPE;
-  this->cgiInput = ::mkstemp(temp);
+  close(fd[1]);
+  this->cgiInputFileName = libhttp::generateFileName(this->blueprint);
+  int isOpend = open(this->cgiInputFileName.c_str(), O_RDWR | O_CREAT, 0644);
+  if (isOpend < 0)
+    return FAILED_OPEN_FILE;
   if (cgiInput < 0)
     return FAILED_OPEN_FILE;
   i = scriptPath.rfind('/');
@@ -170,7 +170,6 @@ libcgi::Cgi::Error libcgi::Cgi::exec() {
     exit(1);
   } else if (pid > 0) {
     this->state = READING_HEADERS;
-    close(fd[1]);
     return OK;
   }
   return FAILED_FORK;
@@ -201,10 +200,15 @@ libcgi::Cgi::Error libcgi::Cgi::read() {
 void libcgi::Cgi::clean() {
   close(this->fd[0]);
   close(this->cgiInput);
-  this->req.clean();
-  // waitpid(this->pid, 0, 0); // this will block
-  kill(this->pid, SIGKILL);
+  req.clean();
+  res.clean();
+  if (this->pid != -1)
+    kill(this->pid, SIGKILL);
   fd[0] = -1;
   fd[1] = -1;
   cgiInput = -1;
+  this->pid = -1;
+  bodySize = 0;
+  cgiInputFileName.clear();
+  this->state = INIT;
 }
