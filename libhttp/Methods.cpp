@@ -52,6 +52,8 @@ bool directoryExists(std::string &path) {
 }
 
 bool findResource(std::string &path) {
+  if(path.empty())
+    return false;
   if (!isFolder(path))
     return fileExists(path);
   return directoryExists(path);
@@ -320,7 +322,7 @@ libhttp::Response* setResponse(libhttp::Response *response, int fd, size_t bytes
 
 std::pair<libhttp::Methods::error, libhttp::Response *> libhttp::Get(libhttp::Request &request,
                                                                     std::string       path) {
-  libhttp::Response *response =  new Response;
+  libhttp::Response *response = NULL;
 
   if (!findResource(path))
     return std::make_pair(libhttp::Methods::FILE_NOT_FOUND, response);
@@ -329,16 +331,20 @@ std::pair<libhttp::Methods::error, libhttp::Response *> libhttp::Get(libhttp::Re
     response->fd = getFile(path, 200);
     if (response->fd == -1)
       return std::make_pair(libhttp::Methods::FORBIDDEN, response);
-
+    response =  new Response();
     if (checkRangeRequest(request.headers))
     {
       std::pair<int, int> range = getStartandEndRangeRequest(request.headers[libhttp::Headers::CONTENT_RANGE]);
       if(checkRange(path,range))
-        return std::make_pair(libhttp::Methods::FILE_NOT_FOUND, response);
+        return std::make_pair(libhttp::Methods::OUT_RANGE, response);
+      response =  new Response();
       setRange(response,range);
     }
     else
+    {
+      response =  new Response();
       response->bytesToServe = getFileSize(path);
+    }
 
     setHeaders(response, libparse::getTypeFile(libparse::Types(), path), response->bytesToServe, 200,
                "OK");
