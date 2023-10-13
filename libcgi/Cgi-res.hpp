@@ -12,8 +12,10 @@ namespace libcgi {
 
     enum error { OK, MALFORMED };
 
-          Respons();
+    Respons();
+    ~Respons();
     error build();
     error cgiHeaderToHttpHeader(const std::string &h);
+    void  clean();
   };
 } // namespace libcgi
