@@ -19,19 +19,19 @@ void sessionsHandler(libnet::Netenv &net, libparse::Config &config) {
 
     libnet::Session *session = sessionsBegin->second;
 
-    libhttp::Reader::error readerErr;
-    libhttp::Writer::erorr writerError;
-    libhttp::Status::Code  httpCode;
+    libhttp::Reader::error readerErr = libhttp::Reader::OK;
+    libhttp::Writer::erorr writerError = libhttp::Writer::OK;
+    libhttp::Status::Code  httpCode = libhttp::Status::OK;
 
     // Calling the reader.
     if (session->isNonBlocking(libnet::Session::SOCK_READ))
-      session->reader.read();
+      readerErr = session->reader.read();
 
     httpCode = libhttp::Mux::multiplexer(session, config);
 
     // Calling the writer.
     if (session->isNonBlocking(libnet::Session::SOCK_WRITE))
-      session->writer.write();
+      writerError = session->writer.write();
 
     sessionsBegin++;
   };
