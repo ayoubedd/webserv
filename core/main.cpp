@@ -19,10 +19,6 @@ void sessionsHandler(libnet::Netenv &net, libparse::Config &config) {
 
     libnet::Session *session = sessionsBegin->second;
 
-    libhttp::Reader::error readerErr;
-    libhttp::Writer::erorr writerError;
-    libhttp::Status::Code  httpCode;
-
     // Calling the reader.
     if (session->isNonBlocking(libnet::Session::SOCK_READ))
       session->reader.read();
@@ -32,8 +28,8 @@ void sessionsHandler(libnet::Netenv &net, libparse::Config &config) {
     // Calling the writer.
     if (session->isNonBlocking(libnet::Session::SOCK_WRITE))
       session->writer.write();
-    sessionsBegin++;
   };
+  sessionsBegin++;
 }
 
 int main(int argc, char *argv[]) {
