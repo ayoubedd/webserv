@@ -32,6 +32,13 @@ static int openSocket(std::string &port) {
     exit(EXIT_FAILURE);
   }
 
+  int enable = 1;
+  if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)) < 0) {
+    std::cerr << "setsockopt: " << strerror(errno) << std::endl;
+    close(sockfd);
+    exit(EXIT_FAILURE);
+  }
+
   if (bind(sockfd, addrinfo->ai_addr, addrinfo->ai_addrlen)) {
     std::cerr << "bind: " << strerror(errno) << std::endl;
     exit(EXIT_FAILURE);
@@ -73,11 +80,7 @@ static void subscribeSessions(libnet::Sessions &sessions, fd_set *fdReadSet, fd_
 
   while (begin != end) {
     // Skip sessions with empty response queue
-    libnet::Session   *session = begin->second;
-    libhttp::Response *response = session->writer.responses.front();
-
-    // Reset permissions
-    session->permitedIo = 0;
+    libnet::Session *session = begin->second;
 
     // Always Subscribe for reading from the socket
     FD_SET(session->fd, fdReadSet);
@@ -89,9 +92,10 @@ static void subscribeSessions(libnet::Sessions &sessions, fd_set *fdReadSet, fd_
 
     // Subscribe for writting if there something to write
     if (session->writer.responses.empty() != true) {
+      libhttp::Response *response = session->writer.responses.front();
 
       // Subscribe for writting
-      FD_SET(begin->first, fdWriteSet);
+      FD_SET(session->fd, fdWriteSet);
 
       // Subscribe for reading if current response has a fd != -1
       // and not done reading
@@ -114,10 +118,35 @@ void libnet::Netenv::prepFdSets(void) {
 }
 
 int libnet::Netenv::largestFd(void) {
-  libnet::Sessions::iterator sessionsLargestFd = std::max_element(sessions.begin(), sessions.end());
-  libnet::Sockets::iterator  socketsLargestFd = std::max_element(sockets.begin(), sockets.end());
+  libnet::Sockets::iterator socketsLargestFd = std::max_element(sockets.begin(), sockets.end());
 
-  return std::max(sessionsLargestFd->first, *socketsLargestFd);
+  int largestFd = -1;
+
+  libnet::Sessions::iterator sessionsBegin = sessions.begin();
+  libnet::Sessions::iterator sessionsEnd = sessions.end();
+
+  while (sessionsBegin != sessionsEnd) {
+    libnet::Session *sesssion = sessionsBegin->second;
+
+    // Comparing socket fd
+    if (sesssion->fd > largestFd)
+      largestFd = sesssion->fd;
+
+    // If cgi active
+    // check if cgi
+    if (sesssion->cgi.state == libcgi::Cgi::READING_HEADERS ||
+        sesssion->cgi.state == libcgi::Cgi::READING_BODY)
+      if (sesssion->cgi.fd[0] > largestFd)
+        largestFd = sesssion->cgi.fd[0];
+
+    if (sesssion->writer.responses.empty() == false)
+      if (sesssion->writer.responses.front()->fd > largestFd)
+        largestFd = sesssion->writer.responses.front()->fd;
+
+    sessionsBegin++;
+  }
+
+  return std::max(largestFd, *socketsLargestFd);
 }
 
 static void extractReadySockets(libnet::Sockets &src, libnet::Sockets &dst, fd_set *set) {
@@ -137,8 +166,7 @@ static void extractReadySessions(libnet::Sessions &src, libnet::Sessions &dst, f
   libnet::Sessions::iterator sessionsEnd = src.end();
 
   while (sessionsBegin != sessionsEnd) {
-    libnet::Session   *session = sessionsBegin->second;
-    libhttp::Response *response = session->writer.responses.front();
+    libnet::Session *session = sessionsBegin->second;
 
     // Rest permissions
     session->permitedIo = 0;
@@ -147,18 +175,22 @@ static void extractReadySessions(libnet::Sessions &src, libnet::Sessions &dst, f
     if (FD_ISSET(session->fd, fdReadSet))
       session->permitedIo |= libnet::Session::SOCK_READ;
 
-    // Check if allowed to write to socket
-    if (FD_ISSET(session->fd, fdWriteSet))
-      session->permitedIo |= libnet::Session::SOCK_WRITE;
+    if (session->writer.responses.empty() != true) {
+      libhttp::Response *response = session->writer.responses.front();
 
-    // Check if writer allowed to read from fd
-    if (response->fd != -1 && FD_ISSET(response->fd, fdReadSet))
-      session->permitedIo |= libnet::Session::WRITER_READ;
+      // Check if allowed to write to socket
+      if (FD_ISSET(session->fd, fdWriteSet))
+        session->permitedIo |= libnet::Session::SOCK_WRITE;
+
+      // Check if writer allowed to read from response fd
+      if (response->fd != -1 && FD_ISSET(response->fd, fdReadSet))
+        session->permitedIo |= libnet::Session::WRITER_READ;
+    }
 
     // Check if CGI allowed to read from pipe
     if ((session->cgi.state == libcgi::Cgi::READING_HEADERS ||
          session->cgi.state == libcgi::Cgi::READING_HEADERS) &&
-        -1 && FD_ISSET(session->cgi.fd[0], fdReadSet))
+        FD_ISSET(session->cgi.fd[0], fdReadSet))
       session->permitedIo |= libnet::Session::CGI_READ;
 
     // Telling if should pass this session to be handled
