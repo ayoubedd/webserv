@@ -48,7 +48,7 @@ std::pair<libcgi::Cgi::Error, libcgi::Cgi::State> libcgi::Cgi::handleCgiBuff(cha
     err = this->res.build();
     if (err != Respons::OK)
       return std::make_pair(MALFORMED, READING_BODY);
-    this->res.sockBuff->insert(this->res.sockBuff->end(), ptr + idx + 3,
+    this->res.sockBuff->insert(this->res.sockBuff->end(), ptr + idx + 2,
                                ptr + len); // plus 2 cus \n\n
     return std::make_pair(OK, READING_BODY);
   }
@@ -123,7 +123,6 @@ libcgi::Cgi::Error libcgi::Cgi::init(libhttp::Request *httpReq, std::string scri
 
   if (::pipe(fd) < 0)
     return FAILED_OPEN_PIPE;
-  close(fd[1]);
   this->cgiInputFileName = libhttp::generateFileName(this->blueprint);
   int isOpend = open(this->cgiInputFileName.c_str(), O_RDWR | O_CREAT, 0644);
   if (isOpend < 0)
@@ -165,11 +164,12 @@ libcgi::Cgi::Error libcgi::Cgi::exec() {
     ::execve(req.scriptPath.c_str(), argv, env);
     delete2d(argv);
     delete2d(env);
-    std::cout << "Status: 500 Internal Server Error\n\n";
+    std::cout << "Status: 500 Internal Server Error\r\n\r\n";
     // write to the fd the error
     exit(1);
   } else if (pid > 0) {
     this->state = READING_HEADERS;
+    close(fd[1]);
     return OK;
   }
   return FAILED_FORK;
@@ -209,6 +209,7 @@ void libcgi::Cgi::clean() {
   cgiInput = -1;
   this->pid = -1;
   bodySize = 0;
+  unlink(cgiInputFileName.c_str());
   cgiInputFileName.clear();
   this->state = INIT;
 }
