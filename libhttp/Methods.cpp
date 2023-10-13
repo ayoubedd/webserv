@@ -259,10 +259,10 @@ bool checkRange(std::string fileName ,std::pair<int, int> range)
   return true;
 }
 
-void setRange(libhttp::Response &response, std::pair<int, int> range) {
-  response.bytesToServe = range.second - range.first;
+void setRange(libhttp::Response *response, std::pair<int, int> range) {
+  response->bytesToServe = range.second - range.first;
   // off_t offSet;
-  advanceOffSet(response.fd, range.first);
+  advanceOffSet(response->fd, range.first);
 }
 
 ssize_t libhttp::getFile(std::string &path, int status) {
@@ -299,35 +299,35 @@ std::vector<char > generateHeaders(int statusCode, std::string status) {
   return headers;
 }
 
-void setHeaders(libhttp::Response &response, std::string contentType, int ContentLenght,
+void setHeaders(libhttp::Response *response, std::string contentType, int ContentLenght,
                 int statusCode, std::string status) {
   std::string tmp;
   tmp = "HTTP/1.1 " + std::to_string(statusCode) + " " + status + "\r\n";
-  response.buffer.insert(response.buffer.end(), tmp.c_str(), tmp.c_str() + tmp.length());
+  response->buffer.insert(response->buffer.end(), tmp.c_str(), tmp.c_str() + tmp.length());
   tmp = "Content-Length: " + std::to_string(ContentLenght - 1) + "\r\n";
-  response.buffer.insert(response.buffer.end(), tmp.c_str(), tmp.c_str() + tmp.length());
+  response->buffer.insert(response->buffer.end(), tmp.c_str(), tmp.c_str() + tmp.length());
   tmp = "Content-Type: " + contentType + "\r\n\r\n";
-  response.buffer.insert(response.buffer.end(), tmp.c_str(), tmp.c_str() + tmp.length());
+  response->buffer.insert(response->buffer.end(), tmp.c_str(), tmp.c_str() + tmp.length());
 }
 
-libhttp::Response setResponse(libhttp::Response &response, int fd, size_t bytesToServe,
+libhttp::Response* setResponse(libhttp::Response *response, int fd, size_t bytesToServe,
                               std::vector<char > buffer) {
-  response.fd = fd;
-  response.bytesToServe = bytesToServe;
-  response.buffer = buffer;
+  response->fd = fd;
+  response->bytesToServe = bytesToServe;
+  response->buffer = buffer;
   return response;
 }
 
-std::pair<libhttp::Methods::error, libhttp::Response > libhttp::Get(libhttp::Request &request,
+std::pair<libhttp::Methods::error, libhttp::Response *> libhttp::Get(libhttp::Request &request,
                                                                     std::string       path) {
-  libhttp::Response response;
+  libhttp::Response *response =  new Response;
 
   if (!findResource(path))
     return std::make_pair(libhttp::Methods::FILE_NOT_FOUND, response);
 
   if (!isFolder(path)) {
-    response.fd = getFile(path, 200);
-    if (response.fd == -1)
+    response->fd = getFile(path, 200);
+    if (response->fd == -1)
       return std::make_pair(libhttp::Methods::FORBIDDEN, response);
 
     if (checkRangeRequest(request.headers))
@@ -338,9 +338,9 @@ std::pair<libhttp::Methods::error, libhttp::Response > libhttp::Get(libhttp::Req
       setRange(response,range);
     }
     else
-      response.bytesToServe = getFileSize(path);
+      response->bytesToServe = getFileSize(path);
 
-    setHeaders(response, libparse::getTypeFile(libparse::Types(), path), response.bytesToServe, 200,
+    setHeaders(response, libparse::getTypeFile(libparse::Types(), path), response->bytesToServe, 200,
                "OK");
 
     return std::make_pair(libhttp::Methods::OK, response);
@@ -354,14 +354,14 @@ std::pair<libhttp::Methods::error, libhttp::Response > libhttp::Get(libhttp::Req
 
   templateStatic = generateTemplate(path);
   write(fdStatic, templateStatic.c_str(), templateStatic.length());
-  response.fd = fdStatic;
+  response->fd = fdStatic;
   setHeaders(response, "text/html", templateStatic.length(), 200, "OK");
   deleteFile("error");
   return std::make_pair(libhttp::Methods::OK, response);
 }
 
-std::pair<libhttp::Methods::error, libhttp::Response> libhttp::Delete(std::string path) {
-  libhttp::Response response;
+std::pair<libhttp::Methods::error, libhttp::Response *> libhttp::Delete(std::string path) {
+  libhttp::Response *response = new Response;
 
   if (findResource(path)) {
     if (isFolder(path)) {

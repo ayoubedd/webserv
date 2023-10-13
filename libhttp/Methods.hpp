@@ -32,8 +32,8 @@ namespace libhttp {
       std::pair<int, int> range;
     };
   };
-  std::pair<Methods::error, Response > Get(Request &request, std::string path);
-  std::pair<Methods::error, Response > Delete(std::string path);
+  std::pair<Methods::error, Response *> Get(Request &request, std::string path);
+  std::pair<Methods::error, Response *> Delete(std::string path);
   ssize_t                              getFile(std::string &path, int status);
 } // namespace libhttp
 std::string generateTemplate(std::string &path);
