@@ -6,33 +6,33 @@
 #include <cstring>
 
 void sessionsHandler(libnet::Netenv &net, libparse::Config &config) {
-  libnet::Sessions::iterator sessionIter;
-  libnet::Sessions          &readysessions = net.readyClients;
+  libnet::Sessions::iterator sessionsBegin = net.readySessions.begin();
+  libnet::Sessions::iterator sessionsEnd = net.readySessions.end();
 
-  sessionIter = readysessions.begin();
   char buff[2];
-  while (sessionIter != readysessions.end()) {
+  while (sessionsBegin != sessionsEnd) {
     // Temporary solutin for closed clients
-    if (recv(sessionIter->second->fd, buff, 1, MSG_PEEK) <= 0) {
-      sessionIter++;
+    if (recv(sessionsBegin->second->fd, buff, 1, MSG_PEEK) <= 0) {
+      sessionsBegin++;
       continue;
     }
 
-    libnet::Session *session = sessionIter->second;
+    libnet::Session *session = sessionsBegin->second;
 
     libhttp::Reader::error readerErr;
     libhttp::Writer::erorr writerError;
     libhttp::Status::Code  httpCode;
 
     // Calling the reader.
-    readerErr = session->reader.read();
+    if (session->isNonBlocking(libnet::Session::SOCK_READ))
+      session->reader.read();
 
-    httpCode = libhttp::Mux::multiplexer(session, config);
+    // Call multiplexer here
 
     // Calling the writer.
-    writerError = session->writer.write();
-
-    sessionIter++;
+    if (session->isNonBlocking(libnet::Session::SOCK_WRITE))
+      session->writer.write();
+    sessionsBegin++;
   };
 }
 
@@ -58,7 +58,7 @@ int main(int argc, char *argv[]) {
     net.prepFdSets();
     net.awaitEvents();
 
-    if (!net.readReadySockets.empty())
+    if (!net.readySockets.empty())
       net.acceptNewClients();
 
     sessionsHandler(net, config);
