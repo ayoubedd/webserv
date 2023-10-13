@@ -67,7 +67,7 @@ static void subscribeSockets(libnet::Sockets &sockets, fd_set *set) {
   }
 }
 
-static void subscribeSessionFds(libnet::Sessions &sessions, fd_set *fdReadSet, fd_set *fdWriteSet) {
+static void subscribeSessions(libnet::Sessions &sessions, fd_set *fdReadSet, fd_set *fdWriteSet) {
   libnet::Sessions::iterator begin = sessions.begin();
   libnet::Sessions::iterator end = sessions.end();
 
@@ -110,7 +110,7 @@ void libnet::Netenv::prepFdSets(void) {
 
   // Add Clients & Sockets fds to ReadSet
   subscribeSockets(sockets, &fdReadSet);
-  subscribeSessionFds(sessions, &fdReadSet, &fdWriteSet);
+  subscribeSessions(sessions, &fdReadSet, &fdWriteSet);
 }
 
 int libnet::Netenv::largestFd(void) {
