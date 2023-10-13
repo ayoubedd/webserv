@@ -312,11 +312,9 @@ void setHeaders(libhttp::Response *response, std::string contentType, int Conten
   response->buffer.insert(response->buffer.end(), tmp.c_str(), tmp.c_str() + tmp.length());
 }
 
-libhttp::Response* setResponse(libhttp::Response *response, int fd, size_t bytesToServe,
-                              std::vector<char > buffer) {
+libhttp::Response* setResponse(libhttp::Response *response, int fd, size_t bytesToServe) {
   response->fd = fd;
   response->bytesToServe = bytesToServe;
-  response->buffer = buffer;
   return response;
 }
 
@@ -331,7 +329,6 @@ std::pair<libhttp::Methods::error, libhttp::Response *> libhttp::Get(libhttp::Re
     response->fd = getFile(path, 200);
     if (response->fd == -1)
       return std::make_pair(libhttp::Methods::FORBIDDEN, response);
-    response =  new Response();
     if (checkRangeRequest(request.headers))
     {
       std::pair<int, int> range = getStartandEndRangeRequest(request.headers[libhttp::Headers::CONTENT_RANGE]);
@@ -372,20 +369,30 @@ std::pair<libhttp::Methods::error, libhttp::Response *> libhttp::Delete(std::str
   if (findResource(path)) {
     if (isFolder(path)) {
       if (deleteDirectory(path.c_str())) {
-        return std::make_pair(libhttp::Methods::OK, setResponse(response, -1, getFileSize(path),
-                                                                generateHeaders(202, "OK")));
+        response->buffer = generateHeaders(202, "OK");
+        return std::make_pair(libhttp::Methods::OK, setResponse(response, -1, getFileSize(path)));
       } else
+      {
+        response->buffer = generateHeaders(403, "Forbidden");
         return std::make_pair(libhttp::Methods::FORBIDDEN,
-                              setResponse(response, -1, 0, generateHeaders(403, "Forbidden")));
+                              setResponse(response, -1, 0));
+      }
     } else {
       if (remove(path.c_str()) != 0)
+      {
+        response->buffer = generateHeaders(403, "Forbidden");
         return std::make_pair(libhttp::Methods::FORBIDDEN,
-                              setResponse(response, -1, 0, generateHeaders(403, "Forbidden")));
+                              setResponse(response, -1, 0));
+      }
       else
+      {
+        response->buffer = generateHeaders(202, "OK");
         return std::make_pair(libhttp::Methods::OK,
-                              setResponse(response, -1, 0, generateHeaders(202, "OK")));
+                              setResponse(response, -1, 0));
+      }
     }
   }
+  response->buffer = generateHeaders(404, "FileNotFound");
   return std::make_pair(libhttp::Methods::FILE_NOT_FOUND,
-                        setResponse(response, -1, 0, generateHeaders(404, "FileNotFound")));
+                        setResponse(response, -1, 0));
 }

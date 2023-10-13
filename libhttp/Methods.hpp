@@ -26,11 +26,6 @@ namespace libhttp {
     };
     enum typeFile { FILE, DIR, NOT_FOUND };
     error err;
-    struct GetRes {
-      int                 fd;
-      std::vector<char >  headers;
-      std::pair<int, int> range;
-    };
   };
   std::pair<Methods::error, Response *> Get(Request &request, std::string path);
   std::pair<Methods::error, Response *> Delete(std::string path);
