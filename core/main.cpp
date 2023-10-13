@@ -28,7 +28,6 @@ void sessionsHandler(libnet::Netenv &net, libparse::Config &config) {
       session->reader.read();
 
     httpCode = libhttp::Mux::multiplexer(session, config);
-    // Call multiplexer here
 
     // Calling the writer.
     if (session->isNonBlocking(libnet::Session::SOCK_WRITE))

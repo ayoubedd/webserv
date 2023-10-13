@@ -76,3 +76,10 @@ libcgi::Respons::error libcgi::Respons::build() {
   }
   return OK;
 }
+
+void libcgi::Respons::clean() {
+  this->statusLineExists = false;
+  this->cgiHeader.clear();
+}
+
+libcgi::Respons::~Respons() { delete this->sockBuff; }

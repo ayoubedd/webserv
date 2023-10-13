@@ -9,7 +9,7 @@
 namespace libcgi {
 
   struct Cgi {
-    static char temp[35];
+    static const std::string blueprint;
     enum Error {
       OK,
       FAILED_OPEN_FILE,
@@ -34,6 +34,7 @@ namespace libcgi {
     size_t       bodySize;
     size_t       bufferSize;
     int          cgiInput;
+    std::string  cgiInputFileName;
 
     Cgi(sockaddr_in *clientInfo, size_t bufferSize = 8192);
 
