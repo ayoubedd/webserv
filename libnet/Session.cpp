@@ -9,10 +9,11 @@ libnet::Session::Session(int fd, sockaddr_in *clientAddr)
     , reader(fd, *clientAddr)
     , writer(fd)
     , cgi(clientAddr)
-    , clientAddr(clientAddr) {}
+    , clientAddr(clientAddr)
+    , permitedIo(0) {}
 
 bool libnet::Session::isNonBlocking(int perm) {
-  if (perm & permitedIo)
+  if (permitedIo & perm)
     return true;
   return false;
 }

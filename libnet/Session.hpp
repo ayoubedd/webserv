@@ -15,10 +15,10 @@ namespace libnet {
   struct Session {
 
     enum Permission {
-      SOCK_READ = 1,   // Ability to read from socket fd
-      SOCK_WRITE = 2,  // Ability to write to socket fd
-      CGI_READ = 4,    // Ability of cgi to read from its read end of the pipe
-      WRITER_READ = 8, // Ability of writer to read from its fd
+      SOCK_READ = 1 << 0,   // Ability to read from socket fd
+      SOCK_WRITE = 1 << 1,  // Ability to write to socket fd
+      CGI_READ = 1 << 2,    // Ability of cgi to read from its read end of the pipe
+      WRITER_READ = 1 << 3, // Ability of writer to read from its fd
     };
 
     Session(int fd, sockaddr_in *clientAddr);
