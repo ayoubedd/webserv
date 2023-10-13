@@ -1,5 +1,7 @@
 #include "libhttp/Methods.hpp"
+#include "MultipartFormData.hpp"
 #include "libparse/Types.hpp"
+#include "libhttp/MultipartFormData.hpp"
 
 #include <cstddef>
 #include <cstring>
@@ -14,7 +16,8 @@ const char *libhttp::Methods::GET = "GET";
 const char *libhttp::Methods::DELETE = "DELETE";
 const char *libhttp::Methods::POST = "POST";
 
-off_t       advanceOffSet(int fd, size_t start);
+
+off_t advanceOffSet(int fd, size_t start) { return lseek(fd, start, SEEK_SET); }
 static void ft_replace(std::string &str, const std::string &old_value,
                        const std::string &new_value) {
   size_t pos = 0;
@@ -23,21 +26,6 @@ static void ft_replace(std::string &str, const std::string &old_value,
     pos += new_value.length();
   }
 }
-
-bool                directoryExists(std::string &path);
-bool                findResource(std::string &path);
-bool                deleteDirectory(const char *path);
-bool                checkRangeRequest(libhttp::Headers &headers);
-std::pair<int, int> getStartandEndRangeRequest(std::string str);
-void                initGetRes(libhttp::Methods::GetRes &getReq, std::string &path);
-void                setRange(libhttp::Methods::GetRes &getReq, std::pair<int, int> range);
-bool                checkAutoindex(std::string &name);
-int                 getFileSize(const std::string &file_path);
-std::string         getFileLastModification(const std::string &file_path);
-std::vector<std::pair<libhttp::Methods::typeFile, libhttp::Methods::file> >
-            listFilesAndDirectories(std::string &path);
-std::string generateTemplate(std::string &path);
-//
 
 bool fileExists(std::string &filename) {
   std::ifstream file(filename);
@@ -68,6 +56,21 @@ bool findResource(std::string &path) {
     return fileExists(path);
   return directoryExists(path);
 }
+
+
+bool deleteFile(const char *pathFile){
+
+  DIR           *dir = opendir(pathFile);
+
+  if (dir == nullptr) {
+    return false;
+  }
+  if (remove(pathFile) != 0) {
+            return false;
+  }
+  return true;
+}
+
 bool deleteSubDirectory(const char *path) {
 
   struct dirent *entry;
@@ -134,41 +137,6 @@ bool checkRangeRequest(libhttp::Headers &headers) {
   if (headers.headers.find(libhttp::Headers::CONTENT_RANGE) != headers.headers.end())
     return true;
   return false;
-}
-
-std::pair<int, int> getStartandEndRangeRequest(std::string str) {
-  int start = 0, end = 0;
-
-  std::stringstream strm(str.substr(6, str.find("-", 6) - 6));
-  strm >> start;
-  std::stringstream strm1(
-      str.substr(str.find("-", 6) + 1, str.find("/", str.find("-", 6)) - str.find("-", 6)));
-  strm1 >> end;
-  return std::make_pair(start, end);
-}
-
-void initGetRes(libhttp::Methods::GetRes &getReq, std::string &path) {
-  getReq.fd = -1;
-  getReq.range.first = 0;
-  getReq.range.second = getFileSize(path);
-}
-
-void setRange(libhttp::Response &response, std::pair<int, int> range) {
-  // add error of reang
-  if (range.second > range.first)
-    return;
-  response.bytesToServe = range.second - range.first;
-  off_t offSet;
-  offSet = advanceOffSet(response.fd, range.first);
-  // error of offset
-  if (offSet == -1)
-    return;
-}
-
-bool checkAutoindex(std::string &name) {
-  if (name[name.length() - 1] == '\\')
-    return false;
-  return true;
 }
 
 int getFileSize(const std::string &file_path) {
@@ -271,7 +239,32 @@ std::string generateTemplate(std::string &path) {
   return templateStatic;
 }
 
-// Request Get
+std::pair<int, int> getStartandEndRangeRequest(std::string str) {
+  int start = 0, end = 0;
+
+  std::stringstream strm(str.substr(6, str.find("-", 6) - 6));
+  strm >> start;
+  std::stringstream strm1(
+      str.substr(str.find("-", 6) + 1, str.find("/", str.find("-", 6)) - str.find("-", 6)));
+  strm1 >> end;
+  return std::make_pair(start, end);
+}
+
+bool checkRange(std::string fileName ,std::pair<int, int> range)
+{
+  if (range.second > range.first)
+    return false;
+  if(range.first > getFileSize(fileName))
+    return false;
+  return true;
+}
+
+void setRange(libhttp::Response &response, std::pair<int, int> range) {
+  response.bytesToServe = range.second - range.first;
+  // off_t offSet;
+  advanceOffSet(response.fd, range.first);
+}
+
 ssize_t libhttp::getFile(std::string &path, int status) {
   ssize_t fd;
   fd = open(path.c_str(), O_RDONLY);
@@ -281,15 +274,29 @@ ssize_t libhttp::getFile(std::string &path, int status) {
   std::ifstream     templateFile(path);
   std::stringstream tmp;
   std::string       buffer;
+
   tmp << templateFile.rdbuf();
   templateFile.close();
   buffer = tmp.str();
   ft_replace(buffer, "{{STATUS}}", std::to_string(status));
-  int p[2];
-  if (pipe(p) < 0)
-    return -1;
-  write(p[1], buffer.c_str(), buffer.length());
-  return p[0];
+  int fdStatic;
+  std::string fileName;
+  fileName = libhttp::generateFileName("error");
+  fdStatic = open(path.c_str(), O_RDONLY);
+  if (fdStatic == -1)
+    return fdStatic;
+  write(fdStatic, buffer.c_str(), buffer.length());
+  deleteFile("error");
+  return fdStatic;
+}
+
+std::vector<char > generateHeaders(int statusCode, std::string status) {
+  std::string        tmp;
+  std::vector<char > headers;
+
+  tmp = "HTTP/1.1 " + std::to_string(statusCode) + " " + status + "\r\n";
+  headers.insert(headers.end(), tmp.c_str(), tmp.c_str() + tmp.length());
+  return headers;
 }
 
 void setHeaders(libhttp::Response &response, std::string contentType, int ContentLenght,
@@ -303,15 +310,6 @@ void setHeaders(libhttp::Response &response, std::string contentType, int Conten
   response.buffer.insert(response.buffer.end(), tmp.c_str(), tmp.c_str() + tmp.length());
 }
 
-std::vector<char > generateHeaders(int statusCode, std::string status) {
-  std::string        tmp;
-  std::vector<char > headers;
-
-  tmp = "HTTP/1.1 " + std::to_string(statusCode) + " " + status + "\r\n";
-  headers.insert(headers.end(), tmp.c_str(), tmp.c_str() + tmp.length());
-  return headers;
-}
-
 libhttp::Response setResponse(libhttp::Response &response, int fd, size_t bytesToServe,
                               std::vector<char > buffer) {
   response.fd = fd;
@@ -320,40 +318,45 @@ libhttp::Response setResponse(libhttp::Response &response, int fd, size_t bytesT
   return response;
 }
 
-off_t advanceOffSet(int fd, size_t start) { return lseek(fd, start, SEEK_SET); }
-
 std::pair<libhttp::Methods::error, libhttp::Response > libhttp::Get(libhttp::Request &request,
                                                                     std::string       path) {
   libhttp::Response response;
 
   if (!findResource(path))
     return std::make_pair(libhttp::Methods::FILE_NOT_FOUND, response);
+
   if (!isFolder(path)) {
     response.fd = getFile(path, 200);
     if (response.fd == -1)
       return std::make_pair(libhttp::Methods::FORBIDDEN, response);
 
     if (checkRangeRequest(request.headers))
-      setRange(response,
-               getStartandEndRangeRequest(request.headers[libhttp::Headers::CONTENT_RANGE]));
+    {
+      std::pair<int, int> range = getStartandEndRangeRequest(request.headers[libhttp::Headers::CONTENT_RANGE]);
+      if(checkRange(path,range))
+        return std::make_pair(libhttp::Methods::FILE_NOT_FOUND, response);
+      setRange(response,range);
+    }
     else
       response.bytesToServe = getFileSize(path);
+
     setHeaders(response, libparse::getTypeFile(libparse::Types(), path), response.bytesToServe, 200,
                "OK");
 
     return std::make_pair(libhttp::Methods::OK, response);
   }
 
-  std::string templateStatic;
-  int         p[2];
-
-  if (pipe(p) < 0)
+  std::string fileName, templateStatic;
+  fileName = libhttp::generateFileName("error");
+  int fdStatic = open(path.c_str(), O_RDONLY);
+  if (fdStatic == -1)
     return std::make_pair(libhttp::Methods::FORBIDDEN, response);
-  templateStatic = generateTemplate(path);
-  write(p[1], templateStatic.c_str(), templateStatic.length());
-  response.fd = p[0];
 
+  templateStatic = generateTemplate(path);
+  write(fdStatic, templateStatic.c_str(), templateStatic.length());
+  response.fd = fdStatic;
   setHeaders(response, "text/html", templateStatic.length(), 200, "OK");
+  deleteFile("error");
   return std::make_pair(libhttp::Methods::OK, response);
 }
 
