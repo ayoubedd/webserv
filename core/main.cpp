@@ -3,6 +3,7 @@
 #include "libparse/Config.hpp"
 #include "libparse/utilities.hpp"
 #include <assert.h>
+#include <cstdlib>
 #include <cstring>
 #include <unistd.h>
 
@@ -29,7 +30,7 @@ void sessionsHandler(libnet::Netenv &net, libparse::Config &config) {
 
     // Calling the writer.
     if (session->isNonBlocking(libnet::Session::SOCK_WRITE))
-      writerError = session->writer.write();
+      writerError = session->writer.write(session->isNonBlocking(libnet::Session::WRITER_READ));
 
     sessionsBegin++;
   };
