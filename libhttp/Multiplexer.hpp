@@ -17,6 +17,7 @@ namespace libhttp {
       ERROR_404,
       ERROR_500,
       ERROR_501,
+      ERROR_416,
       DONE,
     };
 

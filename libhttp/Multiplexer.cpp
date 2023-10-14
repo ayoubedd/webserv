@@ -31,18 +31,14 @@ static MuxErrResPair cgiHandler(libcgi::Cgi &cgi, const libparse::RouteProps *ro
 
   switch (cgi.state) {
     case libcgi::Cgi::INIT:
-      std::cout << "CGI: init" << std::endl;
       cgiError = cgi.init(req, route->cgi.second, "localhost", "./static/");
       if (cgiError != libcgi::Cgi::OK)
         break;
-      std::cout << "CGI: exec" << std::endl;
       cgiError = cgi.exec();
       break;
     case libcgi::Cgi::READING_HEADERS:
     case libcgi::Cgi::READING_BODY:
-      std::cout << "CGI: read" << std::endl;
-      cgiError = cgi.read(); // Only read after passing through select or equivalent
-      std::cout << "CGI: read after" << std::endl;
+      cgiError = cgi.read();
       break;
     case libcgi::Cgi::ERR:
     case libcgi::Cgi::FIN:
@@ -59,41 +55,27 @@ static MuxErrResPair cgiHandler(libcgi::Cgi &cgi, const libparse::RouteProps *ro
     case libcgi::Cgi::FAILED_WRITE:
     case libcgi::Cgi::FAILED_READ:
     case libcgi::Cgi::MALFORMED:
-      std::cout << "CGI: failure" << std::endl;
-      std::cout << cgiError << std::endl;
       cgi.clean();
-      std::cout << "---" << std::endl;
       return std::make_pair(libhttp::Mux::ERROR_500, nullptr);
     case libcgi::Cgi::OK:
       break;
   }
 
-  if (cgi.state != libcgi::Cgi::READING_BODY && cgi.state != libcgi::Cgi::FIN) {
-    std::cout << "---" << std::endl;
+  if (cgi.state != libcgi::Cgi::READING_BODY && cgi.state != libcgi::Cgi::FIN)
     return std::make_pair(libhttp::Mux::OK, nullptr);
-  }
-
-  if (cgi.state == libcgi::Cgi::FIN) {
-    std::cout << "CGI: fin" << std::endl;
-    cgi.clean();
-    std::cout << "CGI: cleaning" << std::endl;
-    std::cout << "---" << std::endl;
-    return std::make_pair(libhttp::Mux::DONE, nullptr);
-  }
 
   // here and onward the state must be READING_BODY
-
-  if (prevState == libcgi::Cgi::READING_HEADERS && cgi.state == libcgi::Cgi::READING_BODY) {
-    std::cout << "CGI: created response" << std::endl;
-
+  if (prevState == libcgi::Cgi::READING_HEADERS &&
+      (cgi.state == libcgi::Cgi::READING_BODY || cgi.state == libcgi::Cgi::FIN)) {
     libhttp::Response *response = new libhttp::Response(cgi.res.sockBuff);
-
-    std::cout << "---" << std::endl;
-
     return std::make_pair(libhttp::Mux::OK, response);
   }
 
-  std::cout << "---" << std::endl;
+  if (cgi.state == libcgi::Cgi::FIN) {
+    cgi.clean();
+    return std::make_pair(libhttp::Mux::DONE, nullptr);
+  }
+
   return std::make_pair(libhttp::Mux::OK, nullptr);
 }
 
@@ -106,8 +88,7 @@ static MuxErrResPair deleteHandler(const std::string &path) {
     case libhttp::Methods::FORBIDDEN:
       return std::make_pair(libhttp::Mux::ERROR_403, nullptr);
     case libhttp::Methods::OUT_RANGE:
-      return std::make_pair(libhttp::Mux::ERROR_403,
-                            nullptr); // Shuold be mapped to coreesponding errror
+      return std::make_pair(libhttp::Mux::ERROR_416, nullptr);
     case libhttp::Methods::OK:
       break;
   }
@@ -126,8 +107,7 @@ static MuxErrResPair getHandler(libhttp::Request &req, const std::string &path) 
     case libhttp::Methods::FORBIDDEN:
       return std::make_pair(libhttp::Mux::ERROR_403, nullptr);
     case libhttp::Methods::OUT_RANGE:
-      return std::make_pair(libhttp::Mux::ERROR_403,
-                            nullptr); // Shuold be mapped to coreesponding errror
+      return std::make_pair(libhttp::Mux::ERROR_416, nullptr);
     case libhttp::Methods::OK:
       break;
   }
@@ -203,6 +183,8 @@ libhttp::Status::Code libhttp::Mux::multiplexer(libnet::Session        *session,
       return libhttp::Status::INTERNAL_SERVER_ERROR;
     case ERROR_501:
       return libhttp::Status::NOT_IMPLEMENTED;
+    case ERROR_416:
+      return libhttp::Status::RANGE_NOT_SATISFIABLE;
     case DONE:
     case OK:
       break;
@@ -213,7 +195,8 @@ libhttp::Status::Code libhttp::Mux::multiplexer(libnet::Session        *session,
 
   if (errRes.first == DONE) {
     // Marking last resonse as done.
-    session->writer.responses.back()->doneReading = true;
+    if (isRequestHandlerCgi(route.second))
+      session->writer.responses.back()->doneReading = true;
     // Pooping request since its done.
     session->reader.requests.pop();
   }
