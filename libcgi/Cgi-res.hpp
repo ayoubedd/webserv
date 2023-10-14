@@ -15,6 +15,7 @@ namespace libcgi {
     Respons();
     ~Respons();
     error build();
+    void  write(const char *ptr, size_t len);
     error cgiHeaderToHttpHeader(const std::string &h);
     void  clean();
   };
