@@ -19,7 +19,7 @@ namespace libhttp {
 
     Writer(int sock, int bufferSize = 65000);
 
-    erorr write();
+    erorr write(bool);
   };
 
 } // namespace libhttp

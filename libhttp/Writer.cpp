@@ -11,7 +11,7 @@ libhttp::Writer::Writer(int sock, int bufferSize) {
   this->readWriteBufferSize = bufferSize;
 }
 
-libhttp::Writer::erorr libhttp::Writer::write() {
+libhttp::Writer::erorr libhttp::Writer::write(bool permitedToRead) {
   // Check Responses queue is not empty
   if (responses.empty() == true)
     return libhttp::Writer::OK;
@@ -25,7 +25,7 @@ libhttp::Writer::erorr libhttp::Writer::write() {
   bool shouldReadFromFd;
 
   shouldReadFromFd =
-      response->fd != -1 && // Only read if there a body (aka a fd).
+      permitedToRead && response->fd != -1 && // Only read if there a body (aka a fd).
       ((response->bytesToServe != -1 && response->bytesToServe > response->readBytes &&
         response->buffer->size() <
             readWriteBufferSize) || // Byte range && and readBytes is less than bytesToServe.
@@ -82,7 +82,7 @@ libhttp::Writer::erorr libhttp::Writer::write() {
                           response->buffer->size() == 0;
 
   if (shoudPopResponse == true) {
-    delete responses.front();
+    delete response;
     responses.pop();
   }
 
