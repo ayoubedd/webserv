@@ -61,7 +61,8 @@ libhttp::Writer::erorr libhttp::Writer::write(bool permitedToRead) {
     if (readBytes == 0)
       response->doneReading = true;
 
-    response->buffer->insert(response->buffer->end(), buffer, buffer + readBytes);
+    else
+      response->buffer->insert(response->buffer->end(), buffer, buffer + readBytes);
   }
 
   size_t bytesToWrite = readWriteBufferSize < response->buffer->size() ? readWriteBufferSize
