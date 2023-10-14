@@ -318,32 +318,33 @@ libhttp::Response *setResponse(libhttp::Response *response, int fd, size_t bytes
 std::pair<libhttp::Methods::error, libhttp::Response *> libhttp::Get(libhttp::Request &request,
                                                                      std::string       path) {
   libhttp::Response *response = NULL;
+  int                fd;
 
   if (!findResource(path))
-    return std::make_pair(libhttp::Methods::FILE_NOT_FOUND, response);
+    return std::make_pair(libhttp::Methods::FILE_NOT_FOUND, nullptr);
 
   if (!isFolder(path)) {
-    int fd = getFile(path, 200);
+    fd = getFile(path, 200);
     if (fd == -1)
-      return std::make_pair(libhttp::Methods::FORBIDDEN, response);
+      return std::make_pair(libhttp::Methods::FORBIDDEN, nullptr);
     if (checkRangeRequest(request.headers)) {
       std::pair<int, int> range =
           getStartandEndRangeRequest(request.headers[libhttp::Headers::CONTENT_RANGE]);
       if (checkRange(path, range))
-        return std::make_pair(libhttp::Methods::OUT_RANGE, response);
+        return std::make_pair(libhttp::Methods::OUT_RANGE, nullptr);
       response = new Response();
       setRange(response, range);
     } else {
       response = new Response();
-      response->bytesToServe = getFileSize(path);
     }
 
-    setHeaders(response, libparse::getTypeFile(libparse::Types(), path), getFileSize(path),
-               200, "OK");
+    setHeaders(response, libparse::getTypeFile(libparse::Types(), path), getFileSize(path), 200,
+               "OK");
 
     response->fd = fd;
     return std::make_pair(libhttp::Methods::OK, response);
   }
+
 
   std::string fileName, templateStatic;
   fileName = libhttp::generateFileName("error");
@@ -351,6 +352,7 @@ std::pair<libhttp::Methods::error, libhttp::Response *> libhttp::Get(libhttp::Re
   if (fdStatic == -1)
     return std::make_pair(libhttp::Methods::FORBIDDEN, response);
 
+  response = new Response();
   templateStatic = generateTemplate(path);
   write(fdStatic, templateStatic.c_str(), templateStatic.length());
   response->fd = fdStatic;
