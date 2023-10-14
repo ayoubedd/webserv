@@ -1,7 +1,7 @@
 #include "libhttp/Methods.hpp"
 #include "MultipartFormData.hpp"
-#include "libparse/Types.hpp"
 #include "libhttp/MultipartFormData.hpp"
+#include "libparse/Types.hpp"
 
 #include <cstddef>
 #include <cstring>
@@ -16,8 +16,7 @@ const char *libhttp::Methods::GET = "GET";
 const char *libhttp::Methods::DELETE = "DELETE";
 const char *libhttp::Methods::POST = "POST";
 
-
-off_t advanceOffSet(int fd, size_t start) { return lseek(fd, start, SEEK_SET); }
+off_t       advanceOffSet(int fd, size_t start) { return lseek(fd, start, SEEK_SET); }
 static void ft_replace(std::string &str, const std::string &old_value,
                        const std::string &new_value) {
   size_t pos = 0;
@@ -52,23 +51,22 @@ bool directoryExists(std::string &path) {
 }
 
 bool findResource(std::string &path) {
-  if(path.empty())
+  if (path.empty())
     return false;
   if (!isFolder(path))
     return fileExists(path);
   return directoryExists(path);
 }
 
+bool deleteFile(const char *pathFile) {
 
-bool deleteFile(const char *pathFile){
-
-  DIR           *dir = opendir(pathFile);
+  DIR *dir = opendir(pathFile);
 
   if (dir == nullptr) {
     return false;
   }
   if (remove(pathFile) != 0) {
-            return false;
+    return false;
   }
   return true;
 }
@@ -252,11 +250,10 @@ std::pair<int, int> getStartandEndRangeRequest(std::string str) {
   return std::make_pair(start, end);
 }
 
-bool checkRange(std::string fileName ,std::pair<int, int> range)
-{
+bool checkRange(std::string fileName, std::pair<int, int> range) {
   if (range.second > range.first)
     return false;
-  if(range.first > getFileSize(fileName))
+  if (range.first > getFileSize(fileName))
     return false;
   return true;
 }
@@ -281,7 +278,7 @@ ssize_t libhttp::getFile(std::string &path, int status) {
   templateFile.close();
   buffer = tmp.str();
   ft_replace(buffer, "{{STATUS}}", std::to_string(status));
-  int fdStatic;
+  int         fdStatic;
   std::string fileName;
   fileName = libhttp::generateFileName("error");
   fdStatic = open(path.c_str(), O_RDONLY);
@@ -292,12 +289,12 @@ ssize_t libhttp::getFile(std::string &path, int status) {
   return fdStatic;
 }
 
-std::vector<char > generateHeaders(int statusCode, std::string status) {
+std::vector<char> *generateHeaders(int statusCode, std::string status) {
   std::string        tmp;
-  std::vector<char > headers;
+  std::vector<char> *headers = new std::vector<char>;
 
   tmp = "HTTP/1.1 " + std::to_string(statusCode) + " " + status + "\r\n";
-  headers.insert(headers.end(), tmp.c_str(), tmp.c_str() + tmp.length());
+  headers->insert(headers->end(), tmp.c_str(), tmp.c_str() + tmp.length());
   return headers;
 }
 
@@ -305,47 +302,46 @@ void setHeaders(libhttp::Response *response, std::string contentType, int Conten
                 int statusCode, std::string status) {
   std::string tmp;
   tmp = "HTTP/1.1 " + std::to_string(statusCode) + " " + status + "\r\n";
-  response->buffer.insert(response->buffer.end(), tmp.c_str(), tmp.c_str() + tmp.length());
-  tmp = "Content-Length: " + std::to_string(ContentLenght - 1) + "\r\n";
-  response->buffer.insert(response->buffer.end(), tmp.c_str(), tmp.c_str() + tmp.length());
+  response->buffer->insert(response->buffer->end(), tmp.c_str(), tmp.c_str() + tmp.length());
+  tmp = "Content-Length: " + std::to_string(ContentLenght) + "\r\n";
+  response->buffer->insert(response->buffer->end(), tmp.c_str(), tmp.c_str() + tmp.length());
   tmp = "Content-Type: " + contentType + "\r\n\r\n";
-  response->buffer.insert(response->buffer.end(), tmp.c_str(), tmp.c_str() + tmp.length());
+  response->buffer->insert(response->buffer->end(), tmp.c_str(), tmp.c_str() + tmp.length());
 }
 
-libhttp::Response* setResponse(libhttp::Response *response, int fd, size_t bytesToServe) {
+libhttp::Response *setResponse(libhttp::Response *response, int fd, size_t bytesToServe) {
   response->fd = fd;
   response->bytesToServe = bytesToServe;
   return response;
 }
 
 std::pair<libhttp::Methods::error, libhttp::Response *> libhttp::Get(libhttp::Request &request,
-                                                                    std::string       path) {
+                                                                     std::string       path) {
   libhttp::Response *response = NULL;
 
   if (!findResource(path))
     return std::make_pair(libhttp::Methods::FILE_NOT_FOUND, response);
 
   if (!isFolder(path)) {
-    response->fd = getFile(path, 200);
-    if (response->fd == -1)
+    int fd = getFile(path, 200);
+    if (fd == -1)
       return std::make_pair(libhttp::Methods::FORBIDDEN, response);
-    if (checkRangeRequest(request.headers))
-    {
-      std::pair<int, int> range = getStartandEndRangeRequest(request.headers[libhttp::Headers::CONTENT_RANGE]);
-      if(checkRange(path,range))
+    if (checkRangeRequest(request.headers)) {
+      std::pair<int, int> range =
+          getStartandEndRangeRequest(request.headers[libhttp::Headers::CONTENT_RANGE]);
+      if (checkRange(path, range))
         return std::make_pair(libhttp::Methods::OUT_RANGE, response);
-      response =  new Response();
-      setRange(response,range);
-    }
-    else
-    {
-      response =  new Response();
+      response = new Response();
+      setRange(response, range);
+    } else {
+      response = new Response();
       response->bytesToServe = getFileSize(path);
     }
 
-    setHeaders(response, libparse::getTypeFile(libparse::Types(), path), response->bytesToServe, 200,
-               "OK");
+    setHeaders(response, libparse::getTypeFile(libparse::Types(), path), getFileSize(path),
+               200, "OK");
 
+    response->fd = fd;
     return std::make_pair(libhttp::Methods::OK, response);
   }
 
@@ -364,35 +360,27 @@ std::pair<libhttp::Methods::error, libhttp::Response *> libhttp::Get(libhttp::Re
 }
 
 std::pair<libhttp::Methods::error, libhttp::Response *> libhttp::Delete(std::string path) {
-  libhttp::Response *response = new Response;
+  libhttp::Response *response = new Response(nullptr);
 
   if (findResource(path)) {
     if (isFolder(path)) {
       if (deleteDirectory(path.c_str())) {
         response->buffer = generateHeaders(202, "OK");
         return std::make_pair(libhttp::Methods::OK, setResponse(response, -1, getFileSize(path)));
-      } else
-      {
+      } else {
         response->buffer = generateHeaders(403, "Forbidden");
-        return std::make_pair(libhttp::Methods::FORBIDDEN,
-                              setResponse(response, -1, 0));
+        return std::make_pair(libhttp::Methods::FORBIDDEN, setResponse(response, -1, 0));
       }
     } else {
-      if (remove(path.c_str()) != 0)
-      {
+      if (remove(path.c_str()) != 0) {
         response->buffer = generateHeaders(403, "Forbidden");
-        return std::make_pair(libhttp::Methods::FORBIDDEN,
-                              setResponse(response, -1, 0));
-      }
-      else
-      {
+        return std::make_pair(libhttp::Methods::FORBIDDEN, setResponse(response, -1, 0));
+      } else {
         response->buffer = generateHeaders(202, "OK");
-        return std::make_pair(libhttp::Methods::OK,
-                              setResponse(response, -1, 0));
+        return std::make_pair(libhttp::Methods::OK, setResponse(response, -1, 0));
       }
     }
   }
   response->buffer = generateHeaders(404, "FileNotFound");
-  return std::make_pair(libhttp::Methods::FILE_NOT_FOUND,
-                        setResponse(response, -1, 0));
+  return std::make_pair(libhttp::Methods::FILE_NOT_FOUND, setResponse(response, -1, 0));
 }
