@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
@@ -7,6 +8,8 @@
 #include <sstream>
 #include <string>
 #include <vector>
+
+#define MAX_REQ_BODY_SIZE 4096
 
 namespace libparse {
   struct RouteProps;
@@ -27,7 +30,8 @@ namespace libparse {
 
   struct Domain {
     std::string error;
-    std::size_t max_body_size;
+    ssize_t     maxBodySize;
+    ssize_t     maxHeaserSize;
     std::string root;
     std::string index;
     std::string port;

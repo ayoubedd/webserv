@@ -86,7 +86,7 @@ void printConfig(libparse::Config config) {
     std::cout << "\t\t\t\tindex: " << itD->second.index << std::endl;
     std::cout << "\t\t\t\terror: " << itD->second.error << std::endl;
     std::cout << "\t\t\t\tport: " << itD->second.port << std::endl;
-    std::cout << "\t\t\t\tMaxSizeBody: " << itD->second.max_body_size << std::endl;
+    std::cout << "\t\t\t\tMaxSizeBody: " << itD->second.maxBodySize << std::endl;
     itR = itD->second.routes.begin();
     while (itR != itD->second.routes.end()) {
       std::cout << "\t\t\t\troute: " << itR->first << std::endl;

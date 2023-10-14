@@ -2,7 +2,7 @@ NAME=webserv
 CXX=g++
 CXXFLAGS+=-Wall -Wextra -Wreorder -I .
 
-CORE=core/main.cpp
+CORE=core/main.cpp core/Sanitizer.cpp
 
 LIBHTTP=libhttp/Headers.cpp libhttp/Request.cpp libhttp/Reader.cpp \
 				 libhttp/Request-target.cpp libhttp/Chunk.cpp libhttp/MultipartFormData.cpp \
