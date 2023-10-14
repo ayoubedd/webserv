@@ -1,33 +1,36 @@
-#include "libhttp/Multiplexer.hpp"
+#include "core/Multiplexer.hpp"
 #include "libnet/Net.hpp"
 #include "libparse/Config.hpp"
 #include "libparse/utilities.hpp"
 #include <assert.h>
+#include <cstdlib>
 #include <cstring>
+#include <unistd.h>
 
 void sessionsHandler(libnet::Netenv &net, libparse::Config &config) {
   libnet::Sessions::iterator sessionsBegin = net.readySessions.begin();
   libnet::Sessions::iterator sessionsEnd = net.readySessions.end();
 
-  char buff[2];
   while (sessionsBegin != sessionsEnd) {
-    // Temporary solutin for closed clients
-    if (recv(sessionsBegin->second->fd, buff, 1, MSG_PEEK) <= 0) {
-      sessionsBegin++;
-      continue;
-    }
-
     libnet::Session *session = sessionsBegin->second;
+
+    libhttp::Reader::error readerErr = libhttp::Reader::OK;
+    libhttp::Writer::erorr writerError = libhttp::Writer::OK;
+    libhttp::Status::Code  httpCode = libhttp::Status::OK;
 
     // Calling the reader.
     if (session->isNonBlocking(libnet::Session::SOCK_READ))
-      session->reader.read();
+      readerErr = session->reader.read();
 
-    // Call multiplexer here
+    libhttp::Request *request = session->reader.requests.front();
+
+    if (request->state == libnet::SessionState::READING_BODY ||
+        request->state == libnet::SessionState::READING_FIN)
+      httpCode = libhttp::Mux::multiplexer(session, config);
 
     // Calling the writer.
     if (session->isNonBlocking(libnet::Session::SOCK_WRITE))
-      session->writer.write();
+      writerError = session->writer.write(session->isNonBlocking(libnet::Session::WRITER_READ));
 
     sessionsBegin++;
   };

@@ -11,7 +11,7 @@ libhttp::Writer::Writer(int sock, int bufferSize) {
   this->readWriteBufferSize = bufferSize;
 }
 
-libhttp::Writer::erorr libhttp::Writer::write() {
+libhttp::Writer::erorr libhttp::Writer::write(bool permitedToRead) {
   // Check Responses queue is not empty
   if (responses.empty() == true)
     return libhttp::Writer::OK;
@@ -25,12 +25,12 @@ libhttp::Writer::erorr libhttp::Writer::write() {
   bool shouldReadFromFd;
 
   shouldReadFromFd =
-      response->fd != -1 && // Only read if there a body (aka a fd).
+      permitedToRead && response->fd != -1 && // Only read if there a body (aka a fd).
       ((response->bytesToServe != -1 && response->bytesToServe > response->readBytes &&
-        response->buffer.size() <
+        response->buffer->size() <
             readWriteBufferSize) || // Byte range && and readBytes is less than bytesToServe.
        (response->bytesToServe == -1 &&
-        response->buffer.size() <
+        response->buffer->size() <
             readWriteBufferSize)); // A regular body, with left bytes to be read.
 
   if (shouldReadFromFd == true) {
@@ -61,28 +61,31 @@ libhttp::Writer::erorr libhttp::Writer::write() {
     if (readBytes == 0)
       response->doneReading = true;
 
-    response->buffer.insert(response->buffer.end(), buffer, buffer + readBytes);
+    else
+      response->buffer->insert(response->buffer->end(), buffer, buffer + readBytes);
   }
 
-  size_t bytesToWrite =
-      readWriteBufferSize < response->buffer.size() ? readWriteBufferSize : response->buffer.size();
+  size_t bytesToWrite = readWriteBufferSize < response->buffer->size() ? readWriteBufferSize
+                                                                       : response->buffer->size();
 
-  ssize_t writtenBytes = ::send(sock, &response->buffer[0], bytesToWrite, 0);
+  ssize_t writtenBytes = ::send(sock, &(*response->buffer)[0], bytesToWrite, 0);
 
   if (writtenBytes == -1)
     return libhttp::Writer::ERORR_WRITTING_TO_FD;
 
-  response->buffer.erase(response->buffer.begin(), response->buffer.begin() + writtenBytes);
+  response->buffer->erase(response->buffer->begin(), response->buffer->begin() + writtenBytes);
 
   // Should drop the response only if:
   // - Reached the end of file.
   // - End of range.
   bool shoudPopResponse = (response->fd == -1 || response->bytesToServe == response->readBytes ||
                            response->doneReading) &&
-                          response->buffer.size() == 0;
+                          response->buffer->size() == 0;
 
-  if (shoudPopResponse == true)
+  if (shoudPopResponse == true) {
+    delete response;
     responses.pop();
+  }
 
   return libhttp::Writer::OK;
 }
