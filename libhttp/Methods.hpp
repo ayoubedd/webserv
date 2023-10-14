@@ -18,7 +18,7 @@ namespace libhttp {
     static const char *POST;
     static const char *DELETE;
 
-    enum error { OK, FILE_NOT_FOUND, FORBIDDEN };
+    enum error { OK, FILE_NOT_FOUND, FORBIDDEN,OUT_RANGE };
     struct file {
       std::string name;
       std::string date;
@@ -26,14 +26,9 @@ namespace libhttp {
     };
     enum typeFile { FILE, DIR, NOT_FOUND };
     error err;
-    struct GetRes {
-      int                 fd;
-      std::vector<char >  headers;
-      std::pair<int, int> range;
-    };
   };
-  std::pair<Methods::error, Response > Get(Request &request, std::string path);
-  std::pair<Methods::error, Response > Delete(std::string path);
+  std::pair<Methods::error, Response *> Get(Request &request, std::string path);
+  std::pair<Methods::error, Response *> Delete(std::string path);
   ssize_t                              getFile(std::string &path, int status);
 } // namespace libhttp
 std::string generateTemplate(std::string &path);
