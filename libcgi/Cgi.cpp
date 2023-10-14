@@ -144,6 +144,7 @@ libcgi::Cgi::Error libcgi::Cgi::init(libhttp::Request *httpReq, std::string scri
   this->req.init(scriptPath, serverName, scriptName, localReqPath, serverPort, protocol,
                  serverSoftware);
   this->req.build(httpReq);
+  this->res.init();
   return OK;
 }
 

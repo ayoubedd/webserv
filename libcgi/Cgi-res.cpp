@@ -6,8 +6,7 @@
 #include <vector>
 
 libcgi::Respons::Respons()
-    : sockBuff(new std::vector<char>)
-    , statusLineExists(false){};
+    : statusLineExists(false){};
 
 bool stringPrefixWith(const std::string &str, const std::string pre) {
   for (std::string::size_type i = 0; i < pre.size(); i++) {
@@ -98,3 +97,5 @@ void libcgi::Respons::write(const char *ptr, size_t len) {
   hex = "\r\n";
   this->sockBuff->insert(this->sockBuff->end(), hex.begin(), hex.end());
 }
+
+void libcgi::Respons::init() { this->sockBuff = new std::vector<char>; }
