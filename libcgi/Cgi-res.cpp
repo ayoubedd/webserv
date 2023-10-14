@@ -1,5 +1,7 @@
 #include "libcgi/Cgi-res.hpp"
 #include "libhttp/constants.hpp"
+#include <ios>
+#include <sstream>
 #include <utility>
 #include <vector>
 
@@ -83,3 +85,16 @@ void libcgi::Respons::clean() {
 }
 
 libcgi::Respons::~Respons() { delete this->sockBuff; }
+
+void libcgi::Respons::write(const char *ptr, size_t len) {
+  std::string       hex;
+  std::stringstream ss;
+
+  ss << std::hex << len;
+  ss >> hex;
+  hex += "\r\n";
+  this->sockBuff->insert(this->sockBuff->end(), hex.begin(), hex.end());
+  this->sockBuff->insert(this->sockBuff->end(), ptr, ptr + len);
+  hex = "\r\n";
+  this->sockBuff->insert(this->sockBuff->end(), hex.begin(), hex.end());
+}
