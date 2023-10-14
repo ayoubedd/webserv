@@ -4,19 +4,13 @@
 #include "libparse/utilities.hpp"
 #include <assert.h>
 #include <cstring>
+#include <unistd.h>
 
 void sessionsHandler(libnet::Netenv &net, libparse::Config &config) {
   libnet::Sessions::iterator sessionsBegin = net.readySessions.begin();
   libnet::Sessions::iterator sessionsEnd = net.readySessions.end();
 
-  char buff[2];
   while (sessionsBegin != sessionsEnd) {
-    // Temporary solutin for closed clients
-    if (recv(sessionsBegin->second->fd, buff, 1, MSG_PEEK) <= 0) {
-      sessionsBegin++;
-      continue;
-    }
-
     libnet::Session *session = sessionsBegin->second;
 
     libhttp::Reader::error readerErr = libhttp::Reader::OK;
@@ -27,7 +21,11 @@ void sessionsHandler(libnet::Netenv &net, libparse::Config &config) {
     if (session->isNonBlocking(libnet::Session::SOCK_READ))
       readerErr = session->reader.read();
 
-    httpCode = libhttp::Mux::multiplexer(session, config);
+    libhttp::Request *request = session->reader.requests.front();
+
+    if (request->state == libnet::SessionState::READING_BODY ||
+        request->state == libnet::SessionState::READING_FIN)
+      httpCode = libhttp::Mux::multiplexer(session, config);
 
     // Calling the writer.
     if (session->isNonBlocking(libnet::Session::SOCK_WRITE))
