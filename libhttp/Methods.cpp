@@ -2,14 +2,15 @@
 #include "MultipartFormData.hpp"
 #include "libhttp/MultipartFormData.hpp"
 #include "libparse/Types.hpp"
-
 #include <cstddef>
 #include <cstring>
 #include <ctime>
+#include <fcntl.h>
 #include <fstream>
 #include <iostream>
 #include <stdlib.h>
 #include <string>
+#include <unistd.h>
 #include <utility>
 
 const char *libhttp::Methods::GET = "GET";
@@ -139,17 +140,17 @@ bool checkRangeRequest(libhttp::Headers &headers) {
   return false;
 }
 
-int getFileSize(const std::string &file_path) {
+size_t getFileSize(const std::string &file_path) {
   std::ifstream file(file_path.c_str(), std::ios::binary | std::ios::ate);
   if (!file) {
     return -1;
   }
-  std::ifstream::pos_type size = file.tellg();
+  ssize_t size = file.tellg();
   file.close();
   if (size == -1) {
     return -1;
   }
-  return static_cast<int>(size);
+  return static_cast<size_t>(size);
 }
 
 std::string getFileLastModification(const std::string &file_path) {
@@ -250,7 +251,7 @@ std::pair<int, int> getStartandEndRangeRequest(std::string str) {
   return std::make_pair(start, end);
 }
 
-bool checkRange(std::string fileName, std::pair<int, int> range) {
+bool checkRange(std::string fileName, std::pair<size_t, size_t> range) {
   if (range.second > range.first)
     return false;
   if (range.first > getFileSize(fileName))
@@ -298,7 +299,7 @@ std::vector<char> *generateHeaders(int statusCode, std::string status) {
   return headers;
 }
 
-void setHeaders(libhttp::Response *response, std::string contentType, int ContentLenght,
+void setHeaders(libhttp::Response *response, std::string contentType, size_t ContentLenght,
                 int statusCode, std::string status) {
   std::string tmp;
   tmp = "HTTP/1.1 " + std::to_string(statusCode) + " " + status + "\r\n";
@@ -345,19 +346,19 @@ std::pair<libhttp::Methods::error, libhttp::Response *> libhttp::Get(libhttp::Re
     return std::make_pair(libhttp::Methods::OK, response);
   }
 
-
   std::string fileName, templateStatic;
-  fileName = libhttp::generateFileName("error");
-  int fdStatic = open(path.c_str(), O_RDONLY);
+  fileName = libhttp::generateFileName("/tmp/webserv/dir_listing");
+  int fdStatic = open(fileName.c_str(), O_RDWR | O_CREAT, 0644);
   if (fdStatic == -1)
-    return std::make_pair(libhttp::Methods::FORBIDDEN, response);
+    return std::make_pair(libhttp::Methods::FORBIDDEN, nullptr);
 
   response = new Response();
   templateStatic = generateTemplate(path);
   write(fdStatic, templateStatic.c_str(), templateStatic.length());
   response->fd = fdStatic;
   setHeaders(response, "text/html", templateStatic.length(), 200, "OK");
-  deleteFile("error");
+  lseek(fdStatic, 0, SEEK_SET);
+  std::remove(fileName.c_str());
   return std::make_pair(libhttp::Methods::OK, response);
 }
 
