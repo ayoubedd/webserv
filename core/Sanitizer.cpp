@@ -34,9 +34,6 @@ WebServ::Sanitizer::sanitizeHostHeader(const libhttp::HeadersMap &headers) {
   return Status::OK;
 }
 
-// WebServ::Sanitizer::Error WebServ::Sanitizer::sanitizeHeaderSize(const libhttp::Reader &reader,
-//                                                                  const ssize_t maxHeaderSize) {}
-
 WebServ::Sanitizer::Status::Code WebServ::Sanitizer::sanitizeBodySize(const libhttp::Request &req,
                                                                       const ssize_t maxBodySize) {
   if (maxBodySize == -1)
@@ -94,11 +91,10 @@ WebServ::Sanitizer::sanitizeGetRequest(const libhttp::Request &req,
 }
 
 WebServ::Sanitizer::Status::Code
-WebServ::Sanitizer::sanitizeRequest(const libhttp::Request &req, const libparse::Config &config) {
-  Status::Code            e;
-  const libparse::Domain *domain = libparse::matchReqWithServer(req, config);
+WebServ::Sanitizer::sanitizeRequest(const libhttp::Request &req, const libparse::Domain &domain) {
+  Status::Code                                          e;
   std::pair<std::string, const libparse::RouteProps * > route =
-      libparse::matchPathWithLocation(domain->routes, req.reqTarget.path);
+      libparse::matchPathWithLocation(domain.routes, req.reqTarget.path);
 
   e = sanitizeMethod(req.method, *route.second);
   if (e != Status::OK)

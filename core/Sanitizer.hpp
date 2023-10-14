@@ -10,7 +10,6 @@
 
 namespace WebServ {
   struct Sanitizer {
-    // typedef libhttp::Status::Code Error;
     typedef libhttp::Status Status;
 
     static Status::Code sanitizeMethod(const std::string          &method,
@@ -18,11 +17,9 @@ namespace WebServ {
     static Status::Code sanitizeReqLine(const libhttp::RequestTarget &reqTarget);
     static Status::Code sanitizeHttpVersion(const std::string &httpVersion);
     static Status::Code sanitizeHostHeader(const libhttp::HeadersMap &headers);
-    // static Status::Code sanitizeHeaderSize(const libhttp::Reader &reader, const ssize_t
-    // maxHeaderSize);
     static Status::Code sanitizeBodySize(const libhttp::Request &req, const ssize_t maxBodySize);
     static Status::Code sanitizeRequest(const libhttp::Request &req,
-                                        const libparse::Config &config);
+                                        const libparse::Domain &domain);
 
     static Status::Code sanitizePostRequest(const libhttp::Request &req,
                                             const libparse::Config &config);
