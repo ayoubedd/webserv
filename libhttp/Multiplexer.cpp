@@ -98,24 +98,25 @@ static MuxErrResPair cgiHandler(libcgi::Cgi &cgi, const libparse::RouteProps *ro
 }
 
 static MuxErrResPair deleteHandler(const std::string &path) {
-  std::pair<libhttp::Methods::error, libhttp::Response> errResPair = libhttp::Delete(path);
+  std::pair<libhttp::Methods::error, libhttp::Response *> errResPair = libhttp::Delete(path);
 
   switch (errResPair.first) {
     case libhttp::Methods::FILE_NOT_FOUND:
       return std::make_pair(libhttp::Mux::ERROR_404, nullptr);
     case libhttp::Methods::FORBIDDEN:
       return std::make_pair(libhttp::Mux::ERROR_403, nullptr);
+    case libhttp::Methods::OUT_RANGE:
+      return std::make_pair(libhttp::Mux::ERROR_403,
+                            nullptr); // Shuold be mapped to coreesponding errror
     case libhttp::Methods::OK:
       break;
   }
 
-  libhttp::Response *response = new libhttp::Response(errResPair.second);
-
-  return std::make_pair(libhttp::Mux::DONE, response);
+  return std::make_pair(libhttp::Mux::DONE, errResPair.second);
 }
 
 static MuxErrResPair getHandler(libhttp::Request &req, const std::string &path) {
-  std::pair<libhttp::Methods::error, libhttp::Response> errResPair;
+  std::pair<libhttp::Methods::error, libhttp::Response *> errResPair;
 
   errResPair = libhttp::Get(req, path);
 
@@ -124,17 +125,14 @@ static MuxErrResPair getHandler(libhttp::Request &req, const std::string &path) 
       return std::make_pair(libhttp::Mux::ERROR_404, nullptr);
     case libhttp::Methods::FORBIDDEN:
       return std::make_pair(libhttp::Mux::ERROR_403, nullptr);
+    case libhttp::Methods::OUT_RANGE:
+      return std::make_pair(libhttp::Mux::ERROR_403,
+                            nullptr); // Shuold be mapped to coreesponding errror
     case libhttp::Methods::OK:
       break;
   }
 
-  libhttp::Response *res = new libhttp::Response();
-
-  // TODO:
-  // - SHOULD AVOID COPYING.
-  *res->buffer = *errResPair.second.buffer;
-
-  return std::make_pair(libhttp::Mux::DONE, res);
+  return std::make_pair(libhttp::Mux::DONE, errResPair.second);
 }
 
 static MuxErrResPair postHandler(libhttp::Request &req, libhttp::Multipart &ml,
