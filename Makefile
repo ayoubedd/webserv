@@ -15,7 +15,7 @@ LIBPARSE=libparse/TestParser.cpp libparse/ReadFile.cpp \
 				 libparse/utilities.cpp libparse/Lexer.cpp libparse/Parser.cpp libparse/match.cpp \
 				 libparse/Types.cpp
 
-LIBNET=libnet/Net.cpp libnet/Session.cpp libnet/SessionState.cpp
+LIBNET=libnet/Net.cpp libnet/Session.cpp libnet/SessionState.cpp libnet/Terminator.cpp
 
 LIBCGI=libcgi/Cgi-req.cpp libcgi/Cgi.cpp libcgi/Cgi-res.cpp
 
