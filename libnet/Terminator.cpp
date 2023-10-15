@@ -26,7 +26,7 @@ void libnet::Terminator::terminate(libnet::Sessions &sessions) {
   while (sessionsToCloseBegin != sessionsToClosEnd) {
     libnet::Sessions::iterator sessionIter = sessions.find(*sessionsToCloseBegin);
 
-    sessionIter->second->cleanup();
+    delete sessionIter->second;
     sessions.erase(sessionIter);
 
     sessionsToCloseBegin++;
