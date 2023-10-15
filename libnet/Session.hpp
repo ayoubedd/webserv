@@ -31,6 +31,7 @@ namespace libnet {
     libhttp::Writer           writer;
     libcgi::Cgi               cgi;
     sockaddr_in              *clientAddr;
+    bool                      destroy;
 
     int permitedIo;
     // Bit-maping
@@ -42,5 +43,7 @@ namespace libnet {
     // Utility to check if the corresponding
     // io operation going to block or not
     bool isNonBlocking(int);
+
+    void cleanup();
   };
 } // namespace libnet
