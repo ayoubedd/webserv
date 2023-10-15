@@ -1,5 +1,6 @@
 #include "core/Multiplexer.hpp"
 #include "libnet/Net.hpp"
+#include "libnet/Terminator.hpp"
 #include "libparse/Config.hpp"
 #include "libparse/utilities.hpp"
 #include <assert.h>
@@ -19,8 +20,14 @@ void sessionsHandler(libnet::Netenv &net, libparse::Config &config) {
     libhttp::Status::Code  httpCode = libhttp::Status::OK;
 
     // Calling the reader.
-    if (session->isNonBlocking(libnet::Session::SOCK_READ))
+    if (session->isNonBlocking(libnet::Session::SOCK_READ)) {
       readerErr = session->reader.read();
+      if (readerErr != libhttp::Reader::OK) {
+        session->destroy = true;
+        sessionsBegin++;
+        continue;
+      }
+    }
 
     libhttp::Request *request = session->reader.requests.front();
 
@@ -29,8 +36,14 @@ void sessionsHandler(libnet::Netenv &net, libparse::Config &config) {
       httpCode = libhttp::Mux::multiplexer(session, config);
 
     // Calling the writer.
-    if (session->isNonBlocking(libnet::Session::SOCK_WRITE))
+    if (session->isNonBlocking(libnet::Session::SOCK_WRITE)) {
       writerError = session->writer.write(session->isNonBlocking(libnet::Session::WRITER_READ));
+      if (writerError != libhttp::Writer::OK) {
+        session->destroy = true;
+        sessionsBegin++;
+        continue;
+      }
+    }
 
     sessionsBegin++;
   };
@@ -62,6 +75,8 @@ int main(int argc, char *argv[]) {
       net.acceptNewClients();
 
     sessionsHandler(net, config);
+
+    libnet::Terminator::terminate(net.sessions);
   };
   return 0;
 }
