@@ -1,6 +1,17 @@
 #include "Config.hpp"
 #include "utilities.hpp"
 
+// [X]check is finched by /
+// [X]check file is exsite 
+//      [] check .py or .php existub
+// [X] check allowd char in domain
+// check i is not out of range
+// [X] check size body and headres int 
+//  [] check is int
+
+// [X] setUp name domain and port
+// [X] setup default server
+
 static bool strStartWith(const std::string str, const std::string prefix) {
   std::string::size_type i;
 
@@ -19,19 +30,57 @@ libparse::Domain *getDefeaultSever(libparse::Domains &domains, std::string serve
   return NULL;
 }
 
-void libparse::parser(std::string filename, libparse::Config &config) {
-  std::vector<std::string>      content;
+std::pair<bool , std::string> libparse::parser(libparse::Config &config,std::vector<libparse::tokens> &tokens)
+{
+    size_t i = 0;
+    std::pair<bool , std::string> res;
+
+    while((tokens[i].lexeme == "log_error" || tokens[i].lexeme == "log_info") && i < 4 && i < tokens.size())
+    {
+      res = setUpLog(config,tokens,&i); 
+        if(!res.first)
+          return res;
+      i++;
+    }
+    while(tokens[i].type != libparse::tokens::ENDFILE && i < tokens.size())
+    {
+      if(tokens[i].lexeme == "default")
+      {
+        res = setUpDefaultSever(config,tokens,&i);
+        if(!res.first)
+          return res;
+        config.defaultServer = &config.domains.begin()->second;
+      }
+      else
+      {
+        res = SetUpServer(config,tokens,&i);;
+        if(!res.first)
+          return res;
+      }
+    continue;
+    }
+  return std::make_pair(true,"");
+}
+
+bool libparse::checkConfig(std::string &fileName,libparse::Config &config)
+{
   std::string                   contentFile;
   std::vector<libparse::tokens> tokens;
-  size_t                        i = 0;
+  std::pair<bool,std::string> res;
 
-  contentFile = readFile(filename);
-  check(contentFile);
-  content = split(contentFile);
-  content.push_back("endifle");
-  lexer(tokens, content);
-  config.domains = setTokenInStruct(tokens);
-  config.defaultServer = NULL;
-  if (checkDefaulfServer(content, i))
-    config.defaultServer = getDefeaultSever(config.domains, content[1]);
+  contentFile = libparse::readFile(fileName);
+  libparse::lexer(tokens,contentFile);
+  res = parser(config,tokens);
+  if(!res.first)
+  {
+    std::cout << "Error : "<< res.second <<std::endl;
+    return res.first;
+  }
+  res = checkFileExist(config);
+  if(!res.first)
+  {
+    std::cout << "File or Dir Not Exist " << res.second << std::endl;
+    return res.first;
+  }
+  return true;
 }

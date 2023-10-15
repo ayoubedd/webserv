@@ -81,16 +81,13 @@ void printConfig(libparse::Config config) {
   itR = itD->second.routes.begin();
   while (itD != d.end()) {
     std::cout << "Domain: " << itD->first << std::endl;
-    std::cout << "\t\t\t\tsever default: " << itD->second.defaultServer << std::endl;
-    std::cout << "\t\t\t\troot: " << itD->second.root << std::endl;
-    std::cout << "\t\t\t\tindex: " << itD->second.index << std::endl;
     std::cout << "\t\t\t\terror: " << itD->second.error << std::endl;
     std::cout << "\t\t\t\tport: " << itD->second.port << std::endl;
     std::cout << "\t\t\t\tMaxSizeBody: " << itD->second.maxBodySize << std::endl;
+        std::cout << "\t\t\t\tmaxHeaserSize: " << itD->second.maxHeaserSize << std::endl;
     itR = itD->second.routes.begin();
     while (itR != itD->second.routes.end()) {
       std::cout << "\t\t\t\troute: " << itR->first << std::endl;
-      std::cout << "\t\t\t\tpath: " << itD->second.routes[itR->first].path << std::endl;
       std::cout << "\t\t\t\troot: " << itD->second.routes[itR->first].root << std::endl;
       std::cout << "\t\t\t\tindex: " << itD->second.routes[itR->first].index << std::endl;
       std::cout << "\t\t\t\tmethods: " << itD->second.routes[itR->first].methods[0] << "|"
@@ -98,8 +95,7 @@ void printConfig(libparse::Config config) {
       std::cout << "\t\t\t\tredir: " << itD->second.routes[itR->first].redir << std::endl;
       std::cout << "\t\t\t\tdirListing: " << itD->second.routes[itR->first].dirListening
                 << std::endl;
-      std::cout << "\t\t\t\tupload: " << itD->second.routes[itR->first].upload.first << "|"
-                << itD->second.routes[itR->first].upload.second << std::endl;
+      std::cout << "\t\t\t\tupload: " << itD->second.routes[itR->first].upload << std::endl;
       std::cout << "\t\t\t\tcgi: " << itD->second.routes[itR->first].cgi.first << "|"
                 << itD->second.routes[itR->first].cgi.second << std::endl;
       itR++;
