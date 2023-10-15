@@ -55,6 +55,8 @@ static MuxErrResPair cgiHandler(libcgi::Cgi &cgi, const libparse::RouteProps *ro
     case libcgi::Cgi::FAILED_WRITE:
     case libcgi::Cgi::FAILED_READ:
     case libcgi::Cgi::MALFORMED:
+    case libcgi::Cgi::FAILED_WAITPID:
+    case libcgi::Cgi::CHIIED_RETURN_ERR:
       cgi.clean();
       return std::make_pair(libhttp::Mux::ERROR_500, nullptr);
     case libcgi::Cgi::OK:
@@ -65,8 +67,7 @@ static MuxErrResPair cgiHandler(libcgi::Cgi &cgi, const libparse::RouteProps *ro
     return std::make_pair(libhttp::Mux::OK, nullptr);
 
   // here and onward the state must be READING_BODY
-  if (prevState == libcgi::Cgi::READING_HEADERS &&
-      (cgi.state == libcgi::Cgi::READING_BODY || cgi.state == libcgi::Cgi::FIN)) {
+  if (prevState == libcgi::Cgi::READING_HEADERS && cgi.state == libcgi::Cgi::READING_BODY) {
     libhttp::Response *response = new libhttp::Response(cgi.res.sockBuff);
     return std::make_pair(libhttp::Mux::OK, response);
   }
