@@ -25,16 +25,16 @@ namespace libnet {
     ~Session();
 
     int                        fd;
+    libhttp::Reader            reader;
+    libhttp::Writer            writer;
     libhttp::TransferEncoding *transferEncoding;
     libhttp::Multipart        *multipart;
     libhttp::SizedPost        *sizedPost;
-    libhttp::Reader            reader;
-    libhttp::Writer            writer;
     libcgi::Cgi               *cgi;
     sockaddr_in               *clientAddr;
-    bool                       destroy;
 
-    int permitedIo;
+    bool destroy;
+    int  permitedIo;
     // Bit-maping
     // 1: Able to read from socket
     // 2: Able to write to socket
