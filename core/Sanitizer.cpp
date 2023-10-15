@@ -82,7 +82,7 @@ WebServ::Sanitizer::sanitizeGetRequest(const libhttp::Request &req,
     return Status::NOT_FOUND;
 
   std::pair<std::string, const libparse::RouteProps *> r =
-      libparse::matchPathWithLocation(d->routes, req.reqTarget.path);
+      libparse::matchPathWithRoute(d->routes, req.reqTarget.path);
   if (!r.second)
     return Status::NOT_FOUND;
   if (libparse::findResourceInFs(req, *d).empty())
@@ -94,7 +94,7 @@ WebServ::Sanitizer::Status::Code
 WebServ::Sanitizer::sanitizeRequest(const libhttp::Request &req, const libparse::Domain &domain) {
   Status::Code                                          e;
   std::pair<std::string, const libparse::RouteProps * > route =
-      libparse::matchPathWithLocation(domain.routes, req.reqTarget.path);
+      libparse::matchPathWithRoute(domain.routes, req.reqTarget.path);
 
   e = sanitizeMethod(req.method, *route.second);
   if (e != Status::OK)

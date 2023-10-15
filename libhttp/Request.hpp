@@ -7,6 +7,7 @@
 #include <netinet/ip.h>
 #include <vector>
 
+// TODO: update allBodyLen in chunked and multiform upload
 namespace libhttp {
   struct Request {
     std::string       method;
@@ -20,6 +21,7 @@ namespace libhttp {
     libnet::SessionState         state;
 
     Request(sockaddr_in *clientAddr);
+    void expandeRefererHeaderInPath();
   };
 } // namespace libhttp
 

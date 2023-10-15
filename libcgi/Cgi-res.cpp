@@ -81,9 +81,10 @@ libcgi::Respons::error libcgi::Respons::build() {
 void libcgi::Respons::clean() {
   this->statusLineExists = false;
   this->cgiHeader.clear();
+  this->sockBuff = NULL;
 }
 
-libcgi::Respons::~Respons() { delete this->sockBuff; }
+libcgi::Respons::~Respons() {}
 
 void libcgi::Respons::write(const char *ptr, size_t len) {
   std::string       hex;

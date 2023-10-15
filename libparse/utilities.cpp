@@ -302,15 +302,15 @@ bool CheckValueOfInRout(libparse::token::t_type type) {
 
 void setDefautlValue(libparse::Domain &domain, libparse::RouteProps &routeProps) {
   std::vector<std::string> v;
-  routeProps.root = "default root";
-  routeProps.index = "index.html";
+  routeProps.root = "";
+  routeProps.index = "";
   v.push_back("GET");
   v.push_back("POST");
   routeProps.methods = v;
-  routeProps.redir = "defautl redir";
-  routeProps.upload = std::make_pair("off", "default path");
-  routeProps.cgi = std::make_pair("php", "defautl path");
-  routeProps.dirListening = "off";
+  routeProps.redir = "";
+  routeProps.upload = std::make_pair("off", "");
+  routeProps.cgi = std::make_pair("php", "");
+  routeProps.dirListening = "";
 
   domain.error = "default error";
   domain.index = "index.html";
