@@ -11,6 +11,17 @@ libhttp::Writer::Writer(int sock, int bufferSize) {
   this->readWriteBufferSize = bufferSize;
 }
 
+libhttp::Writer::~Writer() {
+  if (responses.empty() == true)
+    return;
+
+  while (responses.empty() != true) {
+    libhttp::Response *response = responses.front();
+    delete response;
+    responses.pop();
+  }
+}
+
 libhttp::Writer::erorr libhttp::Writer::write(bool permitedToRead) {
   // Check Responses queue is not empty
   if (responses.empty() == true)
