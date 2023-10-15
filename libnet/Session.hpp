@@ -22,16 +22,17 @@ namespace libnet {
     };
 
     Session(int fd, sockaddr_in *clientAddr);
+    ~Session();
 
-    int                       fd;
-    libhttp::TransferEncoding transferEncoding;
-    libhttp::Multipart        multipart;
-    libhttp::SizedPost        sizedPost;
-    libhttp::Reader           reader;
-    libhttp::Writer           writer;
-    libcgi::Cgi               cgi;
-    sockaddr_in              *clientAddr;
-    bool                      destroy;
+    int                        fd;
+    libhttp::TransferEncoding *transferEncoding;
+    libhttp::Multipart        *multipart;
+    libhttp::SizedPost        *sizedPost;
+    libhttp::Reader            reader;
+    libhttp::Writer            writer;
+    libcgi::Cgi               *cgi;
+    sockaddr_in               *clientAddr;
+    bool                       destroy;
 
     int permitedIo;
     // Bit-maping
