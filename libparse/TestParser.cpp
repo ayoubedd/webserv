@@ -77,6 +77,8 @@ void printConfig(libparse::Config config) {
   libparse::Routes::iterator  itR;
 
   std::cout << config.defaultServer << std::endl;
+  if(config.domains.size() != 0)
+  {
   itD = d.begin();
   itR = itD->second.routes.begin();
   while (itD != d.end()) {
@@ -101,5 +103,6 @@ void printConfig(libparse::Config config) {
       itR++;
     }
     itD++;
+  }
   }
 }

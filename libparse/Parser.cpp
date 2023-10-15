@@ -11,6 +11,8 @@
 
 // [X] setUp name domain and port
 // [X] setup default server
+//[] check port
+// {}
 
 static bool strStartWith(const std::string str, const std::string prefix) {
   std::string::size_type i;
@@ -34,7 +36,6 @@ std::pair<bool , std::string> libparse::parser(libparse::Config &config,std::vec
 {
     size_t i = 0;
     std::pair<bool , std::string> res;
-
     while((tokens[i].lexeme == "log_error" || tokens[i].lexeme == "log_info") && i < 4 && i < tokens.size())
     {
       res = setUpLog(config,tokens,&i); 
@@ -42,8 +43,9 @@ std::pair<bool , std::string> libparse::parser(libparse::Config &config,std::vec
           return res;
       i++;
     }
-    while(tokens[i].type != libparse::tokens::ENDFILE && i < tokens.size())
+    while(tokens[i].type != libparse::tokens::ENDFILE && i < tokens.size() -1)
     {
+      std::cout  << tokens.size()<<" \n";
       if(tokens[i].lexeme == "default")
       {
         res = setUpDefaultSever(config,tokens,&i);
@@ -53,12 +55,13 @@ std::pair<bool , std::string> libparse::parser(libparse::Config &config,std::vec
       }
       else
       {
-        res = SetUpServer(config,tokens,&i);;
+        res = SetUpServer(config,tokens,&i);
         if(!res.first)
           return res;
       }
     continue;
-    }
+  }
+ // exit(1);
   return std::make_pair(true,"");
 }
 
@@ -69,17 +72,13 @@ bool libparse::checkConfig(std::string &fileName,libparse::Config &config)
   std::pair<bool,std::string> res;
 
   contentFile = libparse::readFile(fileName);
+  if(contentFile.empty())
+    return false;
   libparse::lexer(tokens,contentFile);
   res = parser(config,tokens);
   if(!res.first)
   {
     std::cout << "Error : "<< res.second <<std::endl;
-    return res.first;
-  }
-  res = checkFileExist(config);
-  if(!res.first)
-  {
-    std::cout << "File or Dir Not Exist " << res.second << std::endl;
     return res.first;
   }
   return true;

@@ -71,5 +71,5 @@ void libparse::lexer(std::vector<libparse::tokens> &tokens,std::string &content)
       }    
      i++;
     }
-    setNewToken(libparse::token::ENDFILE," ",tokens);
+    setNewToken(libparse::token::ENDFILE,"_",tokens);
 }

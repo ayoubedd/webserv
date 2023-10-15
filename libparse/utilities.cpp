@@ -14,9 +14,11 @@
 #include <dirent.h>
 #include <fcntl.h>
 
+
+void advance(std::vector<libparse::tokens> &tokens,size_t *i);
 bool checkIsInt(std::string str)
 {
-  for(int i = 0; i < str.length();i++)
+  for(size_t i = 0; i < str.length();i++)
   {
     if(!isnumber(str[i]))
       return false;
@@ -57,7 +59,8 @@ static bool fileExists(std::string &filename) {
 }
 
 static bool directoryExists(std::string &path) {
-
+  if(path.empty())
+    return true;
   DIR *dir = opendir(path.c_str());
 
   if (dir == nullptr) {
@@ -75,8 +78,10 @@ std::pair<bool, std::string> checkFileExist(libparse::Config &config)
 
   itD = d.begin();
   itR = itD->second.routes.begin();
-  while (itD != d.end()) {
-    if(!fileExists(itD->second.error))
+  if(itR !=itD->second.routes.end())
+  {
+    while (itD != d.end()) {
+      if(!fileExists(itD->second.error))
       return std::make_pair(false,itD->second.error);
     itR = itD->second.routes.begin();
     while (itR != itD->second.routes.end()) {
@@ -92,6 +97,7 @@ std::pair<bool, std::string> checkFileExist(libparse::Config &config)
     }
     itD++;
   }
+  }
 }
 
 bool checkIsPath(std::string &path)
@@ -103,17 +109,21 @@ bool checkIsPath(std::string &path)
   return false;
 }
 
-void advance(std::vector<libparse::tokens> &tokens,int *i)
+void advance(std::vector<libparse::tokens> &tokens,size_t *i)
 {
-  if(*i + 1 < tokens.size())
-    (*i)++;
+  if(*i > tokens.size())
+  {
+    std::cout  << "Error \n";
+    exit(1);
+  }
+  (*i)++;
 }
 
 std::pair<bool , std::string> setUpLog(libparse::Config &config,std::vector<libparse::tokens> &tokens, size_t *i){
 
   if(tokens[*i].lexeme == "log_error")
   {
-    (*i)++;
+    advance(tokens,i);
     if(tokens[*i].type == libparse::tokens::ENDLINE)
       return std::make_pair(false,"log_error");
     config.log_error = tokens[*i].lexeme;
@@ -121,12 +131,12 @@ std::pair<bool , std::string> setUpLog(libparse::Config &config,std::vector<libp
 
   else if(tokens[*i].lexeme == "log_info")
   {
-    (*i)++;
+    advance(tokens,i);
     if(tokens[*i].type == libparse::tokens::ENDLINE )
      return std::make_pair(false,"log_info");
     config.log_info = tokens[*i].lexeme;
   }
-  (*i)++;
+  advance(tokens,i);
   if(tokens[*i].lexeme != "_")
     return std::make_pair(false,";");
   return std::make_pair(true,"");
@@ -192,7 +202,7 @@ bool checkMethod(std::string method)
 
 std::pair<bool , std::string> setUpMethods(libparse::Routes &route,std::string &nameRoute,std::vector<libparse::tokens> &tokens, size_t *i)
 {
-  (*i)++;
+  advance(tokens,i);
   std::vector<std::string > vec;
   int j = (*i);
    while(tokens[*i].type != libparse::tokens::ENDLINE && (*i) - j < 4)
@@ -201,7 +211,7 @@ std::pair<bool , std::string> setUpMethods(libparse::Routes &route,std::string &
         vec.push_back(tokens[*i].lexeme);
       else
         return std::make_pair(false,tokens[*i].lexeme);
-      (*i)++; 
+      advance(tokens,i); 
     }
     if(tokens[*i].type != libparse::tokens::ENDLINE)
       return std::make_pair(false,tokens[*i].lexeme);
@@ -209,11 +219,17 @@ std::pair<bool , std::string> setUpMethods(libparse::Routes &route,std::string &
     route[nameRoute].methods = vec;
   return std::make_pair(true," ");
 }
+bool checkIsOneOff(std::string &str)
+{
+  if(str != "on" && str != "off")
+    return false;
+  return true;
+}
 
 std::pair<bool , std::string> setUpToken(libparse::Routes &route,std::string &nameRoute,std::vector<libparse::tokens> &tokens, size_t *i)
 {  
   std::string token = tokens[*i].lexeme;
-  (*i)++;
+  advance(tokens,i);
   if(tokens[*i].type != libparse::tokens::ENDLINE)
   {
     if(token == "index")
@@ -221,7 +237,12 @@ std::pair<bool , std::string> setUpToken(libparse::Routes &route,std::string &na
     else if(token == "redir")
       route[nameRoute].redir = tokens[*i].lexeme;
     else if(token == "dir_listing")
-       route[nameRoute].dirListening = convertStrToBool(tokens[*i].lexeme);
+    {
+      if(!checkIsOneOff(tokens[*i].lexeme))
+        return std::make_pair(false,tokens[*i].lexeme);
+      
+      route[nameRoute].dirListening = convertStrToBool(tokens[*i].lexeme);
+    }
     else if(token == "upload")
     {
       if(!checkIsPath(tokens[*i].lexeme))
@@ -237,24 +258,24 @@ std::pair<bool , std::string> setUpToken(libparse::Routes &route,std::string &na
   }
   else 
     return std::make_pair(false,tokens[*i].lexeme);
-  (*i)++;
+  advance(tokens,i);
   if(tokens[*i].type != libparse::tokens::ENDLINE)
     return std::make_pair(false,tokens[*i].lexeme);
-  (*i)++;
+  advance(tokens,i);
   return std::make_pair(true," ");
 }
 
 std::pair<bool , std::string>  setUpCgi(libparse::Routes &route,std::string &nameRoute,std::vector<libparse::tokens> &tokens, size_t *i)
 {
-  (*i)++;
+  advance(tokens,i);
   if(tokens[*i].type == libparse::tokens::ENDLINE)
     return std::make_pair(false,tokens[*i].lexeme);
   route[nameRoute].cgi.first = tokens[*i].lexeme;
-  (*i)++;
+  advance(tokens,i);
   if(tokens[*i].type == libparse::tokens::ENDLINE)
     return std::make_pair(false,tokens[*i].lexeme);
   route[nameRoute].cgi.second = tokens[*i].lexeme;
-  (*i)++;
+  advance(tokens,i);
   if(tokens[*i].type != libparse::tokens::ENDLINE)
     return std::make_pair(false,tokens[*i].lexeme);
   return std::make_pair(true," ");
@@ -277,13 +298,13 @@ std::pair<bool , std::string> setUpRout(libparse::Config &config,std::string &na
   libparse::Routes route;
   libparse::RouteProps routeProps;
   std::string nameRoute;
-  (*i)++;
+  advance(tokens,i);
   
   nameRoute = tokens[*i].lexeme;
-  (*i)++;
+  advance(tokens,i);
   if(tokens[*i].lexeme != "{")
     return std::make_pair(false,tokens[*i].lexeme);
-  (*i)++;
+  advance(tokens,i);
   while(tokens[*i].type != libparse::tokens::CURLYBARCKETLEFT)
     {
       if(checkIsKeyRoute(tokens[*i].type))
@@ -293,14 +314,14 @@ std::pair<bool , std::string> setUpRout(libparse::Config &config,std::string &na
           res = setUpMethods(route,nameRoute,tokens,i);
           if(!res.first)
             return std::make_pair(false,res.second);
-          (*i)++;
+          advance(tokens,i);
         }
         else if(tokens[*i].type == libparse::tokens::CGI)
         {
           res = setUpCgi(route,nameRoute,tokens,i);
           if(!res.first)
             return std::make_pair(false,res.second);
-          (*i)++;
+          advance(tokens,i);
         }
         else
         {
@@ -317,14 +338,14 @@ std::pair<bool , std::string> setUpRout(libparse::Config &config,std::string &na
       continue;
     }
    setUpRouteInConfig(config,nameDomain,nameRoute,route);
-    (*i)++;
+    advance(tokens,i);
    return std::make_pair(true,tokens[*i].lexeme);
 }
 
 bool checkIsChar(char c)
 {
   std::string str = "._~:/?#[]@!$&'()*+,;=%";
-  for(int i = 0; i < str.length();i++)
+  for(size_t i = 0; i < str.length();i++)
   {
     if(c == str[i])
       return true;
@@ -336,7 +357,7 @@ bool checkDomain(std::string &nameDomain)
 {
   if(nameDomain.empty())
     return false;
-  for(int i = 0; i < nameDomain.length(); i++)
+  for(size_t i = 0; i < nameDomain.length(); i++)
   {
     if(!isalpha(nameDomain[i]) && !isdigit(nameDomain[i]) && !checkIsChar(nameDomain[i]))
       return false;
@@ -356,7 +377,7 @@ std::pair<bool , std::string> setUpKey(libparse::Config &config,std::string name
   int num;
   if(tokens[*i].type == libparse::token::MAXBODYSIZE)
   {
-    (*i)++;
+    advance(tokens,i);
     if(tokens[*i].type ==  libparse::token::ENDLINE)
       return std::make_pair(false,"max_body_size");
     if(!checkIsInt(tokens[*i].lexeme))
@@ -365,34 +386,34 @@ std::pair<bool , std::string> setUpKey(libparse::Config &config,std::string name
     if(num == -1)
           return std::make_pair(false,"max_body_size");
     config.domains[nameDomain].maxBodySize = num;
-    (*i)++; 
+    advance(tokens,i); 
     if(tokens[*i].type !=  libparse::token::ENDLINE)
       return std::make_pair(false,"max_body_size");
-    (*i)++;
+    advance(tokens,i);
     return std::make_pair(true,"");
   }
   else if(tokens[*i].type == libparse::token::ERROR)
   {
-    (*i)++;
+    advance(tokens,i);
     if(tokens[*i].type ==  libparse::token::ENDLINE)
       return std::make_pair(false,"error");
     config.domains[nameDomain].error = tokens[*i].lexeme;
-    (*i)++;
+    advance(tokens,i);
     if(tokens[*i].type !=  libparse::token::ENDLINE)
       return std::make_pair(false,"error");
-    (*i)++;
+    advance(tokens,i);
     return std::make_pair(true,"");
   }
   else if(tokens[*i].type == libparse::token::MAXHEADERSSIZE)
   {  
-    (*i)++;
+    advance(tokens,i);
     if(tokens[*i].type ==  libparse::token::ENDLINE)
       return std::make_pair(false,"max_header_size");
     config.domains[nameDomain].maxHeaserSize = convertToInt(tokens[*i].lexeme);
-    (*i)++;
+    advance(tokens,i);
     if(tokens[*i].type !=  libparse::token::ENDLINE)
       return std::make_pair(false,"max_header_size");
-    (*i)++;
+    advance(tokens,i);
     return std::make_pair(true,"");
   }
   return std::make_pair(false,"");
@@ -416,16 +437,17 @@ std::pair<bool , std::string> SetUpServer(libparse::Config &config,std::vector<l
   std::string nameDomain, strRoute;
   libparse::Routes route;
   std::pair<bool , std::string> res;
-
   res = setUpDomain(config,tokens,i);
   if(!res.first)
     return res;
   nameDomain = res.second;
   setUpPort(config,nameDomain);
-  (*i)++;
+  advance(tokens,i);
+  std::cout << tokens[*i].lexeme << std::endl;
   if(tokens[*i].type != libparse::tokens::CURLYBARCKETRIGTH)
     return std::make_pair(false,"{");
-  (*i)++; 
+  advance(tokens,i); 
+
    while(tokens[*i].type != libparse::tokens::CURLYBARCKETLEFT)
   {
       if(checkIsKeyServer(tokens[*i].type))
@@ -446,15 +468,16 @@ std::pair<bool , std::string> SetUpServer(libparse::Config &config,std::vector<l
         return std::make_pair(false,tokens[*i].lexeme);
       }
       continue;
-    //(*i)++;
+    //advance(tokens,i);
   }
-  (*i)++;
+  advance(tokens,i);
+
   return std::make_pair(true,"");
 }
 
 std::pair<bool , std::string> setUpDefaultSever(libparse::Config &config,std::vector<libparse::tokens> &tokens, size_t *i)
 {
   std::pair<bool , std::string> res;
-  (*i)++;
+  advance(tokens,i);
   return SetUpServer(config,tokens,i);
 }
