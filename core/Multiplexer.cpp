@@ -8,6 +8,7 @@
 #include "libnet/Session.hpp"
 #include "libparse/Config.hpp"
 #include "libparse/match.hpp"
+#include <cassert>
 #include <cstdio>
 #include <cstring>
 #include <string>
@@ -142,7 +143,7 @@ libhttp::Status::Code libhttp::Mux::multiplexer(libnet::Session        *session,
   libhttp::Request       *req = session->reader.requests.front();
   const libparse::Domain *domain = libparse::matchReqWithServer(*req, config);
   const std::pair<std::string, const libparse::RouteProps *> route =
-      libparse::matchPathWithLocation(domain->routes, req->reqTarget.path);
+      libparse::matchPathWithRoute(domain->routes, req->reqTarget.path);
 
   MuxErrResPair errRes;
 

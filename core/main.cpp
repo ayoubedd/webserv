@@ -2,6 +2,7 @@
 #include "libnet/Net.hpp"
 #include "libnet/Terminator.hpp"
 #include "libparse/Config.hpp"
+#include "libparse/match.hpp"
 #include "libparse/utilities.hpp"
 #include <assert.h>
 #include <cstdlib>

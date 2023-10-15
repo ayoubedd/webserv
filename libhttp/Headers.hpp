@@ -17,6 +17,7 @@ namespace libhttp {
     static const char *CONTENT_LENGTH;
     static const char *CONTENT_RANGE;
     static const char *HOST;
+    static const char *REFERER;
 
     void delHeader(std::string);
     std::string &operator[](std::string);
