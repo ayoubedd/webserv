@@ -114,6 +114,7 @@ libhttp::Reader::error libhttp::Reader::buildRequestHeaders() {
     }
     req->headers[key] = val;
   }
+  this->req->expandeRefererHeaderInPath();
   return err;
 }
 
