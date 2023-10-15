@@ -1,4 +1,5 @@
 #include "libhttp/Response.hpp"
+#include <unistd.h>
 #include <vector>
 
 libhttp::Response::Response() {
@@ -18,6 +19,7 @@ libhttp::Response::Response(std::vector<char> *vec) {
 }
 
 libhttp::Response::~Response(void) {
+  if (fd != -1)
+    close(fd);
   delete buffer;
 }
-
