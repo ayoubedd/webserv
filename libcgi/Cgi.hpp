@@ -20,6 +20,8 @@ namespace libcgi {
       FAILED_FORK,
       FAILED_WRITE,
       FAILED_READ,
+      FAILED_WAITPID,
+      CHIIED_RETURN_ERR,
       MALFORMED
     };
 
