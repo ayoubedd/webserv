@@ -12,7 +12,8 @@
 // [X] setUp name domain and port
 // [X] setup default server
 //[] check port
-// {}
+// [] {}
+// []check rout / and index root
 
 static bool strStartWith(const std::string str, const std::string prefix) {
   std::string::size_type i;
