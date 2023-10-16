@@ -33,6 +33,7 @@ libnet::Session::~Session() {
 
   close(fd);
 
+
   delete clientAddr;
 }
 

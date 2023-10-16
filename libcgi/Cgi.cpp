@@ -24,6 +24,11 @@ ssize_t doesContainerHasBuff(const char *raw, size_t rLen, const char *ptr, size
   return -1;
 }
 
+libcgi::Cgi::~Cgi(void) {
+  res.clean();
+  clean();
+}
+
 std::string asStr(int fd) {
   std::stringstream ss;
 

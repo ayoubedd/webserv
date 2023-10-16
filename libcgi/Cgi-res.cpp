@@ -1,12 +1,15 @@
 #include "libcgi/Cgi-res.hpp"
 #include "libhttp/constants.hpp"
+#include <cstdlib>
 #include <ios>
 #include <sstream>
 #include <utility>
 #include <vector>
 
 libcgi::Respons::Respons()
-    : statusLineExists(false){};
+    : statusLineExists(false) {
+  sockBuff = NULL;
+};
 
 bool stringPrefixWith(const std::string &str, const std::string pre) {
   for (std::string::size_type i = 0; i < pre.size(); i++) {
@@ -84,7 +87,10 @@ void libcgi::Respons::clean() {
   this->sockBuff = NULL;
 }
 
-libcgi::Respons::~Respons() {}
+libcgi::Respons::~Respons() {
+  if (sockBuff != nullptr)
+    delete sockBuff;
+}
 
 void libcgi::Respons::write(const char *ptr, size_t len) {
   std::string       hex;
@@ -99,4 +105,11 @@ void libcgi::Respons::write(const char *ptr, size_t len) {
   this->sockBuff->insert(this->sockBuff->end(), hex.begin(), hex.end());
 }
 
-void libcgi::Respons::init() { this->sockBuff = new std::vector<char>; }
+void libcgi::Respons::init() {
+  if (this->sockBuff != nullptr) {
+    std::cerr << "sockBuff already allocated wtf" << std::endl;
+    exit(EXIT_FAILURE);
+  }
+
+  this->sockBuff = new std::vector<char>;
+}

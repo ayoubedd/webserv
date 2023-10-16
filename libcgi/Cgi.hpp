@@ -39,6 +39,7 @@ namespace libcgi {
     std::string  cgiInputFileName;
 
     Cgi(sockaddr_in *clientInfo, size_t bufferSize = 8192);
+    ~Cgi(void);
 
     Error init(libhttp::Request *httpReq, std::string scriptPath, std::string serverName,
                std::string localReqPath, std::string serverPort = "80",

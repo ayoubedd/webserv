@@ -12,14 +12,14 @@ libhttp::Writer::Writer(int sock, int bufferSize) {
 }
 
 libhttp::Writer::~Writer() {
-  if (responses.empty() == true)
-    return;
+  // if (responses.empty() == true)
+  //   return;
 
-  while (responses.empty() != true) {
-    libhttp::Response *response = responses.front();
-    delete response;
-    responses.pop();
-  }
+  // while (responses.empty() != true) {
+  //   libhttp::Response *response = responses.front();
+  //   delete response;
+  //   responses.pop();
+  // }
 }
 
 libhttp::Writer::erorr libhttp::Writer::write(bool permitedToRead) {
