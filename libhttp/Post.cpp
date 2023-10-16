@@ -8,12 +8,6 @@
 #include <string>
 #include <utility>
 
-enum BODY_FORMAT {
-  NORMAL,
-  CHUNKED,
-  MULTIPART_FORMDATA,
-};
-
 enum HANDLER_ERROR {
   OK,
   ERROR_WRITTING_TO_FILE,
@@ -23,20 +17,20 @@ enum HANDLER_ERROR {
   DONE,
 };
 
-static BODY_FORMAT extractBodyFormat(const libhttp::HeadersMap &headers) {
+libhttp::Post::BodyFormat libhttp::Post::extractBodyFormat(const libhttp::HeadersMap &headers) {
   libhttp::HeadersMap::const_iterator transferEncodingIter = headers.find("Transfer-Encoding");
   if (transferEncodingIter != headers.end()) {
     if (transferEncodingIter->second.find("chunked") != std::string::npos)
-      return CHUNKED;
+      return libhttp::Post::CHUNKED;
   }
 
   libhttp::HeadersMap::const_iterator contentTypeIter = headers.find("Content-Type");
   if (contentTypeIter != headers.end()) {
     if (contentTypeIter->second.find("multipart/form-data") != std::string::npos)
-      return MULTIPART_FORMDATA;
+      return libhttp::Post::MULTIPART_FORMDATA;
   }
 
-  return NORMAL;
+  return libhttp::Post::NORMAL;
 };
 
 static HANDLER_ERROR chunkedPostHandler(libhttp::Request &req, libhttp::ChunkDecoder &chunkDecoder,
@@ -63,11 +57,11 @@ static HANDLER_ERROR chunkedPostHandler(libhttp::Request &req, libhttp::ChunkDec
   return DONE;
 }
 
-static HANDLER_ERROR normalPostHandler(libhttp::Request &req, libhttp::SizedPost &sizedPost,
+static HANDLER_ERROR normalPostHandler(libhttp::Request &req, libhttp::SizedPost *sizedPost,
                                        const std::string &uploadRoot) {
 
   // if SizedPost state is READY. Initialize it.
-  if (sizedPost.state == libhttp::SizedPost::READY) {
+  if (sizedPost->state == libhttp::SizedPost::READY) {
     std::string path = libhttp::generateFileName(uploadRoot + req.reqTarget.path);
 
     libhttp::HeadersMap::iterator iter = req.headers.headers.find(libhttp::Headers::CONTENT_LENGTH);
@@ -83,7 +77,7 @@ static HANDLER_ERROR normalPostHandler(libhttp::Request &req, libhttp::SizedPost
       return HANDLER_ERROR::BAD_REQUEST;
     }
 
-    libhttp::SizedPost::Error err = sizedPost.init(path, contentLength);
+    libhttp::SizedPost::Error err = sizedPost->init(path, contentLength);
 
     if (err != libhttp::SizedPost::OK)
       return HANDLER_ERROR::ERROR_OPENING_FILE;
@@ -91,18 +85,18 @@ static HANDLER_ERROR normalPostHandler(libhttp::Request &req, libhttp::SizedPost
 
   // Write
   std::pair<libhttp::SizedPost::Error, libhttp::SizedPost::State> ErrStatePair =
-      sizedPost.write(req.body);
+      sizedPost->write(req.body);
 
   // Propagating errors
   switch (ErrStatePair.first) {
     case libhttp::SizedPost::ERROR_OPENING_FILE:
-      sizedPost.reset();
+      sizedPost->reset();
       return HANDLER_ERROR::ERROR_OPENING_FILE;
     case libhttp::SizedPost::ERROR_WRITTING_TO_FILE:
-      sizedPost.reset();
+      sizedPost->reset();
       return HANDLER_ERROR::ERROR_WRITTING_TO_FILE;
     case libhttp::SizedPost::ERROR_FILE_NOT_OPEN:
-      sizedPost.reset();
+      sizedPost->reset();
       return HANDLER_ERROR::ERROR_FILE_NOT_OPEN;
     case libhttp::SizedPost::OK:
       break;
@@ -141,22 +135,22 @@ static HANDLER_ERROR multipartFormDataPostHandler(libhttp::Request           &re
 }
 
 std::pair<libhttp::Post::Intel, libhttp::Response *>
-libhttp::Post::post(libhttp::Request &req, libhttp::TransferEncoding &te, libhttp::Multipart &mp,
-                     libhttp::SizedPost &sp, const std::string &uploadRoot) {
-  BODY_FORMAT   bodyFormat;
-  HANDLER_ERROR err;
+libhttp::Post::post(libhttp::Request &req, libhttp::TransferEncoding *te, libhttp::Multipart *mp,
+                    libhttp::SizedPost *sp, const std::string &uploadRoot) {
+  libhttp::Post::BodyFormat bodyFormat;
+  HANDLER_ERROR             err;
 
-  bodyFormat = extractBodyFormat(req.headers.headers);
+  bodyFormat = libhttp::Post::extractBodyFormat(req.headers.headers);
 
   switch (bodyFormat) {
     case NORMAL:
       err = normalPostHandler(req, sp, uploadRoot);
       break;
     case CHUNKED:
-      err = chunkedPostHandler(req, te.chunk.decoder, uploadRoot);
+      err = chunkedPostHandler(req, te->chunk.decoder, uploadRoot);
       break;
     case MULTIPART_FORMDATA:
-      err = multipartFormDataPostHandler(req, mp.formData, uploadRoot);
+      err = multipartFormDataPostHandler(req, mp->formData, uploadRoot);
       break;
   }
 

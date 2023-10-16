@@ -41,5 +41,4 @@ void libhttp::Request::expandeRefererHeaderInPath() {
   this->reqTarget.path = libparse::joinPath(libhttp::RequestTarget::getPathFromUrl(referer->second),
                                             this->reqTarget.path);
 
-  std::cerr << "path: " << reqTarget.path << std::endl;
 }
