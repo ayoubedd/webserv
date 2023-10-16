@@ -312,10 +312,10 @@ void setDefautlValue(libparse::Domain &domain, libparse::RouteProps &routeProps)
   routeProps.cgi = std::make_pair("php", "");
   routeProps.dirListening = "";
 
-  domain.error = "default error";
+  domain.error = "";
   domain.index = "index.html";
   domain.maxBodySize = MAX_REQ_BODY_SIZE;
-  domain.root = "default root";
+  domain.root = "";
   domain.port = "80";
 }
 
