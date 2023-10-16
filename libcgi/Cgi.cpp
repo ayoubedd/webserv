@@ -25,7 +25,7 @@ ssize_t doesContainerHasBuff(const char *raw, size_t rLen, const char *ptr, size
 }
 
 libcgi::Cgi::~Cgi(void) {
-  res.clean();
+  // res.clean();
   clean();
 }
 
@@ -204,8 +204,10 @@ libcgi::Cgi::Error libcgi::Cgi::read() {
       return CHIIED_RETURN_ERR;
     return OK;
   }
-  if (len < 0)
+  if (len < 0) {
+    waitpid(pid, NULL, 0);
     return FAILED_READ;
+  }
 
   newState = this->handleCgiBuff(buff, len);
   this->state = newState.second;
@@ -217,6 +219,8 @@ libcgi::Cgi::Error libcgi::Cgi::read() {
 void libcgi::Cgi::clean() {
   close(this->fd[0]);
   // close(this->cgiInput);
+  if (pid != -1)
+    waitpid(pid, NULL, 0);
   req.clean();
   res.clean();
   fd[0] = -1;
