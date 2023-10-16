@@ -23,6 +23,7 @@ namespace libhttp {
       std::string name;
       std::string date;
       ssize_t     size;
+      int         fd;
     };
     enum typeFile { FILE, DIR, NOT_FOUND };
     error err;
