@@ -17,7 +17,7 @@
 const std::string libcgi::Cgi::blueprint = "/tmp/webserv/cgi/input";
 
 ssize_t doesContainerHasBuff(const char *raw, size_t rLen, const char *ptr, size_t pLen) {
-  for (size_t i = 0; i < rLen - pLen + 1; i++) {
+  for (size_t i = 0; rLen - i > pLen; i++) {
     if (!strncmp(&raw[i], ptr, strlen(ptr)))
       return i;
   }
