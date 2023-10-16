@@ -178,6 +178,7 @@ libcgi::Cgi::Error libcgi::Cgi::exec() {
   } else if (pid > 0) {
     this->state = READING_HEADERS;
     close(fd[1]);
+    close(this->cgiInput);
     return OK;
   }
   return FAILED_FORK;
@@ -196,8 +197,8 @@ libcgi::Cgi::Error libcgi::Cgi::read() {
     std::string end = "0\r\n\r\n";
     this->res.sockBuff->insert(this->res.sockBuff->end(), end.begin(), end.end());
     this->state = FIN;
-    kill(pid, SIGKILL);
-    if (waitpid(this->pid, &status, WNOHANG) <= 0)
+    // kill(pid, SIGKILL);
+    if (waitpid(this->pid, &status, 0) <= 0)
       return FAILED_WAITPID;
     if (status != 0)
       return CHIIED_RETURN_ERR;
@@ -215,7 +216,7 @@ libcgi::Cgi::Error libcgi::Cgi::read() {
 
 void libcgi::Cgi::clean() {
   close(this->fd[0]);
-  close(this->cgiInput);
+  // close(this->cgiInput);
   req.clean();
   res.clean();
   fd[0] = -1;
@@ -223,7 +224,7 @@ void libcgi::Cgi::clean() {
   cgiInput = -1;
   this->pid = -1;
   bodySize = 0;
-  std::remove(cgiInputFileName.c_str());
+  // std::remove(cgiInputFileName.c_str());
   cgiInputFileName.clear();
   this->state = INIT;
 }
