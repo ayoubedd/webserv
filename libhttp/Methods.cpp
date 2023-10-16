@@ -206,6 +206,10 @@ std::string generateTemplate(std::string &path) {
 
   for (size_t i = 0; i < test.size(); i++) {
     tmp = listItemTemplate;
+    if (test[i].second.size == -1)
+        ft_replace(tmp, "{{LINK_HERE}}", test[i].second.name+"/");
+    else
+      ft_replace(tmp, "{{LINK_HERE}}", test[i].second.name);
     ft_replace(tmp, "{{LINK_HERE}}", test[i].second.name);
     ft_replace(tmp, "{{FILE_NAME}}", test[i].second.name);
     ft_replace(tmp, "{{LAST_MODIFIED}}", test[i].second.date);
@@ -281,7 +285,7 @@ bool checkRangeRequest(libhttp::Headers &headers) {
   return false;
 }
 
-bool checkRange(std::string fileName,libhttp::Methods::file &file, std::pair<size_t, size_t> range) {
+bool checkRange(libhttp::Methods::file &file, std::pair<int, int> range) {
   if (range.second > range.first)
     return false;
   if (range.first > file.size)
@@ -322,8 +326,7 @@ void setHeaders(libhttp::Response *response, std::string contentType, size_t Con
 std::pair<libhttp::Methods::error, libhttp::Response *> libhttp::Get(libhttp::Request &request,
                                                                      std::string       path) {
   libhttp::Response *response = NULL;
-  int                fd;
-  libhttp:Methods::file file;
+  libhttp::Methods::file file;
 
   if(isFile(path))
   {
@@ -333,7 +336,7 @@ std::pair<libhttp::Methods::error, libhttp::Response *> libhttp::Get(libhttp::Re
     if (checkRangeRequest(request.headers)) {
         std::pair<int, int> range =
             getStartandEndRangeRequest(request.headers[libhttp::Headers::CONTENT_RANGE]);
-        if (!checkRange(path, file ,range))
+        if (!checkRange(file ,range))
             return std::make_pair(libhttp::Methods::OUT_RANGE, nullptr);
         response = new Response();
         setRange(response, range);
