@@ -76,7 +76,6 @@ int main(int argc, char *argv[]) {
 
   while (true) {
     net.prepFdSets();
-
     net.awaitEvents();
 
     sessionsHandler(net, config);

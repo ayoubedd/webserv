@@ -89,9 +89,8 @@ static void subscribeSessions(libnet::Sessions &sessions, fd_set *fdReadSet, fd_
     // Subscribe for reading from pipe if cgi in READING_HEADERS or READING_BODY state
     if (session->cgi)
       if (session->cgi->state == libcgi::Cgi::READING_HEADERS ||
-          session->cgi->state == libcgi::Cgi::READING_BODY) {
+          session->cgi->state == libcgi::Cgi::READING_BODY)
         FD_SET(session->cgi->fd[0], fdReadSet);
-      }
 
     // Subscribe for writting if there something to write
     if (session->writer.responses.empty() != true) {
@@ -102,9 +101,8 @@ static void subscribeSessions(libnet::Sessions &sessions, fd_set *fdReadSet, fd_
 
       // Subscribe for reading if current response has a fd != -1
       // and not done reading
-      if (response->fd != -1 && response->doneReading == false) {
+      if (response->fd != -1 && response->doneReading == false)
         FD_SET(response->fd, fdReadSet);
-      }
     }
 
     begin++;
@@ -236,12 +234,6 @@ void libnet::Netenv::acceptNewClients(void) {
     if ((fd = accept(*begin, (sockaddr *)clientAddr, &clientAddrLen)) == -1) {
       std::cerr << "accept: " << strerror(errno) << std::endl;
       return;
-    }
-    auto oldSession = sessions.find(fd);
-
-    if (oldSession != sessions.end()) {
-      std::cerr << "session already exist" << std::endl;
-      exit(EXIT_FAILURE);
     }
 
     // add the new client to sessions pool
