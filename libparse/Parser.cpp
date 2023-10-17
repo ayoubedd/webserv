@@ -1,23 +1,8 @@
 #include "Config.hpp"
 #include "utilities.hpp"
 
-// [X] setUp name domain and port
-// [X] setup default server
-// [X]check is finched by /
-// [X]check file is exsite 
-// [X] check allowd char in domain
-// [X] check size body and headres int 
-
-// [X] cgi map
-// [X] check port.
-// [X] {}
-// [X] check allow defaut on 
-// [X] check leaks file discr
 
 // [] check i is not out of range.
-// [X] check rout / and index root.
-// [] diplcute domain with the same port
-// [] check max int size
 
 
 static bool strStartWith(const std::string str, const std::string prefix) {
@@ -40,10 +25,10 @@ libparse::Domain *getDefeaultSever(libparse::Domains &domains, std::string serve
 
 std::pair<bool , std::string> libparse::parser(libparse::Config &config,std::vector<libparse::tokens> &tokens)
 {
-    if(!tokens.size())
-      return std::make_pair(true,"");
+    config.defaultServer = new Domains;
+    if(tokens.size() <= 1)
+      return std::make_pair(false,"Config Is empty ");
     size_t i = 0;
-    bool check = true;
     std::pair<bool , std::string> res;
     while((tokens[i].lexeme == "log_error" || tokens[i].lexeme == "log_info") && i < 4 && i < tokens.size())
     {
@@ -56,13 +41,12 @@ std::pair<bool , std::string> libparse::parser(libparse::Config &config,std::vec
     {
       if(tokens[i].lexeme == "default")
       {
-        if(!check)
-          return std::make_pair(false,"you must one defaul sever");
-        check = false;
         res = setUpDefaultSever(config,tokens,&i);
         if(!res.first)
           return res;
-        config.defaultServer = &config.domains.begin()->second;
+        libparse::Domains::iterator it = config.domains.find(res.second);
+        if(it != config.domains.end())
+          config.defaultServer->insert(std::make_pair(it->first,it->second));
       }
       else
       {
@@ -95,16 +79,31 @@ std::pair<bool, std::string> checkDuplicateNameDomain(libparse::Config &config)
   return std::make_pair(true,"");
 }
 
+std::pair<bool , std::string>checkDuplicateDefaultServer(libparse::Config &config)
+{
+  libparse::Domains::iterator itD;
+  libparse::Domains::iterator its;
+  its = config.defaultServer->begin();
+  while (its != config.defaultServer->end()) 
+  {
+    itD = ++its;
+    while(itD != config.defaultServer->end())
+    {
+      if(itD->first.substr(0,itD->first.find(':')) == its->first.substr(0,its->first.find(':')))
+        return std::make_pair(false,"");
+      itD++;
+    }
+  }
+  return std::make_pair(true,"");
+}
+
+
 std::pair<bool , std::string> checkDefaultRout(libparse::Config &config)
 {
-  libparse::Domains::iterator itD ;
-  libparse::Routes::iterator itR = config.defaultServer->routes.find("/");
+  libparse::Domains::iterator itD;
+  libparse::Routes::iterator itR;
   
-  if(itR == config.defaultServer->routes.end())
-    return std::make_pair(false,"defautl server");
   itD = config.domains.begin();
-  itR = itD->second.routes.begin();
-
   while (itD != config.domains.end()) 
   {
     itR = itD->second.routes.find("/");
@@ -145,6 +144,12 @@ bool libparse::checkConfig(std::string &fileName,libparse::Config &config)
   if(!res.first)
   {
     std::cout << "Error Default Route "<< res.second <<std::endl;
+    return res.first;
+  }
+  res = checkDuplicateDefaultServer(config);
+  if(!res.first)
+  {
+    std::cout << "Error Mulitple defautl domain in the same domain "<< res.second <<std::endl;
     return res.first;
   }
   res = checkDuplicateNameDomain(config);

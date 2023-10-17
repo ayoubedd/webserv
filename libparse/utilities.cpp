@@ -27,7 +27,7 @@ bool checkIsInt(std::string str)
 {
   for(size_t i = 0; i < str.length();i++)
   {
-    if(!isnumber(str[i]))
+    if(!isdigit(str[i]))
       return false;
   }
   return true;
@@ -43,7 +43,7 @@ int convertToInt(std::string str) {
   try {
     return std::stoi(str.c_str());
     }
-    catch (const std::invalid_argument& e) {
+    catch (...) {
        return -1;
     }
   }
@@ -100,12 +100,11 @@ std::pair<bool, std::string> checkFileExist(libparse::Config &config)
   libparse::Domains::iterator itD;
   libparse::Routes::iterator  itR;
   std::pair<bool,std::string> res;
-
+  std::string                 path;
+  
+  
   itD = d.begin();
-  itR = itD->second.routes.begin();
-  if(itR !=itD->second.routes.end())
-  {
-    while (itD != d.end()) {
+  while (itD != d.end()) {
       if(!fileExists(itD->second.error))
       return std::make_pair(false,itD->second.error);
     itR = itD->second.routes.begin();
@@ -114,7 +113,8 @@ std::pair<bool, std::string> checkFileExist(libparse::Config &config)
         return std::make_pair(false,"upload"+itD->second.routes[itR->first].upload);
       if(!directoryExists(itD->second.routes[itR->first].root))
          return std::make_pair(false,"root"+itD->second.routes[itR->first].root);
-      if(!fileExists(itD->second.routes[itR->first].index))
+      path = itD->second.routes[itR->first].root + itD->second.routes[itR->first].index;
+      if(!fileExists(path))
         return std::make_pair(false,"index"+itD->second.routes[itR->first].index);
       res = checkFileExistAndEditableOfCgi(itD->second.routes[itR->first].cgi);
       if(!res.first)
@@ -122,7 +122,6 @@ std::pair<bool, std::string> checkFileExist(libparse::Config &config)
       itR++;
     }
     itD++;
-  }
   }
   return std::make_pair(true," ");
 }
@@ -140,7 +139,7 @@ void advance(std::vector<libparse::tokens> &tokens,size_t *i)
 {
   if(*i > tokens.size())
   {
-    std::cout  << "Error \n";
+    std::cout  << "Error in config File \n";
     exit(1);
   }
   (*i)++;
@@ -378,34 +377,18 @@ std::pair<bool , std::string> setUpRout(libparse::Config &config,std::string &na
   return std::make_pair(true,tokens[*i].lexeme);
 }
 
-bool checkIsChar(char c)
-{
-  std::string str = "._~:/?#[]@!$&'()*+,;=%";
-  for(size_t i = 0; i < str.length();i++)
-  {
-    if(c == str[i])
-      return true;
-  }
-  return false;
-}
-
 bool checkDomain(std::string &nameDomain)
 {
   if(nameDomain.empty())
     return false;
+  if(nameDomain[0] == '.'|| nameDomain[0] == '-' || nameDomain[nameDomain.length() -1] == '.')
+      return false;
   for(size_t i = 0; i < nameDomain.length(); i++)
   {
-    if(!isalpha(nameDomain[i]) && !isdigit(nameDomain[i]) && !checkIsChar(nameDomain[i]))
+    if(!isalpha(nameDomain[i]) && !isdigit(nameDomain[i]) && nameDomain[i] != '.' && nameDomain[i] != '-')
       return false;
   }
   return true;
-}
-
-std::pair<bool , std::string> setUpDomain(std::vector<libparse::tokens> &tokens, size_t *i)
-{
-  if(!checkDomain(tokens[*i].lexeme))
-    return std::make_pair(false,tokens[*i].lexeme);
-  return std::make_pair(true,tokens[*i].lexeme);
 }
 
 std::pair<bool , std::string> setUpKey(libparse::Config &config,std::string nameDomain,std::vector<libparse::tokens> &tokens, size_t *i)
@@ -458,9 +441,19 @@ std::pair<bool,std::string> setUpPort(libparse::Config &config,std::string &name
 {
   size_t pos = nameDomain.find(':');
   int port;
-  if (checkDomain(nameDomain)) {
+  std::string domain;
+
     if (pos != std::string::npos) {
-      config.domains[nameDomain].port = nameDomain.substr(pos + 1);
+        domain =nameDomain.substr(0,pos);
+        if(!checkDomain(domain))
+          return std::make_pair(false,domain);
+        if(pos < nameDomain.length() -1)
+          config.domains[nameDomain].port = nameDomain.substr(pos + 1);
+        else
+        {
+          nameDomain.append(":80");
+          config.domains[nameDomain].port = "80";
+        }
       if(!checkIsInt(config.domains[nameDomain].port))
         return std::make_pair(false,config.domains[nameDomain].port);
       port = convertToInt(config.domains[nameDomain].port);
@@ -468,11 +461,12 @@ std::pair<bool,std::string> setUpPort(libparse::Config &config,std::string &name
         return std::make_pair(false,config.domains[nameDomain].port);
     return std::make_pair(true,config.domains[nameDomain].port);
     } else {
+        if(!checkDomain(nameDomain))
+          return std::make_pair(false,nameDomain);
       nameDomain.append(":80");
       config.domains[nameDomain].port = "80";
       return std::make_pair(true,config.domains[nameDomain].port);
     }
-  }
   return std::make_pair(false,nameDomain);
 }
 
@@ -481,10 +475,8 @@ std::pair<bool , std::string> SetUpServer(libparse::Config &config,std::vector<l
   std::string nameDomain, strRoute;
   libparse::Routes route;
   std::pair<bool , std::string> res;
-  res = setUpDomain(tokens,i);
-  if(!res.first)
-    return res;
-  nameDomain = res.second;
+
+  nameDomain = tokens[*i].lexeme;
   res = setUpPort(config,nameDomain);
   if(!res.first)
     return std::make_pair(false,res.second);
@@ -514,7 +506,7 @@ std::pair<bool , std::string> SetUpServer(libparse::Config &config,std::vector<l
       continue;
   }
   advance(tokens,i);
-  return std::make_pair(true,"");
+  return std::make_pair(true,nameDomain);
 }
 
 std::pair<bool , std::string> setUpDefaultSever(libparse::Config &config,std::vector<libparse::tokens> &tokens, size_t *i)
