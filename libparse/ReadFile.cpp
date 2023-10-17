@@ -10,9 +10,9 @@ void ft_replace(std::string &str, const std::string &old_value, const std::strin
 }
 
 std::string libparse::readFile(std::string filename) {
-  std::ifstream inputFile(filename.c_str());
+  std::ifstream     inputFile(filename.c_str());
   std::stringstream buffer;
-  std::string fileContent;
+  std::string       fileContent;
 
   if (!inputFile.is_open()) {
     std::cerr << "Error opening file: " << filename << std::endl;
@@ -21,6 +21,6 @@ std::string libparse::readFile(std::string filename) {
   buffer << inputFile.rdbuf();
   inputFile.close();
   fileContent = buffer.str();
-  
+
   return fileContent;
 }

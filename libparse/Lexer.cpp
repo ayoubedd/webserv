@@ -40,36 +40,33 @@ libparse::token::t_type getTypeFromString(std::string typeStr) {
     return libparse::token::CGI;
   else if (typeStr == "default")
     return libparse::token::DEFAULT;
-  else if(typeStr == "log_info")
+  else if (typeStr == "log_info")
     return libparse::tokens::LOGINFO;
-  else if(typeStr == "log_error")
-    return libparse::tokens::LOGERROR; 
+  else if (typeStr == "log_error")
+    return libparse::tokens::LOGERROR;
   else
     return libparse::token::KEYWORD;
 }
 
-void libparse::lexer(std::vector<libparse::tokens> &tokens,std::string &content)
-{
-    size_t i = 0;
-    std::string key;
+void libparse::lexer(std::vector<libparse::tokens> &tokens, std::string &content) {
+  size_t      i = 0;
+  std::string key;
 
-    while(i < content.length()) 
-    {
-      if(content[i] == '{')
-        setNewToken(libparse::token::CURLYBARCKETRIGTH,"{",tokens);
-      else if(content[i] == '}')
-        setNewToken(libparse::token::CURLYBARCKETLEFT,"}",tokens);
-      else if(content[i] == ';')
-        setNewToken(libparse::token::ENDLINE,"_",tokens);
-      else if(isWhiteSpace(content[i]))
-        skipWithSpace(content,&i),i--;
-      else
-      {      
-        key = getWord(content,&i);
-        setNewToken(getTypeFromString(key),key,tokens);
-        i--;
-      }    
-     i++;
+  while (i < content.length()) {
+    if (content[i] == '{')
+      setNewToken(libparse::token::CURLYBARCKETRIGTH, "{", tokens);
+    else if (content[i] == '}')
+      setNewToken(libparse::token::CURLYBARCKETLEFT, "}", tokens);
+    else if (content[i] == ';')
+      setNewToken(libparse::token::ENDLINE, "_", tokens);
+    else if (isWhiteSpace(content[i]))
+      skipWithSpace(content, &i), i--;
+    else {
+      key = getWord(content, &i);
+      setNewToken(getTypeFromString(key), key, tokens);
+      i--;
     }
-    setNewToken(libparse::token::ENDFILE,"_",tokens);
+    i++;
+  }
+  setNewToken(libparse::token::ENDFILE, "_", tokens);
 }
