@@ -1,5 +1,6 @@
 #include "libhttp/Methods.hpp"
 #include "MultipartFormData.hpp"
+#include "libhttp/Redirect.hpp"
 #include "libhttp/MultipartFormData.hpp"
 #include "libparse/Types.hpp"
 #include <cstddef>
@@ -332,7 +333,7 @@ std::pair<libhttp::Methods::error, libhttp::Response *> libhttp::Get(libhttp::Re
   {
     initFile(file,path);
     if(file.fd == -1)
-        return std::make_pair(libhttp::Methods::FORBIDDEN, nullptr);
+        return std::make_pair(libhttp::Methods::REDIR, libhttp::redirect(request.reqTarget.path+"/"));
     if (checkRangeRequest(request.headers)) {
         std::pair<int, int> range =
             getStartandEndRangeRequest(request.headers[libhttp::Headers::CONTENT_RANGE]);
