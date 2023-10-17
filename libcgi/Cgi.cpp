@@ -119,7 +119,8 @@ libcgi::Cgi::Cgi(sockaddr_in *clientAddr, size_t bufferSize)
     , state(INIT)
     , pid(-1)
     , bodySize(0)
-    , bufferSize(bufferSize) {
+    , bufferSize(bufferSize)
+    , cgiInput(-1) {
   fd[0] = -1;
   fd[1] = -1;
 }
@@ -168,14 +169,24 @@ libcgi::Cgi::Error libcgi::Cgi::exec() {
   if (pid == 0) {
     dup2(this->cgiInput, STDIN_FILENO);
     dup2(this->fd[1], STDOUT_FILENO);
+
+    close(fd[0]);
+    close(fd[1]);
+    close(cgiInput);
+
     argv = getScriptArgs(req.scriptPath);
     env = headersAsEnv(req.env);
     ::execve(req.scriptPath.c_str(), argv, env);
+
     exit(1);
   } else if (pid > 0) {
     this->state = READING_HEADERS;
+
     close(fd[1]);
-    close(this->cgiInput);
+    fd[1] = -1;
+
+    close(cgiInput);
+    cgiInput = -1;
     return OK;
   }
   return FAILED_FORK;
@@ -202,7 +213,7 @@ libcgi::Cgi::Error libcgi::Cgi::read() {
     return OK;
   }
   if (len < 0) {
-    if (waitpid(this->pid, NULL, 0) <= 0) {
+    if (waitpid(this->pid, NULL, 0) > 0) {
       pid = -1;
     }
     return FAILED_READ;
@@ -216,17 +227,35 @@ libcgi::Cgi::Error libcgi::Cgi::read() {
 }
 
 void libcgi::Cgi::clean() {
-  close(this->fd[0]);
-  if (pid != -1)
-    waitpid(pid, NULL, 0);
-  req.clean();
-  res.clean();
-  fd[0] = -1;
-  fd[1] = -1;
-  cgiInput = -1;
-  this->pid = -1;
-  bodySize = 0;
+  // Pipes cleanup
+  if (fd[0] != -1) {
+    close(fd[0]);
+    fd[0] = -1;
+  }
+  if (fd[1]) {
+    close(fd[1]);
+    fd[1] = -1;
+  }
+
+  // Input file clanup
+  if (cgiInput != -1) {
+    close(cgiInput);
+    cgiInput = -1;
+  }
   std::remove(cgiInputFileName.c_str());
   cgiInputFileName.clear();
-  this->state = INIT;
+
+  // Orphant processes catch
+  if (pid != -1) {
+    waitpid(pid, NULL, 0);
+    pid = -1;
+  }
+
+  if (state != libcgi::Cgi::READING_BODY && state != libcgi::Cgi::FIN)
+    delete res.sockBuff;
+  res.clean();
+
+  req.clean();
+  bodySize = 0;
+  state = INIT;
 }
