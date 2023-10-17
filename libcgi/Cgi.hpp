@@ -10,6 +10,7 @@ namespace libcgi {
 
   struct Cgi {
     static const std::string blueprint;
+
     enum Error {
       OK,
       FAILED_OPEN_FILE,
