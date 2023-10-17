@@ -37,34 +37,26 @@ std::pair<libcgi::Cgi::Error, libcgi::Cgi::State> libcgi::Cgi::handleCgiBuff(cha
                                                                              size_t len) {
   ssize_t        idx;
   const char    *del = "\r\n\r\n";
-  const char    *chunked = "Transfer-Encoding: chunked\r\n";
-  const char    *contentL = "Content-Length: 0\r\n";
   Respons::error err;
 
   if (this->state == READING_HEADERS) {
     idx = doesContainerHasBuff(ptr, len, del, strlen(del));
     if (idx == -1) {
       this->res.cgiHeader.insert(this->res.cgiHeader.end(), ptr, ptr + len);
-      return std::make_pair(OK, READING_HEADERS);
+      return std::make_pair(OK, this->state);
     }
     this->state = READING_BODY;
     this->res.cgiHeader.insert(this->res.cgiHeader.end(), ptr, ptr + idx + 2); // plus the \r\n
     err = this->res.build();
     if (err != Respons::OK)
-      return std::make_pair(MALFORMED, READING_BODY);
+      return std::make_pair(MALFORMED, this->state);
 
     this->res.sockBuff->insert(this->res.sockBuff->end(), del, del + 2);
-    if (static_cast<size_t>(idx) + 4 >= len) {
-      this->res.sockBuff->insert(this->res.sockBuff->end() - 2, contentL, contentL + 19);
-      return std::make_pair(OK, FIN);
-    }
-    this->res.sockBuff->insert(this->res.sockBuff->end() - 2, chunked, chunked + 28);
     this->res.write(ptr + idx + 4, len - idx - 4);
-    return std::make_pair(OK, READING_BODY);
+    return std::make_pair(OK, this->state);
   }
-  this->res.sockBuff->insert(this->res.sockBuff->end(), ptr, ptr + len);
   this->res.write(ptr, len);
-  return std::make_pair(OK, READING_BODY);
+  return std::make_pair(OK, this->state);
 }
 
 char *keyAndValAsStr(const std::string &key, const std::string &val) {
@@ -220,7 +212,6 @@ libcgi::Cgi::Error libcgi::Cgi::read() {
   }
 
   newState = this->handleCgiBuff(buff, len);
-  this->state = newState.second;
   if (newState.first != OK)
     return MALFORMED;
   return OK;
@@ -247,6 +238,7 @@ void libcgi::Cgi::clean() {
 
   // Orphant processes catch
   if (pid != -1) {
+    kill(pid, SIGKILL);
     waitpid(pid, NULL, 0);
     pid = -1;
   }
