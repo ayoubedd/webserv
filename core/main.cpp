@@ -1,3 +1,4 @@
+#include "core/Initialization.hpp"
 #include "core/Multiplexer.hpp"
 #include "libnet/Net.hpp"
 #include "libnet/Terminator.hpp"
@@ -65,6 +66,9 @@ int main(int argc, char *argv[]) {
     std::cerr << "missing default server in the config" << std::endl;
     return 1;
   }
+
+  if (WebServ::initializeFsEnv())
+    return EXIT_FAILURE;
 
   net.setupSockets(config);
 
