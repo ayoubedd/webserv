@@ -17,17 +17,14 @@
 const std::string libcgi::Cgi::blueprint = "/tmp/webserv/cgi/input";
 
 ssize_t doesContainerHasBuff(const char *raw, size_t rLen, const char *ptr, size_t pLen) {
-  for (size_t i = 0; i < rLen - pLen + 1; i++) {
+  for (size_t i = 0; rLen - i > pLen; i++) {
     if (!strncmp(&raw[i], ptr, strlen(ptr)))
       return i;
   }
   return -1;
 }
 
-libcgi::Cgi::~Cgi(void) {
-  // res.clean();
-  clean();
-}
+libcgi::Cgi::~Cgi(void) { clean(); }
 
 std::string asStr(int fd) {
   std::stringstream ss;
@@ -197,15 +194,17 @@ libcgi::Cgi::Error libcgi::Cgi::read() {
     std::string end = "0\r\n\r\n";
     this->res.sockBuff->insert(this->res.sockBuff->end(), end.begin(), end.end());
     this->state = FIN;
-    // kill(pid, SIGKILL);
     if (waitpid(this->pid, &status, 0) <= 0)
       return FAILED_WAITPID;
+    this->pid = -1;
     if (status != 0)
       return CHIIED_RETURN_ERR;
     return OK;
   }
   if (len < 0) {
-    waitpid(pid, NULL, 0);
+    if (waitpid(this->pid, NULL, 0) <= 0) {
+      pid = -1;
+    }
     return FAILED_READ;
   }
 
@@ -218,7 +217,6 @@ libcgi::Cgi::Error libcgi::Cgi::read() {
 
 void libcgi::Cgi::clean() {
   close(this->fd[0]);
-  // close(this->cgiInput);
   if (pid != -1)
     waitpid(pid, NULL, 0);
   req.clean();
@@ -228,7 +226,7 @@ void libcgi::Cgi::clean() {
   cgiInput = -1;
   this->pid = -1;
   bodySize = 0;
-  // std::remove(cgiInputFileName.c_str());
+  std::remove(cgiInputFileName.c_str());
   cgiInputFileName.clear();
   this->state = INIT;
 }

@@ -88,7 +88,7 @@ void libcgi::Respons::clean() {
 }
 
 libcgi::Respons::~Respons() {
-  if (sockBuff != nullptr)
+  if (sockBuff != NULL)
     delete sockBuff;
 }
 
@@ -107,7 +107,6 @@ void libcgi::Respons::write(const char *ptr, size_t len) {
 
 void libcgi::Respons::init() {
   if (this->sockBuff != nullptr) {
-    std::cerr << "sockBuff already allocated wtf" << std::endl;
     exit(EXIT_FAILURE);
   }
 
