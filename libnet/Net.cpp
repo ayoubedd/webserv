@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <arpa/inet.h>
 #include <cerrno>
+#include <cstdlib>
 #include <iostream>
 #include <netdb.h>
 #include <stdlib.h>
@@ -44,7 +45,7 @@ static int openSocket(std::string &port) {
     exit(EXIT_FAILURE);
   }
 
-  listen(sockfd, 1024);
+  listen(sockfd, 254);
   freeaddrinfo(addrinfo);
 
   return sockfd;
@@ -100,7 +101,7 @@ static void subscribeSessions(libnet::Sessions &sessions, fd_set *fdReadSet, fd_
 
       // Subscribe for reading if current response has a fd != -1
       // and not done reading
-      if (response->fd != -1 && response->doneReading == false)
+      if (response->fd > 0 && response->doneReading == false)
         FD_SET(response->fd, fdReadSet);
     }
 
@@ -241,4 +242,3 @@ void libnet::Netenv::acceptNewClients(void) {
     begin++;
   }
 }
-

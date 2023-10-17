@@ -3,7 +3,6 @@
 #include <cstring>
 #include <netinet/ip.h>
 #include <unistd.h>
-// #include <string.h>
 
 libnet::Session::Session(int fd, sockaddr_in *clientAddr)
     : fd(fd)
@@ -32,6 +31,7 @@ libnet::Session::~Session() {
     delete cgi;
 
   close(fd);
+
 
   delete clientAddr;
 }
