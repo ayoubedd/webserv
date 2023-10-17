@@ -79,6 +79,8 @@ libcgi::Respons::error libcgi::Respons::build() {
     this->sockBuff->insert(this->sockBuff->begin(), defaultStatusLine.begin(),
                            defaultStatusLine.end());
   }
+  const char *chunked = "Transfer-Encoding: chunked\r\n";
+  this->sockBuff->insert(this->sockBuff->end(), chunked, chunked + 28);
   return OK;
 }
 
