@@ -37,6 +37,12 @@ void sessionsHandler(libnet::Netenv &net, libparse::Config &config) {
         request->state == libnet::SessionState::READING_FIN)
       httpCode = libhttp::Mux::multiplexer(session, config);
 
+    if (httpCode != libhttp::Status::OK) {
+      session->destroy = true;
+      sessionsBegin++;
+      continue;
+    }
+
     // Calling the writer.
     if (session->isNonBlocking(libnet::Session::SOCK_WRITE)) {
       writerError = session->writer.write(session->isNonBlocking(libnet::Session::WRITER_READ));
@@ -76,10 +82,10 @@ int main(int argc, char *argv[]) {
     net.prepFdSets();
     net.awaitEvents();
 
-    if (!net.readySockets.empty())
-      net.acceptNewClients();
-
     sessionsHandler(net, config);
+
+    if (net.readySockets.empty() != true)
+      net.acceptNewClients();
 
     libnet::Terminator::terminate(net.sessions);
   };

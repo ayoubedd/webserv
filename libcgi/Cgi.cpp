@@ -24,6 +24,8 @@ ssize_t doesContainerHasBuff(const char *raw, size_t rLen, const char *ptr, size
   return -1;
 }
 
+libcgi::Cgi::~Cgi(void) { clean(); }
+
 std::string asStr(int fd) {
   std::stringstream ss;
 
@@ -35,34 +37,26 @@ std::pair<libcgi::Cgi::Error, libcgi::Cgi::State> libcgi::Cgi::handleCgiBuff(cha
                                                                              size_t len) {
   ssize_t        idx;
   const char    *del = "\r\n\r\n";
-  const char    *chunked = "Transfer-Encoding: chunked\r\n";
-  const char    *contentL = "Content-Length: 0\r\n";
   Respons::error err;
 
   if (this->state == READING_HEADERS) {
     idx = doesContainerHasBuff(ptr, len, del, strlen(del));
     if (idx == -1) {
       this->res.cgiHeader.insert(this->res.cgiHeader.end(), ptr, ptr + len);
-      return std::make_pair(OK, READING_HEADERS);
+      return std::make_pair(OK, this->state);
     }
     this->state = READING_BODY;
     this->res.cgiHeader.insert(this->res.cgiHeader.end(), ptr, ptr + idx + 2); // plus the \r\n
     err = this->res.build();
     if (err != Respons::OK)
-      return std::make_pair(MALFORMED, READING_BODY);
+      return std::make_pair(MALFORMED, this->state);
 
     this->res.sockBuff->insert(this->res.sockBuff->end(), del, del + 2);
-    if (static_cast<size_t>(idx) + 4 >= len) {
-      this->res.sockBuff->insert(this->res.sockBuff->end() - 2, contentL, contentL + 19);
-      return std::make_pair(OK, FIN);
-    }
-    this->res.sockBuff->insert(this->res.sockBuff->end() - 2, chunked, chunked + 28);
     this->res.write(ptr + idx + 4, len - idx - 4);
-    return std::make_pair(OK, READING_BODY);
+    return std::make_pair(OK, this->state);
   }
-  this->res.sockBuff->insert(this->res.sockBuff->end(), ptr, ptr + len);
   this->res.write(ptr, len);
-  return std::make_pair(OK, READING_BODY);
+  return std::make_pair(OK, this->state);
 }
 
 char *keyAndValAsStr(const std::string &key, const std::string &val) {
@@ -117,7 +111,8 @@ libcgi::Cgi::Cgi(sockaddr_in *clientAddr, size_t bufferSize)
     , state(INIT)
     , pid(-1)
     , bodySize(0)
-    , bufferSize(bufferSize) {
+    , bufferSize(bufferSize)
+    , cgiInput(-1) {
   fd[0] = -1;
   fd[1] = -1;
 }
@@ -166,13 +161,24 @@ libcgi::Cgi::Error libcgi::Cgi::exec() {
   if (pid == 0) {
     dup2(this->cgiInput, STDIN_FILENO);
     dup2(this->fd[1], STDOUT_FILENO);
+
+    close(fd[0]);
+    close(fd[1]);
+    close(cgiInput);
+
     argv = getScriptArgs(req.scriptPath);
     env = headersAsEnv(req.env);
     ::execve(req.scriptPath.c_str(), argv, env);
+
     exit(1);
   } else if (pid > 0) {
     this->state = READING_HEADERS;
+
     close(fd[1]);
+    fd[1] = -1;
+
+    close(cgiInput);
+    cgiInput = -1;
     return OK;
   }
   return FAILED_FORK;
@@ -191,34 +197,57 @@ libcgi::Cgi::Error libcgi::Cgi::read() {
     std::string end = "0\r\n\r\n";
     this->res.sockBuff->insert(this->res.sockBuff->end(), end.begin(), end.end());
     this->state = FIN;
-    kill(pid, SIGKILL);
-    if (waitpid(this->pid, &status, WNOHANG) <= 0)
+    if (waitpid(this->pid, &status, 0) <= 0)
       return FAILED_WAITPID;
+    this->pid = -1;
     if (status != 0)
       return CHIIED_RETURN_ERR;
     return OK;
   }
-  if (len < 0)
+  if (len < 0) {
+    if (waitpid(this->pid, NULL, 0) > 0) {
+      pid = -1;
+    }
     return FAILED_READ;
+  }
 
   newState = this->handleCgiBuff(buff, len);
-  this->state = newState.second;
   if (newState.first != OK)
     return MALFORMED;
   return OK;
 }
 
 void libcgi::Cgi::clean() {
-  close(this->fd[0]);
-  close(this->cgiInput);
-  req.clean();
-  res.clean();
-  fd[0] = -1;
-  fd[1] = -1;
-  cgiInput = -1;
-  this->pid = -1;
-  bodySize = 0;
+  // Pipes cleanup
+  if (fd[0] != -1) {
+    close(fd[0]);
+    fd[0] = -1;
+  }
+  if (fd[1]) {
+    close(fd[1]);
+    fd[1] = -1;
+  }
+
+  // Input file clanup
+  if (cgiInput != -1) {
+    close(cgiInput);
+    cgiInput = -1;
+  }
   std::remove(cgiInputFileName.c_str());
   cgiInputFileName.clear();
-  this->state = INIT;
+
+  // Orphant processes catch
+  if (pid != -1) {
+    kill(pid, SIGKILL);
+    waitpid(pid, NULL, 0);
+    pid = -1;
+  }
+
+  if (state != libcgi::Cgi::READING_BODY && state != libcgi::Cgi::FIN)
+    delete res.sockBuff;
+  res.clean();
+
+  req.clean();
+  bodySize = 0;
+  state = INIT;
 }
