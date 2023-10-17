@@ -16,6 +16,18 @@
 
 typedef std::pair<libhttp::Mux::MuxHandlerError, libhttp::Response *> MuxErrResPair;
 
+static bool shouldCloseSessions(libhttp::Request *request) {
+  libhttp::HeadersMap::iterator iter = request->headers.headers.find("Connection");
+
+  if (iter == request->headers.headers.end())
+    return false;
+
+  if (iter->second == "close")
+    return true;
+
+  return false;
+}
+
 static bool isRequestHandlerCgi(const libparse::RouteProps *route) {
   if (route->cgi.second != "")
     return true;
@@ -219,6 +231,11 @@ libhttp::Status::Code libhttp::Mux::multiplexer(libnet::Session        *session,
     // Marking last resonse as done.
     if (session->writer.responses.back()->fd == -2) // if Respones is cgi
       session->writer.responses.back()->doneReading = true;
+
+    // Should close connection
+    if (shouldCloseSessions(session->reader.requests.front()))
+      session->gracefulClose = true;
+
     // Pooping request since its done.
     session->reader.requests.pop();
   }

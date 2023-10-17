@@ -1,8 +1,8 @@
 #include "libnet/Terminator.hpp"
+#include <unistd.h>
 #include <vector>
 
-static void extractSessionsToClose(const libnet::Sessions         &sessions,
-                                   std::vector<libnet::Session *> &dst) {
+static void extractSessionsToClose(const libnet::Sessions &sessions, std::vector<int> &dst) {
   libnet::Sessions::const_iterator begin = sessions.begin();
   libnet::Sessions::const_iterator end = sessions.end();
 
@@ -10,25 +10,29 @@ static void extractSessionsToClose(const libnet::Sessions         &sessions,
     libnet::Session *session = begin->second;
 
     if (session->destroy == true)
-      dst.push_back(session);
+      dst.push_back(session->fd);
 
-    begin++;
-  }
-}
+    if (session->gracefulClose == true && session->writer.responses.empty() == true)
+      dst.push_back(session->fd);
 
-void libnet::Terminator::terminateSessions(std::vector<libnet::Session *> sessions) {
-  std::vector<libnet::Session *>::iterator begin = sessions.begin();
-  std::vector<libnet::Session *>::iterator end = sessions.end();
-
-  while (begin != end) {
-    delete *begin;
     begin++;
   }
 }
 
 void libnet::Terminator::terminate(libnet::Sessions &sessions) {
-  std::vector<libnet::Session *> sessionsToClose;
+  std::vector<int> sessionsToClose;
 
   extractSessionsToClose(sessions, sessionsToClose);
-  terminateSessions(sessionsToClose);
+
+  std::vector<int>::iterator begin = sessionsToClose.begin();
+  std::vector<int>::iterator end = sessionsToClose.end();
+
+  while (begin != end) {
+    libnet::Sessions::iterator iter = sessions.find(*begin);
+
+    delete iter->second;
+    sessions.erase(iter->first);
+
+    begin++;
+  }
 }

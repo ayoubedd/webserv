@@ -3,20 +3,19 @@
 #include <cstring>
 #include <netinet/ip.h>
 #include <unistd.h>
-// #include <string.h>
 
 libnet::Session::Session(int fd, sockaddr_in *clientAddr)
     : fd(fd)
     , reader(fd, *clientAddr)
     , writer(fd)
+    , transferEncoding(NULL)
+    , multipart(nullptr)
+    , sizedPost(nullptr)
+    , cgi(nullptr)
     , clientAddr(clientAddr)
     , destroy(false)
-    , permitedIo(0) {
-  transferEncoding = nullptr;
-  multipart = nullptr;
-  sizedPost = nullptr;
-  cgi = nullptr;
-}
+    , gracefulClose(false)
+    , permitedIo(0) {}
 
 libnet::Session::~Session() {
   if (transferEncoding != nullptr)
