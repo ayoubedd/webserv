@@ -70,6 +70,7 @@ static MuxErrResPair cgiHandler(libcgi::Cgi *cgi, const libparse::RouteProps *ro
   // here and onward the state must be READING_BODY
   if (prevState == libcgi::Cgi::READING_HEADERS && cgi->state == libcgi::Cgi::READING_BODY) {
     libhttp::Response *response = new libhttp::Response(cgi->res.sockBuff);
+    response->fd = -2;
     return std::make_pair(libhttp::Mux::OK, response);
   }
 
@@ -216,7 +217,7 @@ libhttp::Status::Code libhttp::Mux::multiplexer(libnet::Session        *session,
 
   if (errRes.first == DONE) {
     // Marking last resonse as done.
-    if (isRequestHandlerCgi(route.second))
+    if (session->writer.responses.back()->fd == -2) // if Respones is cgi
       session->writer.responses.back()->doneReading = true;
     // Pooping request since its done.
     session->reader.requests.pop();
