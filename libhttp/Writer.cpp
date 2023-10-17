@@ -36,7 +36,7 @@ libhttp::Writer::erorr libhttp::Writer::write(bool permitedToRead) {
   bool shouldReadFromFd;
 
   shouldReadFromFd =
-      permitedToRead && response->fd != -1 && // Only read if there a body (aka a fd).
+      permitedToRead && response->fd > 0 && // Only read if there a body (aka a fd).
       ((response->bytesToServe != -1 && response->bytesToServe > response->readBytes &&
         response->buffer->size() <
             readWriteBufferSize) || // Byte range && and readBytes is less than bytesToServe.
