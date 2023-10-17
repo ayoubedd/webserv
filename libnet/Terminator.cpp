@@ -26,6 +26,9 @@ void libnet::Terminator::terminate(libnet::Sessions &sessions) {
   while (sessionsToCloseBegin != sessionsToClosEnd) {
     libnet::Sessions::iterator sessionIter = sessions.find(*sessionsToCloseBegin);
 
+    std::cout << "--" << std::endl;
+    std::cout << "deleteting session "  << sessionIter->second->fd << std::endl;
+
     delete sessionIter->second;
     sessions.erase(sessionIter);
 

@@ -24,6 +24,8 @@ ssize_t doesContainerHasBuff(const char *raw, size_t rLen, const char *ptr, size
   return -1;
 }
 
+libcgi::Cgi::~Cgi(void) { clean(); }
+
 std::string asStr(int fd) {
   std::stringstream ss;
 
@@ -173,6 +175,7 @@ libcgi::Cgi::Error libcgi::Cgi::exec() {
   } else if (pid > 0) {
     this->state = READING_HEADERS;
     close(fd[1]);
+    close(this->cgiInput);
     return OK;
   }
   return FAILED_FORK;
@@ -191,15 +194,19 @@ libcgi::Cgi::Error libcgi::Cgi::read() {
     std::string end = "0\r\n\r\n";
     this->res.sockBuff->insert(this->res.sockBuff->end(), end.begin(), end.end());
     this->state = FIN;
-    kill(pid, SIGKILL);
-    if (waitpid(this->pid, &status, WNOHANG) <= 0)
+    if (waitpid(this->pid, &status, 0) <= 0)
       return FAILED_WAITPID;
+    this->pid = -1;
     if (status != 0)
       return CHIIED_RETURN_ERR;
     return OK;
   }
-  if (len < 0)
+  if (len < 0) {
+    if (waitpid(this->pid, NULL, 0) <= 0) {
+      pid = -1;
+    }
     return FAILED_READ;
+  }
 
   newState = this->handleCgiBuff(buff, len);
   this->state = newState.second;
@@ -210,7 +217,8 @@ libcgi::Cgi::Error libcgi::Cgi::read() {
 
 void libcgi::Cgi::clean() {
   close(this->fd[0]);
-  close(this->cgiInput);
+  if (pid != -1)
+    waitpid(pid, NULL, 0);
   req.clean();
   res.clean();
   fd[0] = -1;

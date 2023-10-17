@@ -36,6 +36,12 @@ void sessionsHandler(libnet::Netenv &net, libparse::Config &config) {
         request->state == libnet::SessionState::READING_FIN)
       httpCode = libhttp::Mux::multiplexer(session, config);
 
+    if (httpCode != libhttp::Status::OK) {
+      session->destroy = true;
+      sessionsBegin++;
+      continue;
+    }
+
     // Calling the writer.
     if (session->isNonBlocking(libnet::Session::SOCK_WRITE)) {
       writerError = session->writer.write(session->isNonBlocking(libnet::Session::WRITER_READ));
@@ -69,15 +75,22 @@ int main(int argc, char *argv[]) {
   net.setupSockets(config);
 
   while (true) {
-    net.prepFdSets();
-    net.awaitEvents();
+    std::cout << "Round begin" << std::endl;
 
-    if (!net.readySockets.empty())
-      net.acceptNewClients();
+    net.prepFdSets();
+
+    std::cout << "awaitEvents" << std::endl;
+    net.awaitEvents();
 
     sessionsHandler(net, config);
 
+    if (net.readySockets.empty() != true)
+      net.acceptNewClients();
+
     libnet::Terminator::terminate(net.sessions);
+
+    std::cout << "Round end" << std::endl;
+    std::cout << "------" << std::endl;
   };
   return 0;
 }
