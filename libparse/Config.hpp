@@ -81,5 +81,5 @@ namespace libparse {
   std::string                  readFile(std::string filename);
   std::pair<bool, std::string> parser(libparse::Config              &config,
                                       std::vector<libparse::tokens> &tokens);
-  bool                         checkConfig(std::string &fileName, libparse::Config &config);
+  bool                         checkConfig(const std::string &fileName, libparse::Config &config);
 }; // namespace libparse

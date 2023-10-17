@@ -101,7 +101,7 @@ std::pair<bool, std::string> checkDefaultRout(libparse::Config &config) {
   return std::make_pair(true, "");
 }
 
-bool libparse::checkConfig(std::string &fileName, libparse::Config &config) {
+bool libparse::checkConfig(const std::string &fileName, libparse::Config &config) {
   std::string                   contentFile;
   std::vector<libparse::tokens> tokens;
   std::pair<bool, std::string>  res;

@@ -72,13 +72,14 @@ void printVectorToken(std::vector<libparse::tokens> v) {
 }
 
 void printMap(std::map<std::string, std::string> map) {
-  for (auto it = map.begin(); it != map.end(); it++)
+  std::map<std::string, std::string>::iterator it = map.begin();
+  for (; it != map.end(); it++)
     std::cout << it->first << "| " << it->second << std::endl;
   std::cout << std::endl;
 }
 
 void printVect(std::vector<std::string> vec) {
-  for (auto i = 0; i < vec.size(); i++)
+  for (size_t i = 0; i < vec.size(); i++)
     std::cout << vec[i] << " ";
   std::cout << std::endl;
 }
