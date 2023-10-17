@@ -71,7 +71,6 @@ static void subscribeSockets(libnet::Sockets &sockets, fd_set *set) {
 
   while (begin != end) {
     FD_SET(*begin, set);
-    std::cout << "inserting sock fd into read set: " << *begin << std::endl;
     begin++;
   }
 }
@@ -86,15 +85,11 @@ static void subscribeSessions(libnet::Sessions &sessions, fd_set *fdReadSet, fd_
 
     // Always Subscribe for reading from the socket
     FD_SET(session->fd, fdReadSet);
-    std::cout << "inserting session " << session->fd << " sock fd into read set: " << session->fd
-              << std::endl;
 
     // Subscribe for reading from pipe if cgi in READING_HEADERS or READING_BODY state
     if (session->cgi)
       if (session->cgi->state == libcgi::Cgi::READING_HEADERS ||
           session->cgi->state == libcgi::Cgi::READING_BODY) {
-        std::cout << "inserting session " << session->fd
-                  << " cgi pipe into read set: " << session->cgi->fd[0] << std::endl;
         FD_SET(session->cgi->fd[0], fdReadSet);
       }
 
@@ -104,15 +99,11 @@ static void subscribeSessions(libnet::Sessions &sessions, fd_set *fdReadSet, fd_
 
       // Subscribe for writting
       FD_SET(session->fd, fdWriteSet);
-      std::cout << "inserting session  " << session->fd
-                << " sock fd into write set: " << session->fd << std::endl;
 
       // Subscribe for reading if current response has a fd != -1
       // and not done reading
       if (response->fd != -1 && response->doneReading == false) {
         FD_SET(response->fd, fdReadSet);
-        std::cout << "inserting  session " << session->fd
-                  << " response fd into read set: " << response->fd << std::endl;
       }
     }
 

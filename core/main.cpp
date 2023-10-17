@@ -75,11 +75,8 @@ int main(int argc, char *argv[]) {
   net.setupSockets(config);
 
   while (true) {
-    std::cout << "Round begin" << std::endl;
-
     net.prepFdSets();
 
-    std::cout << "awaitEvents" << std::endl;
     net.awaitEvents();
 
     sessionsHandler(net, config);
@@ -88,9 +85,6 @@ int main(int argc, char *argv[]) {
       net.acceptNewClients();
 
     libnet::Terminator::terminate(net.sessions);
-
-    std::cout << "Round end" << std::endl;
-    std::cout << "------" << std::endl;
   };
   return 0;
 }

@@ -39,7 +39,6 @@ static MuxErrResPair cgiHandler(libcgi::Cgi *cgi, const libparse::RouteProps *ro
       break;
     case libcgi::Cgi::READING_HEADERS:
     case libcgi::Cgi::READING_BODY:
-      std::cout << "cgi state: " << cgi->state << std::endl;
       cgiError = cgi->read();
       break;
     case libcgi::Cgi::ERR:
@@ -59,13 +58,11 @@ static MuxErrResPair cgiHandler(libcgi::Cgi *cgi, const libparse::RouteProps *ro
     case libcgi::Cgi::MALFORMED:
     case libcgi::Cgi::FAILED_WAITPID:
     case libcgi::Cgi::CHIIED_RETURN_ERR:
-      std::cout << "cgi failure" << std::endl;
       cgi->clean();
       return std::make_pair(libhttp::Mux::ERROR_500, nullptr);
     case libcgi::Cgi::OK:
       break;
   }
-  std::cout << "-" << std::endl;
 
   if (cgi->state != libcgi::Cgi::READING_BODY && cgi->state != libcgi::Cgi::FIN)
     return std::make_pair(libhttp::Mux::OK, nullptr);
