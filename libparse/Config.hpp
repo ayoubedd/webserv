@@ -24,7 +24,7 @@ namespace libparse {
     std::vector<std::string>            methods;
     bool                                dirListening;
     std::string                         upload;
-    std::pair<std::string, std::string> cgi;
+    std::map<std::string, std::string>  cgi;
     std::string                         redir;
   };
 
