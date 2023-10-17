@@ -1,5 +1,6 @@
 #include "libcgi/Cgi-res.hpp"
 #include "libhttp/constants.hpp"
+#include <cassert>
 #include <cstdlib>
 #include <ios>
 #include <sstream>
@@ -107,7 +108,7 @@ void libcgi::Respons::write(const char *ptr, size_t len) {
 
 void libcgi::Respons::init() {
   if (this->sockBuff != nullptr) {
-    exit(EXIT_FAILURE);
+    assert(false);
   }
 
   this->sockBuff = new std::vector<char>;
