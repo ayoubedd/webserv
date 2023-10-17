@@ -11,17 +11,6 @@ libhttp::Writer::Writer(int sock, int bufferSize) {
   this->readWriteBufferSize = bufferSize;
 }
 
-libhttp::Writer::~Writer() {
-  if (responses.empty() == true)
-    return;
-
-  while (responses.empty() != true) {
-    libhttp::Response *response = responses.front();
-    delete response;
-    responses.pop();
-  }
-}
-
 libhttp::Writer::erorr libhttp::Writer::write(bool permitedToRead) {
   // Check Responses queue is not empty
   if (responses.empty() == true)
@@ -89,12 +78,9 @@ libhttp::Writer::erorr libhttp::Writer::write(bool permitedToRead) {
   // Should drop the response only if:
   // - Reached the end of file.
   // - End of range.
-  bool shoudPopResponse =
-      (response->fd == -1 ||                                     // There is not input
-       (response->bytesToServe == response->readBytes) ||        // Range read
-       (response->fd > 0 && response->doneReading == true) ||    // Input read (read returned 0)
-       (response->fd == -2 && response->doneReading == true)) && // Cgi reader done
-      response->buffer->size() == 0;                             // And buffer size is zero
+  bool shoudPopResponse = (response->fd == -1 || response->bytesToServe == response->readBytes ||
+                           response->doneReading) &&
+                          response->buffer->size() == 0;
 
   if (shoudPopResponse == true) {
     delete response;

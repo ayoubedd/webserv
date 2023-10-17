@@ -8,7 +8,6 @@
 #include "libnet/Session.hpp"
 #include "libparse/Config.hpp"
 #include "libparse/match.hpp"
-#include <cassert>
 #include <cstdio>
 #include <cstring>
 #include <string>
@@ -17,29 +16,29 @@
 typedef std::pair<libhttp::Mux::MuxHandlerError, libhttp::Response *> MuxErrResPair;
 
 static bool isRequestHandlerCgi(const libparse::RouteProps *route) {
-  if (route->cgi.second != "")
-    return true;
+  // if (route->cgi.second != "")
+  //   return true;
   return false;
 }
 
-static MuxErrResPair cgiHandler(libcgi::Cgi *cgi, const libparse::RouteProps *route,
+static MuxErrResPair cgiHandler(libcgi::Cgi &cgi, const libparse::RouteProps *route,
                                 libhttp::Request *req) {
   libcgi::Cgi::Error cgiError;
 
   cgiError = libcgi::Cgi::OK;
 
-  libcgi::Cgi::State prevState = cgi->state;
+  libcgi::Cgi::State prevState = cgi.state;
 
-  switch (cgi->state) {
+  switch (cgi.state) {
     case libcgi::Cgi::INIT:
-      cgiError = cgi->init(req, route->cgi.second, "localhost", "./static/");
+      //cgiError = cgi.init(req, route->cgi.second, "localhost", "./static/");
       if (cgiError != libcgi::Cgi::OK)
         break;
-      cgiError = cgi->exec();
+      cgiError = cgi.exec();
       break;
     case libcgi::Cgi::READING_HEADERS:
     case libcgi::Cgi::READING_BODY:
-      cgiError = cgi->read();
+      cgiError = cgi.read();
       break;
     case libcgi::Cgi::ERR:
     case libcgi::Cgi::FIN:
@@ -56,26 +55,24 @@ static MuxErrResPair cgiHandler(libcgi::Cgi *cgi, const libparse::RouteProps *ro
     case libcgi::Cgi::FAILED_WRITE:
     case libcgi::Cgi::FAILED_READ:
     case libcgi::Cgi::MALFORMED:
-    case libcgi::Cgi::FAILED_WAITPID:
-    case libcgi::Cgi::CHIIED_RETURN_ERR:
-      cgi->clean();
+      cgi.clean();
       return std::make_pair(libhttp::Mux::ERROR_500, nullptr);
     case libcgi::Cgi::OK:
       break;
   }
 
-  if (cgi->state != libcgi::Cgi::READING_BODY && cgi->state != libcgi::Cgi::FIN)
+  if (cgi.state != libcgi::Cgi::READING_BODY && cgi.state != libcgi::Cgi::FIN)
     return std::make_pair(libhttp::Mux::OK, nullptr);
 
   // here and onward the state must be READING_BODY
-  if (prevState == libcgi::Cgi::READING_HEADERS && cgi->state == libcgi::Cgi::READING_BODY) {
-    libhttp::Response *response = new libhttp::Response(cgi->res.sockBuff);
-    response->fd = -2;
+  if (prevState == libcgi::Cgi::READING_HEADERS &&
+      (cgi.state == libcgi::Cgi::READING_BODY || cgi.state == libcgi::Cgi::FIN)) {
+    libhttp::Response *response = new libhttp::Response(cgi.res.sockBuff);
     return std::make_pair(libhttp::Mux::OK, response);
   }
 
-  if (cgi->state == libcgi::Cgi::FIN) {
-    cgi->clean();
+  if (cgi.state == libcgi::Cgi::FIN) {
+    cgi.clean();
     return std::make_pair(libhttp::Mux::DONE, nullptr);
   }
 
@@ -118,8 +115,8 @@ static MuxErrResPair getHandler(libhttp::Request &req, const std::string &path) 
   return std::make_pair(libhttp::Mux::DONE, errResPair.second);
 }
 
-static MuxErrResPair postHandler(libhttp::Request &req, libhttp::Multipart *ml,
-                                 libhttp::TransferEncoding *tr, libhttp::SizedPost *zp,
+static MuxErrResPair postHandler(libhttp::Request &req, libhttp::Multipart &ml,
+                                 libhttp::TransferEncoding &tr, libhttp::SizedPost &zp,
                                  const std::string &uploadRoot) {
   std::pair<libhttp::Post::Intel, libhttp::Response *> errResPair;
 
@@ -144,7 +141,7 @@ libhttp::Status::Code libhttp::Mux::multiplexer(libnet::Session        *session,
   libhttp::Request       *req = session->reader.requests.front();
   const libparse::Domain *domain = libparse::matchReqWithServer(*req, config);
   const std::pair<std::string, const libparse::RouteProps *> route =
-      libparse::matchPathWithRoute(domain->routes, req->reqTarget.path);
+      libparse::matchPathWithLocation(domain->routes, req->reqTarget.path);
 
   MuxErrResPair errRes;
 
@@ -154,8 +151,6 @@ libhttp::Status::Code libhttp::Mux::multiplexer(libnet::Session        *session,
   }
 
   else if (isRequestHandlerCgi(route.second)) {
-    if (session->cgi == nullptr)
-      session->cgi = new libcgi::Cgi(session->clientAddr);
     errRes = cgiHandler(session->cgi, route.second, req);
   }
 
@@ -170,23 +165,6 @@ libhttp::Status::Code libhttp::Mux::multiplexer(libnet::Session        *session,
   }
 
   else if (req->method == "POST") {
-    libhttp::Post::BodyFormat bodyFormat = libhttp::Post::extractBodyFormat(req->headers.headers);
-
-    switch (bodyFormat) {
-      case Post::CHUNKED:
-        if (session->transferEncoding == nullptr)
-          session->transferEncoding = new libhttp::TransferEncoding();
-        break;
-      case Post::MULTIPART_FORMDATA:
-        if (session->multipart == nullptr)
-          session->multipart = new libhttp::Multipart();
-        break;
-      case Post::NORMAL:
-        if (session->sizedPost == nullptr)
-          session->sizedPost = new libhttp::SizedPost();
-        break;
-    }
-
     std::string uploadRoot = libparse::findUploadDir(*req, *domain);
     errRes = postHandler(*req, session->multipart, session->transferEncoding, session->sizedPost,
                          uploadRoot);
@@ -217,7 +195,7 @@ libhttp::Status::Code libhttp::Mux::multiplexer(libnet::Session        *session,
 
   if (errRes.first == DONE) {
     // Marking last resonse as done.
-    if (session->writer.responses.back()->fd == -2) // if Respones is cgi
+    if (isRequestHandlerCgi(route.second))
       session->writer.responses.back()->doneReading = true;
     // Pooping request since its done.
     session->reader.requests.pop();

@@ -1,5 +1,4 @@
 #include "libparse/match.hpp"
-#include "libhttp/Request-target.hpp"
 #include "libparse/Config.hpp"
 #include <algorithm>
 #include <string>
@@ -22,21 +21,21 @@ static inline bool matchHostHeaderPortWithDomain(const std::string &domain,
 const libparse::Domain *libparse::matchReqWithServer(const libhttp::Request &req,
                                                      const libparse::Config &config) {
   libhttp::HeadersMap::const_iterator host;
-  libparse::Domains::const_iterator   start, end;
+  // libparse::Domains::const_iterator   start, end;
 
-  host = req.headers.headers.find(libhttp::Headers::HOST);
-  if (host == req.headers.headers.end()) {
-    return config.defaultServer;
-  }
-  start = config.domains.begin();
-  end = config.domains.end();
-  while (start != end) {
-    if (matchHostHeaderPortWithDomain(start->first, host->second)) {
-      return &start->second;
-    }
-    start++;
-  }
-  return config.defaultServer;
+  // host = req.headers.headers.find(libhttp::Headers::HOST);
+  // if (host == req.headers.headers.end()) {
+  //   return config.defaultServer;
+  // }
+  // start = config.domains.begin();
+  // end = config.domains.end();
+  // while (start != end) {
+  //   if (matchHostHeaderPortWithDomain(start->first, host->second)) {
+  //     return &start->second;
+  //   }
+  //   start++;
+  // }
+  // return config.defaultServer;
 }
 
 static inline std::string::size_type hasPrefix(std::string str, std::string prefix) {
@@ -54,7 +53,7 @@ static inline std::string::size_type hasPrefix(std::string str, std::string pref
 }
 
 std::pair<std::string, const libparse::RouteProps *>
-libparse::matchPathWithRoute(const libparse::Routes &routes, const std::string &path) {
+libparse::matchPathWithLocation(const libparse::Routes &routes, const std::string &path) {
   std::map<std::string, libparse::RouteProps>::const_iterator it = routes.begin();
 
   std::string::size_type score = 0;
@@ -95,11 +94,11 @@ std::string libparse::findRouteIndex(const libparse::Domain     *domain,
 std::string libparse::findResourceInFs(const libhttp::Request &req,
                                        const libparse::Domain &domain) {
   std::pair<std::string, const libparse::RouteProps *> r =
-      matchPathWithRoute(domain.routes, req.reqTarget.path);
+      matchPathWithLocation(domain.routes, req.reqTarget.path);
   std::string fs = findRouteRoot(&domain, r.second);
   if (fs.empty())
     return "";
-  fs = joinPath(fs, req.reqTarget.path);
+  fs += req.reqTarget.path;
   struct stat st;
   if (stat(fs.c_str(), &st) != 0)
     return "";
@@ -109,45 +108,29 @@ std::string libparse::findResourceInFs(const libhttp::Request &req,
     return fs;
   std::string index = findRouteIndex(&domain, r.second);
   if (index.empty())
-    return "";
-  fs = joinPath(fs, index);
+    return 0;
+  if (fs[fs.size() - 1] != '/')
+    fs.push_back('/');
+  fs += index;
   if (stat(fs.c_str(), &st) != 0)
     return "";
   return fs;
 }
 
 std::string libparse::findUploadDir(const libhttp::Request &req, const libparse::Domain &domain) {
-  std::pair<std::string, const libparse::RouteProps *> route =
-      matchPathWithRoute(domain.routes, req.reqTarget.path);
-  if (!route.second || !route.second->upload.first)
-    return "";
-  std::string root = findRouteRoot(&domain, route.second);
-  if (route.second->upload.second[0] == '/') {
-    if (access(route.second->upload.second.c_str(), W_OK) != 0)
-      return "";
-    return route.second->upload.second;
-  }
-  std::string fs = joinPath(root, route.second->upload.second);
-  if (access(fs.c_str(), W_OK) != 0)
-    return "";
-  return fs;
-}
-
-std::string libparse::joinPath(const std::string &s1, const std::string &s2) {
-  std::string path;
-
-  if (s1.empty())
-    return s2;
-  if (s2.empty())
-    return s1;
-  path = s1;
-  if (path.back() == '/' && s2.front() == '/') {
-    path.pop_back();
-    return path + s2;
-  }
-  if (path.back() != '/' && s2.front() != '/') {
-    path.push_back('/');
-    return path + s2;
-  }
-  return path + s2;
+  // std::pair<std::string, const libparse::RouteProps *> route =
+  //     matchPathWithLocation(domain.routes, req.reqTarget.path);
+  // if (!route.second || !route.second->upload.first)
+  //   return "";
+  // std::string root = findRouteRoot(&domain, route.second);
+  // if (route.second->upload.second[0] == '/') {
+  //   if (access(route.second->upload.second.c_str(), W_OK) != 0)
+  //     return "";
+  //   return route.second->upload.second;
+  // }
+  // std::string fs = root + route.second->upload.second;
+  // if (access(fs.c_str(), W_OK) != 0)
+  //   return "";
+  // return fs;
+  return "";
 }

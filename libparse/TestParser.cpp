@@ -71,39 +71,76 @@ void printVectorToken(std::vector<libparse::tokens> v) {
   }
 }
 
+void printMap(std::map<std::string, std::string> map)
+{
+  for(auto it = map.begin() ; it != map.end(); it++)
+    std::cout <<it->first << "| " << it->second << std::endl;
+  std::cout<<std::endl;
+}
+
+void printVect(std::vector<std::string> vec)
+{
+  for(auto i = 0;i <vec.size(); i++)
+    std::cout << vec[i] << " ";
+  std::cout <<std::endl;
+}
 void printConfig(libparse::Config config) {
   libparse::Domains           d = config.domains;
   libparse::Domains::iterator itD;
   libparse::Routes::iterator  itR;
 
-  std::cout << config.defaultServer << std::endl;
+  std::cout << "Nbr default Sever is : " << config.defaultServer->size() << std::endl;
   itD = d.begin();
-  itR = itD->second.routes.begin();
   while (itD != d.end()) {
     std::cout << "Domain: " << itD->first << std::endl;
-    std::cout << "\t\t\t\tsever default: " << itD->second.defaultServer << std::endl;
-    std::cout << "\t\t\t\troot: " << itD->second.root << std::endl;
-    std::cout << "\t\t\t\tindex: " << itD->second.index << std::endl;
     std::cout << "\t\t\t\terror: " << itD->second.error << std::endl;
     std::cout << "\t\t\t\tport: " << itD->second.port << std::endl;
     std::cout << "\t\t\t\tMaxSizeBody: " << itD->second.maxBodySize << std::endl;
+        std::cout << "\t\t\t\tmaxHeaserSize: " << itD->second.maxHeaserSize << std::endl;
     itR = itD->second.routes.begin();
     while (itR != itD->second.routes.end()) {
       std::cout << "\t\t\t\troute: " << itR->first << std::endl;
-      std::cout << "\t\t\t\tpath: " << itD->second.routes[itR->first].path << std::endl;
       std::cout << "\t\t\t\troot: " << itD->second.routes[itR->first].root << std::endl;
       std::cout << "\t\t\t\tindex: " << itD->second.routes[itR->first].index << std::endl;
-      std::cout << "\t\t\t\tmethods: " << itD->second.routes[itR->first].methods[0] << "|"
-                << std::endl;
+      std::cout << "\t\t\t\tmethods: ";
+      printVect( itD->second.routes[itR->first].methods);
       std::cout << "\t\t\t\tredir: " << itD->second.routes[itR->first].redir << std::endl;
       std::cout << "\t\t\t\tdirListing: " << itD->second.routes[itR->first].dirListening
                 << std::endl;
-      std::cout << "\t\t\t\tupload: " << itD->second.routes[itR->first].upload.first << "|"
-                << itD->second.routes[itR->first].upload.second << std::endl;
-      std::cout << "\t\t\t\tcgi: " << itD->second.routes[itR->first].cgi.first << "|"
-                << itD->second.routes[itR->first].cgi.second << std::endl;
+      std::cout << "\t\t\t\tupload: " << itD->second.routes[itR->first].upload << std::endl;
+      std::cout << "\t\t\t\tcgi: " ;
+      printMap(itD->second.routes[itR->first].cgi);
       itR++;
     }
     itD++;
   }
+
+  std::cout << "<========================== Defautl Sever ========================>" <<std::endl;
+  itD = config.defaultServer->begin();
+
+  while (itD != config.defaultServer->end()) {
+    std::cout << "Domain: " << itD->first << std::endl;
+    std::cout << "\t\t\t\terror: " << itD->second.error << std::endl;
+    std::cout << "\t\t\t\tport: " << itD->second.port << std::endl;
+    std::cout << "\t\t\t\tMaxSizeBody: " << itD->second.maxBodySize << std::endl;
+        std::cout << "\t\t\t\tmaxHeaserSize: " << itD->second.maxHeaserSize << std::endl;
+    itR = itD->second.routes.begin();
+    while (itR != itD->second.routes.end()) {
+      std::cout << "\t\t\t\troute: " << itR->first << std::endl;
+      std::cout << "\t\t\t\troot: " << itD->second.routes[itR->first].root << std::endl;
+      std::cout << "\t\t\t\tindex: " << itD->second.routes[itR->first].index << std::endl;
+      std::cout << "\t\t\t\tmethods: ";
+      printVect( itD->second.routes[itR->first].methods);
+      std::cout << "\t\t\t\tredir: " << itD->second.routes[itR->first].redir << std::endl;
+      std::cout << "\t\t\t\tdirListing: " << itD->second.routes[itR->first].dirListening
+                << std::endl;
+      std::cout << "\t\t\t\tupload: " << itD->second.routes[itR->first].upload << std::endl;
+      std::cout << "\t\t\t\tcgi: " ;
+      printMap(itD->second.routes[itR->first].cgi);
+      itR++;
+    }
+    itD++;
+  }
+
+
 }

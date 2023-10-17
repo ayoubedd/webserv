@@ -17,7 +17,7 @@
 const std::string libcgi::Cgi::blueprint = "/tmp/webserv/cgi/input";
 
 ssize_t doesContainerHasBuff(const char *raw, size_t rLen, const char *ptr, size_t pLen) {
-  for (size_t i = 0; rLen - i > pLen; i++) {
+  for (size_t i = 0; i < rLen - pLen + 1; i++) {
     if (!strncmp(&raw[i], ptr, strlen(ptr)))
       return i;
   }
@@ -169,6 +169,10 @@ libcgi::Cgi::Error libcgi::Cgi::exec() {
     argv = getScriptArgs(req.scriptPath);
     env = headersAsEnv(req.env);
     ::execve(req.scriptPath.c_str(), argv, env);
+    delete2d(argv);
+    delete2d(env);
+    std::cout << "Status: 500 Internal Server Error\r\n\r\n";
+    // write to the fd the error
     exit(1);
   } else if (pid > 0) {
     this->state = READING_HEADERS;
@@ -187,15 +191,9 @@ libcgi::Cgi::Error libcgi::Cgi::read() {
     this->state = READING_HEADERS;
   len = ::read(this->fd[0], buff, sizeof buff);
   if (len == 0) {
-    int         status = 0;
     std::string end = "0\r\n\r\n";
     this->res.sockBuff->insert(this->res.sockBuff->end(), end.begin(), end.end());
     this->state = FIN;
-    kill(pid, SIGKILL);
-    if (waitpid(this->pid, &status, WNOHANG) <= 0)
-      return FAILED_WAITPID;
-    if (status != 0)
-      return CHIIED_RETURN_ERR;
     return OK;
   }
   if (len < 0)
@@ -213,12 +211,14 @@ void libcgi::Cgi::clean() {
   close(this->cgiInput);
   req.clean();
   res.clean();
+  if (this->pid != -1)
+    kill(this->pid, SIGKILL);
   fd[0] = -1;
   fd[1] = -1;
   cgiInput = -1;
   this->pid = -1;
   bodySize = 0;
-  std::remove(cgiInputFileName.c_str());
+  unlink(cgiInputFileName.c_str());
   cgiInputFileName.clear();
   this->state = INIT;
 }

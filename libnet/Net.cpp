@@ -86,10 +86,9 @@ static void subscribeSessions(libnet::Sessions &sessions, fd_set *fdReadSet, fd_
     FD_SET(session->fd, fdReadSet);
 
     // Subscribe for reading from pipe if cgi in READING_HEADERS or READING_BODY state
-    if (session->cgi)
-      if (session->cgi->state == libcgi::Cgi::READING_HEADERS ||
-          session->cgi->state == libcgi::Cgi::READING_BODY)
-        FD_SET(session->cgi->fd[0], fdReadSet);
+    if (session->cgi.state == libcgi::Cgi::READING_HEADERS ||
+        session->cgi.state == libcgi::Cgi::READING_BODY)
+      FD_SET(session->cgi.fd[0], fdReadSet);
 
     // Subscribe for writting if there something to write
     if (session->writer.responses.empty() != true) {
@@ -135,11 +134,10 @@ int libnet::Netenv::largestFd(void) {
 
     // If cgi active
     // check if cgi
-    if (sesssion->cgi)
-      if (sesssion->cgi->state == libcgi::Cgi::READING_HEADERS ||
-          sesssion->cgi->state == libcgi::Cgi::READING_BODY)
-        if (sesssion->cgi->fd[0] > largestFd)
-          largestFd = sesssion->cgi->fd[0];
+    if (sesssion->cgi.state == libcgi::Cgi::READING_HEADERS ||
+        sesssion->cgi.state == libcgi::Cgi::READING_BODY)
+      if (sesssion->cgi.fd[0] > largestFd)
+        largestFd = sesssion->cgi.fd[0];
 
     if (sesssion->writer.responses.empty() == false)
       if (sesssion->writer.responses.front()->fd > largestFd)
@@ -190,11 +188,10 @@ static void extractReadySessions(libnet::Sessions &src, libnet::Sessions &dst, f
     }
 
     // Check if CGI allowed to read from pipe
-    if (session->cgi)
-      if ((session->cgi->state == libcgi::Cgi::READING_HEADERS ||
-           session->cgi->state == libcgi::Cgi::READING_HEADERS) &&
-          FD_ISSET(session->cgi->fd[0], fdReadSet))
-        session->permitedIo |= libnet::Session::CGI_READ;
+    if ((session->cgi.state == libcgi::Cgi::READING_HEADERS ||
+         session->cgi.state == libcgi::Cgi::READING_HEADERS) &&
+        FD_ISSET(session->cgi.fd[0], fdReadSet))
+      session->permitedIo |= libnet::Session::CGI_READ;
 
     // Telling if should pass this session to be handled
     if (session->permitedIo != 0)
@@ -242,3 +239,15 @@ void libnet::Netenv::acceptNewClients(void) {
   }
 }
 
+void libnet::Netenv::destroySession(Session *session) {
+  libnet::Sessions::iterator sessionIter;
+
+  sessionIter = this->sessions.find(session->fd);
+  if (sessionIter == sessions.end())
+    return;
+
+  close(sessionIter->second->fd);
+  delete sessionIter->second->clientAddr;
+  delete sessionIter->second;
+  sessions.erase(sessionIter);
+}

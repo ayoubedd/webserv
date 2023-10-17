@@ -23,8 +23,8 @@ namespace libparse {
     std::string                         index;
     std::vector<std::string>            methods;
     bool                                dirListening;
-    std::pair<bool, std::string>        upload;
-    std::pair<std::string, std::string> cgi;
+    std::string                         upload;
+    std::map<std::string, std::string>  cgi;
     std::string                         redir;
   };
 
@@ -36,16 +36,16 @@ namespace libparse {
     std::string index;
     std::string port;
     Routes      routes;
-    std::string defaultServer;
   };
 
   struct Config {
-    Domain *defaultServer;
+    Domains *defaultServer;
+    std::string log_info;
+    std::string log_error;
     Domains domains;
   };
 
   typedef struct token {
-
     enum t_type {
       CURLYBARCKETLEFT,
       CURLYBARCKETRIGTH,
@@ -57,6 +57,7 @@ namespace libparse {
       INDEX,
       ERROR,
       MAXBODYSIZE,
+      MAXHEADERSSIZE,
       DIRLISTENING,
       UPLOAD,
       CGI,
@@ -65,13 +66,22 @@ namespace libparse {
       ENDFILE,
       ENDROUTE,
       ENDDOMAIN,
+      ENDLINE,
       PATH,
+      DEFAULT,
+      LOGERROR,
+      LOGINFO,
+      SEMICOLON,
       NONO
     } type;
     std::string lexeme;
   } tokens;
 
-  void        lexer(std::vector<tokens> &tokens, std::vector<std::string> content);
+  void lexer(std::vector<libparse::tokens> &tokens,std::string &content);
   std::string readFile(std::string filename);
-  void        parser(std::string filename, libparse::Config &config);
+  std::pair<bool , std::string> parser(libparse::Config &config,std::vector<libparse::tokens> &tokens);
+  bool checkConfig(std::string &fileName,libparse::Config &config);
 }; // namespace libparse
+
+
+

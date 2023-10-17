@@ -18,7 +18,6 @@ namespace libhttp {
     size_t                 readWriteBufferSize;
 
     Writer(int sock, int bufferSize = 65000);
-    ~Writer();
 
     erorr write(bool);
   };

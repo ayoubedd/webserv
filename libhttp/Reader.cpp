@@ -26,16 +26,6 @@ void libhttp::Reader::clearRawDataIndices() {
   this->bodyEnd = 0;
 }
 
-libhttp::Reader::~Reader() {
-  if (requests.empty() == true)
-    return;
-
-  while (requests.empty() != true) {
-    libhttp::Request *request = requests.front();
-    delete request;
-    requests.pop();
-  }
-}
 void libhttp::Reader::moveRawDataToRequestBody(std::vector<char>::iterator first,
                                                std::vector<char>::iterator last) {
   this->req->body.insert(this->req->body.end(), first, last);
@@ -124,7 +114,6 @@ libhttp::Reader::error libhttp::Reader::buildRequestHeaders() {
     }
     req->headers[key] = val;
   }
-  this->req->expandeRefererHeaderInPath();
   return err;
 }
 

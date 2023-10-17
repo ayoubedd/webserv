@@ -1,281 +1,53 @@
 #include "Config.hpp"
 #include <cstddef>
 #include <string>
+#include <cstddef>
+#include <cstring>
+#include <ctime>
+#include <fcntl.h>
+#include <fstream>
+#include <iostream>
+#include <stdlib.h>
+#include <string>
+#include <unistd.h>
+#include <utility>
+#include <dirent.h>
+#include <fcntl.h>
 
-bool checkDefaulfServer(std::vector<std::string> content, size_t &i) {
-  if (content[i] == "default" && content.size() > 2) {
-    i += 2;
+void advance(std::vector<libparse::tokens> &tokens,size_t *i);
+
+bool checkIsEditable(std::string &fileName)
+{
+  if (access(fileName.c_str(), R_OK) == 0)
     return true;
-  }
   return false;
 }
 
-std::vector<std::string > split(const std::string input) {
-  std::vector<std::string > tokens;
-  std::stringstream         sstream(input);
-  std::string               token;
-
-  if (input.empty())
-    return tokens;
-  while (sstream >> token)
-    tokens.push_back(token);
-  return tokens;
-}
-
-void check(std::string &str) {
-  for (size_t i = 0; i < str.length(); i++) {
-    if (str[i] == '{') {
-      str.insert(i, " ");
-      i++;
-    }
+bool checkIsInt(std::string str)
+{
+  for(size_t i = 0; i < str.length();i++)
+  {
+    if(!isdigit(str[i]))
+      return false;
   }
-}
-libparse::token::t_type getTypeFromString(std::string typeStr) {
-  if (typeStr.length() == 0)
-    return libparse::token::NONO;
-  else if (typeStr == "}")
-    return libparse::token::CURLYBARCKETLEFT;
-  else if (typeStr == "{")
-    return libparse::token::CURLYBARCKETRIGTH;
-  else if (typeStr == "root")
-    return libparse::token::ROOT;
-  else if (typeStr == "route")
-    return libparse::token::ROUTE;
-  else if (typeStr == "methods")
-    return libparse::token::METHODS;
-  else if (typeStr == "redir")
-    return libparse::token::REDIR;
-  else if (typeStr == "index")
-    return libparse::token::INDEX;
-  else if (typeStr == "error")
-    return libparse::token::ERROR;
-  else if (typeStr == "max_body_size")
-    return libparse::token::MAXBODYSIZE;
-  else if (typeStr == "dir_listing")
-    return libparse::token::DIRLISTENING;
-  else if (typeStr == "upload")
-    return libparse::token::UPLOAD;
-  else if (typeStr == "cgi")
-    return libparse::token::CGI;
-  else if (typeStr == "ENDDOMAIN")
-    return libparse::token::DOMAINS;
-  else
-    return libparse::token::KEYWORD;
-}
-
-void throw_error(std::string token, std::string msg) {
-  std::cout << msg << " \'" << token << "\' " << std::endl;
-}
-void skipEndLine(std::vector<std::string> content, size_t &i) {
-  // std::cout << content[i] << "<==== \n";
-  if (content[i] == "endline")
-    i++;
-  else {
-    std::cout << content[i - 2] << "   " << content[i - 1] << "    " << content[i]
-              << "   is not endline \n";
-    exit(1);
-  }
-}
-
-bool checkDomain(std::string domain) {
-  // impleant alowed char in domain
-  if (domain.empty())
-    return false;
   return true;
 }
 
-void setNewToken(libparse::token::t_type type, std::string lexeme,
-                 std::vector<libparse::tokens> &token) {
-  libparse::tokens tmp;
-  tmp.lexeme = lexeme;
-  tmp.type = type;
-  token.push_back(tmp);
-}
-
-bool checkValueOfMethode(std::string value) {
-  if (value == "GET" || value == "POST" || value == "HEAD" || value == "DELETE" || value == "PUT" ||
-      value == "CONNECT" || value == "TRACE" || value == "PATCH")
-    return true;
-  return false;
-}
-
-bool checkValidKey(std::string key) {
-  if (key == "error" || key == "index" || key == "max_body_size" || key == "root")
-    return true;
-  return false;
-}
-
-bool checkValidKeyOfRoute(std::string key) {
-  if (key == "root" || key == "index" || key == "cgi" || key == "redir" || key == "dir_listing" ||
-      key == "upload" || key == "methods")
-    return true;
-  return false;
-}
-
-int methodes(std::vector<libparse::tokens> &tokens, std::vector<std::string> content, size_t &i) {
-  int    error = 0;
-  size_t j = i;
-  size_t k = j;
-  while (content[i] != "endline") {
-    if (checkValueOfMethode(content[i]))
-      i++;
-    else
-      error++, i++;
-  }
-
-  if (j == i)
-    throw_error(content[j - 1], "Missing value ");
-
-  while (j < i - 1)
-    content[j].append(" ").append(content[j + 1]), j++;
-
-  setNewToken(libparse::token::METHODS, content[k], tokens);
-
-  return error;
-}
-
-int checkValue(std::string value) {
-  // alowed char in value
-  if (value.empty() || value == "endline")
-    return false;
-  return true;
-}
-
-int consumeToken(std::vector<libparse::tokens> &tokens, std::vector<std::string> &content,
-                 size_t &i) {
-  std::string token = content[i];
-  size_t      j = ++i;
-  size_t      k = j;
-  int         error = 0;
-
-  if (content[j - 1] == "methods") {
-    error += methodes(tokens, content, i);
-    return error;
-  }
-
-  while (content[i] != "endline") {
-    checkValue(content[i]), i++;
-  }
-
-  while (j < i - 1)
-    content[j].append(" ").append(content[j + 1]), j++;
-
-  if (content[j - 1] == "cgi" || content[j - 1] == "upload") {
-    if (i - j > 4)
-      throw_error(content[i - 1], "to much value "), error++;
-    if (j == i)
-      throw_error(content[i], "Missing value "), error++;
-  } else {
-    if (j == i)
-      throw_error(content[i], "Missing value "), error++;
-    if (i - j > 2)
-      throw_error(content[i - j], "to much value "), error++;
-  }
-
-  setNewToken(getTypeFromString(token), content[k], tokens);
-  return error;
-}
-
-int domain(std::vector<libparse::tokens> &tokens, std::string domain) {
-  int    error = 0;
-  size_t pos = domain.find(':');
-  if (checkDomain(domain)) {
-    if (pos != std::string::npos) {
-      setNewToken(libparse::token::DOMAINS, domain, tokens);
-      setNewToken(libparse::token::PORT, domain.substr(pos + 1), tokens);
-    } else {
-      setNewToken(libparse::token::DOMAINS, domain.append(":80"), tokens);
-      setNewToken(libparse::token::PORT, "80", tokens);
+int convertToInt(std::string str) {
+  int               num;
+  std::stringstream ss;
+  ss << str;
+  ss >> num;
+  if(!str.empty())
+  {
+  try {
+    return std::stoi(str.c_str());
     }
-  } else
-    throw_error(domain, "invalid domain "), error++;
-  return error;
-}
-
-int configRout(std::vector<libparse::tokens> &tokens, std::vector<std::string> &content,
-               size_t &i) {
-  int error = 0;
-
-  setNewToken(libparse::token::ROUTE, " ", tokens), i++;
-  if (checkValue(content[i]))
-    setNewToken(libparse::token::PATH, content[i], tokens), i++;
-  else
-    std::cout << "Error:Invalid root ,Missing path" << std::endl, error++;
-
-  if (content[i] != "{")
-    std::cout << "Error:Invalid route ,Missing \'{\'" << std::endl, error++;
-
-  else
-    setNewToken(libparse::token::CURLYBARCKETRIGTH, content[i], tokens), i++;
-
-  skipEndLine(content, i);
-
-  while (i < content.size() && content[i] != "}") {
-    if (checkValidKeyOfRoute(content[i])) {
-      consumeToken(tokens, content, i);
-      skipEndLine(content, i);
-      continue;
-    } else
-      std::cout << "Error:Invalid token \'" << content[i] << "\'" << std::endl, error++, i++;
+    catch (...) {
+       return -1;
+    }
   }
-  if (content[i] == "}") {
-    setNewToken(libparse::token::CURLYBARCKETLEFT, content[i], tokens), i++;
-    setNewToken(libparse::token::ENDROUTE, " ", tokens);
-    skipEndLine(content, i);
-    return error;
-  } else
-    std::cout << content[i] << "i have error \n", error++;
-  return error;
-}
-
-int configOutRout(std::vector<libparse::tokens> &tokens, std::vector<std::string> &content,
-                  size_t &i) {
-  int    error = 0;
-  size_t j = ++i;
-  size_t k = j;
-
-  while (content[i] != "endline")
-    checkValue(content[i]), i++;
-
-  while (j < i - 1)
-    content[j].append(" ").append(content[j + 1]), j++;
-
-  if (j == i)
-    throw_error(content[k - 1], "Missing value "), error++;
-  if (i - j > 1)
-    throw_error(content[i - 1], "to much value "), error++;
-  setNewToken(getTypeFromString(content[k - 1]), content[k], tokens), skipEndLine(content, i);
-  return error;
-}
-
-int config(std::vector<libparse::tokens> &tokens, std::vector<std::string> &content, size_t &i) {
-  int error = 0;
-  error += domain(tokens, content[i - 1]);
-  setNewToken(libparse::token::CURLYBARCKETRIGTH, content[i], tokens), i++;
-  skipEndLine(content, i);
-
-  while (checkValidKey(content[i]))
-    error += configOutRout(tokens, content, i);
-
-  while (content[i] == "route" && i < content.size())
-    error += configRout(tokens, content, i);
-
-  if (content[i] == "}") {
-    setNewToken(libparse::token::CURLYBARCKETLEFT, content[i], tokens), i++;
-    setNewToken(libparse::token::ENDDOMAIN, " ", tokens);
-    skipEndLine(content, i);
-    return error;
-  } else
-    std::cout << "Error:Invalid token \'" << content[i - 2] << " " << content[i - 1] << "   "
-              << content[i] << "\'" << std::endl,
-        error++;
-  return error;
-}
-
-void cleanUp(std::vector<libparse::tokens> &tokens) {
-  while (tokens[tokens.size() - 1].type != libparse::token::DOMAINS)
-    tokens.pop_back();
-  tokens.pop_back();
+  return 0;
 }
 
 bool convertStrToBool(std::string str) {
@@ -284,197 +56,462 @@ bool convertStrToBool(std::string str) {
   return false;
 }
 
-bool CheckValueOfOutRout(libparse::token::t_type type) {
-  if (type == libparse::token::ERROR || type == libparse::token::INDEX ||
-      type == libparse::token::ROOT || type == libparse::token::MAXBODYSIZE)
+static bool fileExists(std::string &filename) {
+  if(filename.empty())
+    return true;
+  std::ifstream file(filename);
+  if (file)
     return true;
   return false;
 }
 
-bool CheckValueOfInRout(libparse::token::t_type type) {
-  if (type == libparse::token::PATH || type == libparse::token::ROOT ||
-      type == libparse::token::INDEX || type == libparse::token::DIRLISTENING ||
-      type == libparse::token::METHODS || type == libparse::token::UPLOAD ||
-      type == libparse::token::CGI || type == libparse::token::REDIR)
+static bool directoryExists(std::string &path) {
+  if(path.empty())
     return true;
-  return false;
-}
+  DIR *dir = opendir(path.c_str());
 
-void setDefautlValue(libparse::Domain &domain, libparse::RouteProps &routeProps) {
-  std::vector<std::string> v;
-  routeProps.root = "";
-  routeProps.index = "";
-  v.push_back("GET");
-  v.push_back("POST");
-  routeProps.methods = v;
-  routeProps.redir = "";
-  routeProps.upload = std::make_pair("off", "");
-  routeProps.cgi = std::make_pair("", "");
-  routeProps.dirListening = "";
-
-  domain.error = "";
-  domain.index = "";
-  domain.maxBodySize = MAX_REQ_BODY_SIZE;
-  domain.root = "";
-  domain.port = "80";
-}
-
-std::string SetDomain(std::vector<libparse::tokens> &tokens, libparse::Domain &domain) {
-  std::string strDomain;
-  strDomain = tokens[0].lexeme;
-  tokens.erase(tokens.begin());
-
-  if (tokens[0].type == libparse::token::PORT) {
-    domain.port = tokens[0].lexeme;
-    tokens.erase(tokens.begin());
+  if (dir == nullptr) {
+    return false;
   }
-  if (tokens[0].type == libparse::token::CURLYBARCKETRIGTH)
-    tokens.erase(tokens.begin());
-  return strDomain;
+  closedir(dir);
+  return true;
 }
 
-int converToInt(std::string str) {
-  int               num;
-  std::stringstream ss;
-  ss << str;
-  ss >> num;
-  return num;
+std::pair<bool, std::string> checkFileExistAndEditableOfCgi(std::map<std::string, std::string> cgi)
+{
+  std::map<std::string, std::string>::iterator it = cgi.begin();
+  while(it != cgi.end())
+  {
+    if(fileExists(it->second))
+    {
+      if(!checkIsEditable(it->second))
+        return std::make_pair(false," ");
+    }
+    else
+      return std::make_pair(false," ");
+    it++;
+  }
+  return std::make_pair(true," ");
 }
 
-bool isNumber(std::string s) {
-  for (size_t i = 0; i < s.length(); i++) {
-    if (std::isdigit(s[i]) == 0)
+std::pair<bool, std::string> checkFileExist(libparse::Config &config)
+{
+  libparse::Domains           d = config.domains;
+  libparse::Domains::iterator itD;
+  libparse::Routes::iterator  itR;
+  std::pair<bool,std::string> res;
+  std::string                 path;
+  
+  
+  itD = d.begin();
+  while (itD != d.end()) {
+      if(!fileExists(itD->second.error))
+      return std::make_pair(false,itD->second.error);
+    itR = itD->second.routes.begin();
+    while (itR != itD->second.routes.end()) {
+      if(!directoryExists(itD->second.routes[itR->first].upload))
+        return std::make_pair(false,"upload"+itD->second.routes[itR->first].upload);
+      if(!directoryExists(itD->second.routes[itR->first].root))
+         return std::make_pair(false,"root"+itD->second.routes[itR->first].root);
+      path = itD->second.routes[itR->first].root + itD->second.routes[itR->first].index;
+      if(!fileExists(path))
+        return std::make_pair(false,"index"+itD->second.routes[itR->first].index);
+      res = checkFileExistAndEditableOfCgi(itD->second.routes[itR->first].cgi);
+      if(!res.first)
+        return std::make_pair(false,"cgi"+res.second);
+      itR++;
+    }
+    itD++;
+  }
+  return std::make_pair(true," ");
+}
+
+bool checkIsPath(std::string &path)
+{
+  if(path.empty())
+    return false;
+  if(path[path.length() -1] == '/')
+    return true;
+  return false;
+}
+
+void advance(std::vector<libparse::tokens> &tokens,size_t *i)
+{
+  if(*i > tokens.size())
+  {
+    std::cout  << "Error in config File \n";
+    exit(1);
+  }
+  (*i)++;
+}
+
+std::pair<bool , std::string> setUpLog(libparse::Config &config,std::vector<libparse::tokens> &tokens, size_t *i){
+
+  if(tokens[*i].lexeme == "log_error")
+  {
+    advance(tokens,i);
+    if(tokens[*i].type == libparse::tokens::ENDLINE)
+      return std::make_pair(false,"log_error");
+    config.log_error = tokens[*i].lexeme;
+  }
+
+  else if(tokens[*i].lexeme == "log_info")
+  {
+    advance(tokens,i);
+    if(tokens[*i].type == libparse::tokens::ENDLINE )
+     return std::make_pair(false,"log_info");
+    config.log_info = tokens[*i].lexeme;
+  }
+  advance(tokens,i);
+  if(tokens[*i].lexeme != "_")
+    return std::make_pair(false,";");
+  return std::make_pair(true,"");
+}
+
+bool checkIsKeyServer(libparse::token::t_type type)
+{
+  if(type == libparse::tokens::ERROR || type == libparse::tokens::MAXBODYSIZE || type == libparse::tokens::MAXHEADERSSIZE)
+    return true;
+  return false;
+
+}
+
+bool checkIsKeyRoute(libparse::token::t_type type)
+{
+  if(libparse::tokens::ROOT == type || libparse::tokens::METHODS == type || libparse::tokens::REDIR == type
+    || type == libparse::tokens::INDEX || type == libparse::tokens:: DIRLISTENING || type == libparse::tokens::UPLOAD 
+    || type == libparse::tokens::CGI)
+       return true;
+  return false;
+}
+
+bool checkIsKeyRouteStr(std::string key)
+{
+  if(key == "root" || key == "methods"|| key == "redir"|| key == "index" || key == "dir_listing" || key == "cgi" || key == "upload")
+       return true;
+  return false;
+
+}
+
+void skipWithSpace(std::string &content, size_t *i)
+{
+    while(content[*i] == ' ' || content[*i] == '\t' || content[*i] == '\n')
+        (*i)++;
+}
+
+std::string getWord(std::string &content, size_t *i)
+{
+  size_t j = *i;
+  std::string value;
+
+  while((content[*i] != ' ' && content[*i] != '\t' &&
+    content[*i] != '\n' && content[*i] != ';') && (*i < content.size()))
+      (*i)++;
+      
+  value =  content.substr(j,*i-j);
+  return value;
+}
+
+bool isWhiteSpace(char c)
+{
+    if(c == ' ' || c == '\t' || c == '\n')
+        return true;
+    return false;
+}
+
+bool checkMethod(std::string method)
+{
+  if(method == "GET" || method == "POST" || method == "DELETE")
+    return true;
+  return false;
+}
+
+std::pair<bool , std::string> setUpMethods(libparse::Routes &route,std::string &nameRoute,std::vector<libparse::tokens> &tokens, size_t *i)
+{
+  advance(tokens,i);
+  std::vector<std::string > vec;
+  int j = (*i);
+   while(tokens[*i].type != libparse::tokens::ENDLINE && (*i) - j < 4)
+    {
+      if(checkMethod(tokens[*i].lexeme))
+        vec.push_back(tokens[*i].lexeme);
+      else
+        return std::make_pair(false,tokens[*i].lexeme);
+      advance(tokens,i); 
+    }
+    if(tokens[*i].type != libparse::tokens::ENDLINE)
+      return std::make_pair(false,tokens[*i].lexeme);
+    
+    route[nameRoute].methods = vec;
+  return std::make_pair(true," ");
+}
+bool checkIsOneOff(std::string &str)
+{
+  if(str != "on" && str != "off")
+    return false;
+  return true;
+}
+
+std::pair<bool , std::string> setUpToken(libparse::Routes &route,std::string &nameRoute,std::vector<libparse::tokens> &tokens, size_t *i)
+{  
+  std::string token = tokens[*i].lexeme;
+  advance(tokens,i);
+  if(tokens[*i].type != libparse::tokens::ENDLINE)
+  {
+    if(token == "index")
+      route[nameRoute].index = tokens[*i].lexeme;
+    else if(token == "redir")
+      route[nameRoute].redir = tokens[*i].lexeme;
+    else if(token == "dir_listing")
+    {
+      if(!checkIsOneOff(tokens[*i].lexeme))
+        return std::make_pair(false,tokens[*i].lexeme);
+      
+      route[nameRoute].dirListening = convertStrToBool(tokens[*i].lexeme);
+    }
+    else if(token == "upload")
+    {
+      if(!checkIsPath(tokens[*i].lexeme))
+        return std::make_pair(false,tokens[*i].lexeme);
+      route[nameRoute].upload = tokens[*i].lexeme;
+    }
+    else if(token == "root")
+    {
+      if(!checkIsPath(tokens[*i].lexeme))
+        return std::make_pair(false,tokens[*i].lexeme);
+      route[nameRoute].root = tokens[*i].lexeme;
+    }
+  }
+  else 
+    return std::make_pair(false,tokens[*i].lexeme);
+  advance(tokens,i);
+  if(tokens[*i].type != libparse::tokens::ENDLINE)
+    return std::make_pair(false,tokens[*i].lexeme);
+  advance(tokens,i);
+  return std::make_pair(true," ");
+}
+
+std::pair<bool , std::string>  setUpCgi(libparse::Routes &route,std::string &nameRoute,std::vector<libparse::tokens> &tokens, size_t *i,std::map<std::string, std::string > &cgi)
+{
+  std::map<std::string , std::string>::iterator it = cgi.begin();
+  std::string key;
+  while(it != cgi.end())
+    it++;
+  
+  advance(tokens,i);
+  if(tokens[*i].type == libparse::tokens::ENDLINE)
+    return std::make_pair(false,tokens[*i].lexeme);
+
+  key = tokens[*i].lexeme;
+  advance(tokens,i);
+  if(tokens[*i].type == libparse::tokens::ENDLINE)
+    return std::make_pair(false,tokens[*i].lexeme);
+  route[nameRoute].cgi[key] = tokens[*i].lexeme;
+  advance(tokens,i);
+  if(tokens[*i].type != libparse::tokens::ENDLINE)
+    return std::make_pair(false,tokens[*i].lexeme);
+  return std::make_pair(true," ");
+}
+
+void setUpRouteInConfig(libparse::Config &config,std::string &nameDomain,std::string &nameRoute,libparse::Routes &route)
+{
+    config.domains[nameDomain].routes[nameRoute].cgi = route[nameRoute].cgi;
+    config.domains[nameDomain].routes[nameRoute].index = route[nameRoute].index;
+    config.domains[nameDomain].routes[nameRoute].root = route[nameRoute].root;
+    config.domains[nameDomain].routes[nameRoute].dirListening = route[nameRoute].dirListening;
+    config.domains[nameDomain].routes[nameRoute].redir = route[nameRoute].redir; 
+    config.domains[nameDomain].routes[nameRoute].methods = route[nameRoute].methods;
+    config.domains[nameDomain].routes[nameRoute].upload = route[nameRoute].upload;
+}
+
+std::pair<bool , std::string> setUpRout(libparse::Config &config,std::string &nameDomain,std::vector<libparse::tokens> &tokens, size_t *i)
+{
+  std::pair<bool , std::string> res;
+  libparse::Routes route;
+  std::map<std::string, std::string> cgi;
+  libparse::RouteProps routeProps;
+  std::string nameRoute;
+
+  advance(tokens,i);
+  nameRoute = tokens[*i].lexeme;
+  if(nameRoute[0] != '/')
+    return std::make_pair(false,tokens[*i].lexeme);
+  advance(tokens,i);
+  if(tokens[*i].lexeme != "{")
+    return std::make_pair(false,tokens[*i].lexeme);
+  advance(tokens,i);
+  while(tokens[*i].type != libparse::tokens::CURLYBARCKETLEFT)
+    {
+      if(checkIsKeyRoute(tokens[*i].type))
+      {
+        if(tokens[*i].type == libparse::tokens::METHODS)
+        {
+          res = setUpMethods(route,nameRoute,tokens,i);
+          if(!res.first)
+            return std::make_pair(false,res.second);
+          advance(tokens,i);
+        }
+        else if(tokens[*i].type == libparse::tokens::CGI)
+        {
+          res = setUpCgi(route,nameRoute,tokens,i,cgi);
+          if(!res.first)
+            return std::make_pair(false,res.second);
+          advance(tokens,i);
+        }
+        else
+        {
+          res = setUpToken(route,nameRoute,tokens,i);
+          if(!res.first)
+            return std::make_pair(false,res.second);
+        }
+      }
+      else
+      {
+        std::cout << "Error in Route    " << tokens[*i].lexeme << "   "<< tokens[*i - 1].lexeme << "   " << tokens[*i-2].lexeme << std::endl;
+        return std::make_pair(false,tokens[*i].lexeme);
+      }
+      continue;
+    }
+  setUpRouteInConfig(config,nameDomain,nameRoute,route);
+  advance(tokens,i);
+  return std::make_pair(true,tokens[*i].lexeme);
+}
+
+bool checkDomain(std::string &nameDomain)
+{
+  if(nameDomain.empty())
+    return false;
+  if(nameDomain[0] == '.'|| nameDomain[0] == '-' || nameDomain[nameDomain.length() -1] == '.')
+      return false;
+  for(size_t i = 0; i < nameDomain.length(); i++)
+  {
+    if(!isalpha(nameDomain[i]) && !isdigit(nameDomain[i]) && nameDomain[i] != '.' && nameDomain[i] != '-')
       return false;
   }
   return true;
 }
 
-void SetRoute(std::vector<libparse::tokens> &tokens, libparse::Domain &domain) {
-  if (tokens[0].type == libparse::token::ERROR) {
-    domain.error = tokens[0].lexeme;
-    tokens.erase(tokens.begin());
+std::pair<bool , std::string> setUpKey(libparse::Config &config,std::string nameDomain,std::vector<libparse::tokens> &tokens, size_t *i)
+{
+  int num;
+  if(tokens[*i].type == libparse::token::MAXBODYSIZE)
+  {
+    advance(tokens,i);
+    if(tokens[*i].type ==  libparse::token::ENDLINE)
+      return std::make_pair(false,"max_body_size");
+    if(!checkIsInt(tokens[*i].lexeme))
+      return std::make_pair(false,"max_body_size");
+    num =  convertToInt(tokens[*i].lexeme);
+    if(num == -1)
+          return std::make_pair(false,"max_body_size");
+    config.domains[nameDomain].maxBodySize = num;
+    advance(tokens,i); 
+    if(tokens[*i].type !=  libparse::token::ENDLINE)
+      return std::make_pair(false,"max_body_size");
+    advance(tokens,i);
+    return std::make_pair(true,"");
   }
-  if (tokens[0].type == libparse::token::MAXBODYSIZE) {
-    if (isNumber(tokens[0].lexeme)) {
-      domain.maxBodySize = converToInt(tokens[0].lexeme);
-      tokens.erase(tokens.begin());
-    } else
-      std::cout << "error is not number \n";
+  else if(tokens[*i].type == libparse::token::ERROR)
+  {
+    advance(tokens,i);
+    if(tokens[*i].type ==  libparse::token::ENDLINE)
+      return std::make_pair(false,"error");
+    config.domains[nameDomain].error = tokens[*i].lexeme;
+    advance(tokens,i);
+    if(tokens[*i].type !=  libparse::token::ENDLINE)
+      return std::make_pair(false,"error");
+    advance(tokens,i);
+    return std::make_pair(true,"");
   }
-  if (tokens[0].type == libparse::token::ROOT) {
-    domain.root = tokens[0].lexeme;
-    tokens.erase(tokens.begin());
+  else if(tokens[*i].type == libparse::token::MAXHEADERSSIZE)
+  {  
+    advance(tokens,i);
+    if(tokens[*i].type ==  libparse::token::ENDLINE)
+      return std::make_pair(false,"max_header_size");
+    config.domains[nameDomain].maxHeaserSize = convertToInt(tokens[*i].lexeme);
+    advance(tokens,i);
+    if(tokens[*i].type !=  libparse::token::ENDLINE)
+      return std::make_pair(false,"max_header_size");
+    advance(tokens,i);
+    return std::make_pair(true,"");
   }
-  if (tokens[0].type == libparse::token::INDEX) {
-    domain.index = tokens[0].lexeme;
-    tokens.erase(tokens.begin());
-  }
+  return std::make_pair(false,"");
+}
+std::pair<bool,std::string> setUpPort(libparse::Config &config,std::string &nameDomain)
+{
+  size_t pos = nameDomain.find(':');
+  int port;
+  std::string domain;
+
+    if (pos != std::string::npos) {
+        domain =nameDomain.substr(0,pos);
+        if(!checkDomain(domain))
+          return std::make_pair(false,domain);
+        if(pos < nameDomain.length() -1)
+          config.domains[nameDomain].port = nameDomain.substr(pos + 1);
+        else
+        {
+          nameDomain.append(":80");
+          config.domains[nameDomain].port = "80";
+        }
+      if(!checkIsInt(config.domains[nameDomain].port))
+        return std::make_pair(false,config.domains[nameDomain].port);
+      port = convertToInt(config.domains[nameDomain].port);
+      if(port < 0 || port > 65535)
+        return std::make_pair(false,config.domains[nameDomain].port);
+    return std::make_pair(true,config.domains[nameDomain].port);
+    } else {
+        if(!checkDomain(nameDomain))
+          return std::make_pair(false,nameDomain);
+      nameDomain.append(":80");
+      config.domains[nameDomain].port = "80";
+      return std::make_pair(true,config.domains[nameDomain].port);
+    }
+  return std::make_pair(false,nameDomain);
 }
 
-void SetValue(std::vector<libparse::tokens> &tokens, libparse::RouteProps &routeProps) {
+std::pair<bool , std::string> SetUpServer(libparse::Config &config,std::vector<libparse::tokens> &tokens, size_t *i)
+{
+  std::string nameDomain, strRoute;
+  libparse::Routes route;
+  std::pair<bool , std::string> res;
 
-  std::vector<std::string> tmpSplit;
-  if (tokens[0].type == libparse::token::PATH) {
-    routeProps.path = tokens[0].lexeme;
-    tokens.erase(tokens.begin());
-  }
-  if (tokens[0].type == libparse::token::token::ROOT) {
-    routeProps.root = tokens[0].lexeme;
-    tokens.erase(tokens.begin());
-  }
-  if (tokens[0].type == libparse::token::token::INDEX) {
-    routeProps.index = tokens[0].lexeme;
-    tokens.erase(tokens.begin());
-  }
-  if (tokens[0].type == libparse::token::token::DIRLISTENING) {
-    routeProps.dirListening = convertStrToBool(tokens[0].lexeme);
-    tokens.erase(tokens.begin());
-  }
-  if (tokens[0].type == libparse::token::token::METHODS) {
-    tmpSplit = split(tokens[0].lexeme);
-    routeProps.methods = tmpSplit;
-    tokens.erase(tokens.begin());
-  }
-  if (tokens[0].type == libparse::token::token::UPLOAD) {
-    tmpSplit = split(tokens[0].lexeme);
-    routeProps.upload = std::make_pair(convertStrToBool(tmpSplit[0]), tmpSplit[1]);
-    tokens.erase(tokens.begin());
-  }
-  if (tokens[0].type == libparse::token::token::CGI) {
-    tmpSplit = split(tokens[0].lexeme);
-    routeProps.cgi = std::make_pair(tmpSplit[0], tmpSplit[1]);
-    tokens.erase(tokens.begin());
-  }
-  if (tokens[0].type == libparse::token::token::REDIR) {
-    routeProps.redir = tokens[0].lexeme;
-    tokens.erase(tokens.begin());
-  }
-}
-
-void SetConfigInRoute(std::vector<libparse::tokens> &tokens, libparse::RouteProps &routeProps,
-                      libparse::Domain &domain) {
-  tokens.erase(tokens.begin());
-  if (tokens[0].type == libparse::token::PATH) {
-    routeProps.path = tokens[0].lexeme;
-    tokens.erase(tokens.begin());
-  }
-  if (tokens[0].type == libparse::token::CURLYBARCKETRIGTH)
-    tokens.erase(tokens.begin());
-  while (tokens[0].type != libparse::token::ENDROUTE) {
-    if (CheckValueOfInRout(tokens[0].type)) {
-      SetValue(tokens, routeProps);
-      continue;
-    }
-    if (tokens[0].type == libparse::token::CURLYBARCKETLEFT) {
-      tokens.erase(tokens.begin());
-      if (tokens[0].type == libparse::token::ENDROUTE) {
-        tokens.erase(tokens.begin());
-        domain.routes[routeProps.path] = routeProps;
-        break;
-      } else
-        std::cout << "error";
-    } else
-      std::cout << "error \n";
-  }
-  if (tokens[0].type == libparse::token::ENDROUTE)
-    tokens.erase(tokens.begin());
-}
-
-libparse::Domains setTokenInStruct(std::vector<libparse::tokens> &tokens) {
-  libparse::Domains           domains;
-  libparse::Domains           tmp;
-  libparse::Routes            routes;
-  struct libparse::Domain     domain;
-  struct libparse::RouteProps routeProps;
-
-  std::string              strDomain;
-  std::string              strRoute;
-  std::vector<std::string> tmpSplit;
-
-  if (tokens.size() == 0)
-    return domains;
-  while (tokens[0].type != libparse::token::ENDFILE) {
-    if (tokens[0].type == libparse::token::DOMAINS) {
-      setDefautlValue(domain, routeProps);
-      strDomain = SetDomain(tokens, domain);
-      continue;
-    }
-    if (CheckValueOfOutRout(tokens[0].type)) {
-      SetRoute(tokens, domain);
-      continue;
-    }
-    if (tokens[0].type == libparse::token::ROUTE) {
-      SetConfigInRoute(tokens, routeProps, domain);
-      continue;
-    }
-    if (tokens[0].type == libparse::token::CURLYBARCKETLEFT) {
-      tokens.erase(tokens.begin());
-      if (tokens[0].type == libparse::token::ENDDOMAIN) {
-        domains[strDomain] = domain;
-        tokens.erase(tokens.begin());
+  nameDomain = tokens[*i].lexeme;
+  res = setUpPort(config,nameDomain);
+  if(!res.first)
+    return std::make_pair(false,res.second);
+  advance(tokens,i);
+  if(tokens[*i].type != libparse::tokens::CURLYBARCKETRIGTH)
+    return std::make_pair(false,"{");
+  advance(tokens,i); 
+   while(tokens[*i].type != libparse::tokens::CURLYBARCKETLEFT)
+  {
+      if(checkIsKeyServer(tokens[*i].type))
+      {
+        res = setUpKey(config,nameDomain,tokens,i);
+        if(!res.first)
+          return std::make_pair(false,res.second);
+      }
+      else if(tokens[*i].type == libparse::tokens::ROUTE)
+      {
+        res = setUpRout(config,nameDomain,tokens,i);
+        if(!res.first)
+          return std::make_pair(false,res.second);
+      }
+      else
+      {
+        std::cout << "Error in server " << tokens[*i].lexeme << std::endl;
+        return std::make_pair(false,tokens[*i].lexeme);
       }
       continue;
-    }
   }
-  return domains;
+  advance(tokens,i);
+  return std::make_pair(true,nameDomain);
+}
+
+std::pair<bool , std::string> setUpDefaultSever(libparse::Config &config,std::vector<libparse::tokens> &tokens, size_t *i)
+{
+  std::pair<bool , std::string> res;
+  advance(tokens,i);
+  return SetUpServer(config,tokens,i);
 }

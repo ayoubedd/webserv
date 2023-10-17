@@ -22,19 +22,17 @@ namespace libnet {
     };
 
     Session(int fd, sockaddr_in *clientAddr);
-    ~Session();
 
-    int                        fd;
-    libhttp::Reader            reader;
-    libhttp::Writer            writer;
-    libhttp::TransferEncoding *transferEncoding;
-    libhttp::Multipart        *multipart;
-    libhttp::SizedPost        *sizedPost;
-    libcgi::Cgi               *cgi;
-    sockaddr_in               *clientAddr;
+    int                       fd;
+    libhttp::TransferEncoding transferEncoding;
+    libhttp::Multipart        multipart;
+    libhttp::SizedPost        sizedPost;
+    libhttp::Reader           reader;
+    libhttp::Writer           writer;
+    libcgi::Cgi               cgi;
+    sockaddr_in              *clientAddr;
 
-    bool destroy;
-    int  permitedIo;
+    int permitedIo;
     // Bit-maping
     // 1: Able to read from socket
     // 2: Able to write to socket
@@ -44,7 +42,5 @@ namespace libnet {
     // Utility to check if the corresponding
     // io operation going to block or not
     bool isNonBlocking(int);
-
-    void cleanup();
   };
 } // namespace libnet

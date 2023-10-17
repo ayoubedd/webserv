@@ -19,7 +19,6 @@ namespace libhttp {
     sockaddr_in           clientAddr;
 
     Reader(int fd, sockaddr_in clientAddr, unsigned int readBuffSize = 8190);
-    ~Reader(void);
     enum error {
       OK,
       CONN_CLOSED,
