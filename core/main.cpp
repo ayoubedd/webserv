@@ -32,8 +32,7 @@ void sessionsHandler(libnet::Netenv &net, libparse::Config &config) {
 
     libhttp::Request *request = session->reader.requests.front();
 
-    if (request->state == libnet::SessionState::READING_BODY ||
-        request->state == libnet::SessionState::READING_FIN)
+    if (request->state == libhttp::Request::R_BODY || request->state == libhttp::Request::R_FIN)
       libhttp::Mux::multiplexer(session, config);
 
     // Calling the writer.

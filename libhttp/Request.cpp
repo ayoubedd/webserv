@@ -11,7 +11,7 @@ libhttp::Request::Request(sockaddr_in *clientAddr)
     , body()
     , allBodyLen(0)
     , clientAddr(clientAddr)
-    , state(libnet::READING_HEADERS){};
+    , state(R_HEADERS){};
 
 std::ostream &operator<<(std::ostream &os, const libhttp::Request &req) {
   char      ip4[INET_ADDRSTRLEN] = {0};
