@@ -18,3 +18,4 @@ const char *libhttp::Headers::TRANSFER_ENCODING = "Transfer-Encoding";
 const char *libhttp::Headers::CONTENT_LENGTH = "Content-Length";
 const char *libhttp::Headers::HOST = "Host";
 const char *libhttp::Headers::REFERER = "Referer";
+const char *libhttp::Headers::CONNECTION = "Connection";

@@ -1,7 +1,7 @@
 #include "Config.hpp"
 #include <algorithm>
 
-static void ft_replace(std::string &str, const std::string &old_value, const std::string &new_value) {
+void ft_replace(std::string &str, const std::string &old_value, const std::string &new_value) {
   size_t pos = 0;
   while ((pos = str.find(old_value, pos)) != std::string::npos) {
     str.replace(pos, old_value.length(), new_value);
@@ -10,9 +10,9 @@ static void ft_replace(std::string &str, const std::string &old_value, const std
 }
 
 std::string libparse::readFile(std::string filename) {
-  std::ifstream inputFile(filename.c_str());
+  std::ifstream     inputFile(filename.c_str());
   std::stringstream buffer;
-  std::string fileContent;
+  std::string       fileContent;
 
   if (!inputFile.is_open()) {
     std::cerr << "Error opening file: " << filename << std::endl;
@@ -22,7 +22,5 @@ std::string libparse::readFile(std::string filename) {
   inputFile.close();
   fileContent = buffer.str();
 
-  ft_replace(fileContent, "\n\n", "\n");
-  ft_replace(fileContent, "\n", " endline ");
   return fileContent;
 }
