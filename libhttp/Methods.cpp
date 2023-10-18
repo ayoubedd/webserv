@@ -1,5 +1,6 @@
 #include "libhttp/Methods.hpp"
 #include "MultipartFormData.hpp"
+#include "libhttp/Headers.hpp"
 #include "libhttp/MultipartFormData.hpp"
 #include "libhttp/Redirect.hpp"
 #include "libparse/Types.hpp"
@@ -268,18 +269,23 @@ void initFile(libhttp::Methods::file &file, std::string fileName) {
 }
 
 bool checkRangeRequest(libhttp::Headers &headers) {
+
   if (headers.headers.size() == 0)
     return false;
-  if (headers.headers.find(libhttp::Headers::CONTENT_RANGE) != headers.headers.end())
+
+  if (headers.headers.find("Range") != headers.headers.end())
     return true;
   return false;
 }
 
 bool checkRange(libhttp::Methods::file &file, std::pair<int, int> range) {
-  if (range.second > range.first)
+
+  if (range.second < range.first) {
     return false;
-  if (range.first > file.size)
+  }
+  if (range.second > file.size) {
     return false;
+  }
   return true;
 }
 
@@ -296,10 +302,10 @@ std::pair<int, int> getStartandEndRangeRequest(std::string str) {
 
 off_t advanceOffSet(int fd, size_t start) { return lseek(fd, start, SEEK_SET); }
 
-void setRange(libhttp::Response *response, std::pair<int, int> range) {
+bool setRange(libhttp::Response *response, std::pair<int, int> range) {
   response->bytesToServe = range.second - range.first;
   // off_t offSet;
-  advanceOffSet(response->fd, range.first);
+  return (advanceOffSet(response->fd, range.first) != -1);
 }
 
 void setHeaders(libhttp::Response *response, std::string contentType, size_t ContentLenght,
@@ -324,16 +330,21 @@ std::pair<libhttp::Methods::error, libhttp::Response *> libhttp::Get(libhttp::Re
       return std::make_pair(libhttp::Methods::REDIR,
                             libhttp::redirect(request.reqTarget.path + "/"));
     if (checkRangeRequest(request.headers)) {
-      std::pair<int, int> range =
-          getStartandEndRangeRequest(request.headers[libhttp::Headers::CONTENT_RANGE]);
+
+      std::pair<int, int> range = getStartandEndRangeRequest(request.headers["Range"]);
+      if (!range.second)
+        range.second = file.size;
       if (!checkRange(file, range))
         return std::make_pair(libhttp::Methods::OUT_RANGE, nullptr);
       response = new Response();
+      response->fd = file.fd;
       setRange(response, range);
+      setHeaders(response, libparse::getTypeFile(libparse::Types(), path),
+                 range.second - range.first, 200, "OK");
     } else {
       response = new Response();
+      setHeaders(response, libparse::getTypeFile(libparse::Types(), path), file.size, 200, "OK");
     }
-    setHeaders(response, libparse::getTypeFile(libparse::Types(), path), file.size, 200, "OK");
     response->fd = file.fd;
     return std::make_pair(libhttp::Methods::OK, response);
   }
