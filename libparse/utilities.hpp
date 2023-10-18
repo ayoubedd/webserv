@@ -43,3 +43,5 @@ std::pair<bool, std::string> SetUpServer(libparse::Config              &config,
 
 std::pair<bool, std::string> setUpDefaultSever(libparse::Config              &config,
                                                std::vector<libparse::tokens> &tokens, size_t *i);
+
+std::pair<bool, std::string> checkDuplicatePort(libparse::Config &config);

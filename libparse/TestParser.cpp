@@ -88,36 +88,9 @@ void printConfig(libparse::Config config) {
   libparse::Domains::iterator itD;
   libparse::Routes::iterator  itR;
 
-  std::cout << "Nbr default Sever is : " << config.defaultServer->size() << std::endl;
+  std::cout << "Nbr default Sever is : " << config.defaultServer << std::endl;
   itD = d.begin();
   while (itD != d.end()) {
-    std::cout << "Domain: " << itD->first << std::endl;
-    std::cout << "\t\t\t\terror: " << itD->second.error << std::endl;
-    std::cout << "\t\t\t\tport: " << itD->second.port << std::endl;
-    std::cout << "\t\t\t\tMaxSizeBody: " << itD->second.maxBodySize << std::endl;
-    std::cout << "\t\t\t\tmaxHeaserSize: " << itD->second.maxHeaserSize << std::endl;
-    itR = itD->second.routes.begin();
-    while (itR != itD->second.routes.end()) {
-      std::cout << "\t\t\t\troute: " << itR->first << std::endl;
-      std::cout << "\t\t\t\troot: " << itD->second.routes[itR->first].root << std::endl;
-      std::cout << "\t\t\t\tindex: " << itD->second.routes[itR->first].index << std::endl;
-      std::cout << "\t\t\t\tmethods: ";
-      printVect(itD->second.routes[itR->first].methods);
-      std::cout << "\t\t\t\tredir: " << itD->second.routes[itR->first].redir << std::endl;
-      std::cout << "\t\t\t\tdirListing: " << itD->second.routes[itR->first].dirListening
-                << std::endl;
-      std::cout << "\t\t\t\tupload: " << itD->second.routes[itR->first].upload << std::endl;
-      std::cout << "\t\t\t\tcgi: ";
-      printMap(itD->second.routes[itR->first].cgi);
-      itR++;
-    }
-    itD++;
-  }
-
-  std::cout << "<========================== Defautl Sever ========================>" << std::endl;
-  itD = config.defaultServer->begin();
-
-  while (itD != config.defaultServer->end()) {
     std::cout << "Domain: " << itD->first << std::endl;
     std::cout << "\t\t\t\terror: " << itD->second.error << std::endl;
     std::cout << "\t\t\t\tport: " << itD->second.port << std::endl;

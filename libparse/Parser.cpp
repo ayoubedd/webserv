@@ -1,5 +1,6 @@
 #include "Config.hpp"
 #include "utilities.hpp"
+#include <utility>
 
 static bool strStartWith(const std::string str, const std::string prefix) {
   std::string::size_type i;
@@ -21,7 +22,7 @@ libparse::Domain *getDefeaultSever(libparse::Domains &domains, std::string serve
 
 std::pair<bool, std::string> libparse::parser(libparse::Config              &config,
                                               std::vector<libparse::tokens> &tokens) {
-  config.defaultServer = new Domains;
+  bool is = false;
   if (tokens.size() <= 1)
     return std::make_pair(false, "Config Is empty ");
   size_t                       i = 0;
@@ -35,12 +36,15 @@ std::pair<bool, std::string> libparse::parser(libparse::Config              &con
   }
   while (tokens[i].type != libparse::tokens::ENDFILE && i < tokens.size() - 1) {
     if (tokens[i].lexeme == "default") {
+      if (is)
+        return std::make_pair(false, "You must one default Server :) ");
       res = setUpDefaultSever(config, tokens, &i);
       if (!res.first)
         return res;
+      is = true;
       libparse::Domains::iterator it = config.domains.find(res.second);
       if (it != config.domains.end())
-        config.defaultServer->insert(std::make_pair(it->first, it->second));
+        config.defaultServer = &it->second;
     } else {
       res = SetUpServer(config, tokens, &i);
       if (!res.first)
@@ -51,33 +55,18 @@ std::pair<bool, std::string> libparse::parser(libparse::Config              &con
   return std::make_pair(true, "");
 }
 
-std::pair<bool, std::string> checkDuplicateNameDomain(libparse::Config &config) {
+std::pair<bool, std::string> checkDuplicatePort(libparse::Config &config) {
   libparse::Domains::iterator itD;
   libparse::Domains::iterator it;
   itD = config.domains.begin();
-  std::string nameDomain;
+  std::string port;
   while (itD != config.domains.end()) {
-    nameDomain = itD->first;
+    port = itD->second.port;
     it = ++itD;
     while (it != config.domains.end()) {
-      if (it->first == nameDomain)
+      if (it->second.port == port)
         return std::make_pair(false, it->first);
       it++;
-    }
-  }
-  return std::make_pair(true, "");
-}
-
-std::pair<bool, std::string> checkDuplicateDefaultServer(libparse::Config &config) {
-  libparse::Domains::iterator itD;
-  libparse::Domains::iterator its;
-  its = config.defaultServer->begin();
-  while (its != config.defaultServer->end()) {
-    itD = ++its;
-    while (itD != config.defaultServer->end()) {
-      if (itD->first.substr(0, itD->first.find(':')) == its->first.substr(0, its->first.find(':')))
-        return std::make_pair(false, "");
-      itD++;
     }
   }
   return std::make_pair(true, "");
@@ -125,14 +114,9 @@ bool libparse::checkConfig(const std::string &fileName, libparse::Config &config
     std::cout << "Error Default Route " << res.second << std::endl;
     return res.first;
   }
-  res = checkDuplicateDefaultServer(config);
+  res = checkDuplicatePort(config);
   if (!res.first) {
-    std::cout << "Error Mulitple defautl domain in the same domain " << res.second << std::endl;
-    return res.first;
-  }
-  res = checkDuplicateNameDomain(config);
-  if (!res.first) {
-    std::cout << "Error Mulitple name domain " << res.second << std::endl;
+    std::cout << "Error Mulitple Port " << res.second << std::endl;
     return res.first;
   }
   return true;
