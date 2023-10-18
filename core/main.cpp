@@ -19,7 +19,6 @@ void sessionsHandler(libnet::Netenv &net, libparse::Config &config) {
 
     libhttp::Reader::error readerErr = libhttp::Reader::OK;
     libhttp::Writer::erorr writerError = libhttp::Writer::OK;
-    libhttp::Status::Code  httpCode = libhttp::Status::OK;
 
     // Calling the reader.
     if (session->isNonBlocking(libnet::Session::SOCK_READ)) {
