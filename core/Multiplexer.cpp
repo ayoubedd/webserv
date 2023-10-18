@@ -66,7 +66,8 @@ static bool shouldCloseSessions(libhttp::Request *request) {
 }
 
 static StatusResPair cgiHandler(libcgi::Cgi *cgi, const libparse::RouteProps *route,
-                                const libparse::Domain *domain, libhttp::Request *req) {
+                                const libparse::Domain *domain, libhttp::Request *req,
+                                bool allowedToRead) {
   libcgi::Cgi::Error cgiError;
 
   cgiError = libcgi::Cgi::OK;
@@ -86,7 +87,8 @@ static StatusResPair cgiHandler(libcgi::Cgi *cgi, const libparse::RouteProps *ro
     }
     case libcgi::Cgi::READING_HEADERS:
     case libcgi::Cgi::READING_BODY:
-      cgiError = cgi->read();
+      if (allowedToRead == true)
+        cgiError = cgi->read();
       break;
     case libcgi::Cgi::ERR:
     case libcgi::Cgi::FIN:
@@ -203,7 +205,8 @@ static StatusResPair callCoresspondingHandler(libnet::Session *session, libhttp:
   else if (route->cgi.size()) {
     if (session->cgi == nullptr)
       session->cgi = new libcgi::Cgi(session->clientAddr);
-    errRes = cgiHandler(session->cgi, route, domain, req);
+    bool allowedToRead = session->isNonBlocking(libnet::Session::CGI_READ);
+    errRes = cgiHandler(session->cgi, route, domain, req, allowedToRead);
   }
 
   else if (req->method == "GET") {
