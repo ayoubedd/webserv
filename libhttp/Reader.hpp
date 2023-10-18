@@ -1,7 +1,6 @@
 #pragma once
 
 #include "libhttp/Request.hpp"
-#include "libnet/SessionState.hpp"
 #include <cstdlib>
 #include <queue>
 #include <string>
@@ -43,10 +42,10 @@ namespace libhttp {
     error buildRequestHeaders();
     error buildRequestBody();
 
-    error                                  read();
-    std::pair<error, libnet::SessionState> processReadBuffer(libnet::SessionState state);
-    std::pair<error, bool>                 readingRequestHeaderHundler();
-    std::pair<error, bool>                 readingBodyHundler();
+    error                            read();
+    std::pair<error, Request::State> processReadBuffer(Request::State);
+    std::pair<error, bool>           readingRequestHeaderHundler();
+    std::pair<error, bool>           readingBodyHundler();
 
     std::pair<error, bool> processChunkedEncoding();
     std::pair<error, bool> processMultiPartFormData();
