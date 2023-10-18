@@ -104,6 +104,7 @@ static MuxErrResPair deleteHandler(const std::string &path) {
       return std::make_pair(libhttp::Mux::ERROR_403, nullptr);
     case libhttp::Methods::OUT_RANGE:
       return std::make_pair(libhttp::Mux::ERROR_416, nullptr);
+    case libhttp::Methods::REDIR:
     case libhttp::Methods::OK:
       break;
   }
@@ -123,6 +124,7 @@ static MuxErrResPair getHandler(libhttp::Request &req, const std::string &path) 
       return std::make_pair(libhttp::Mux::ERROR_403, nullptr);
     case libhttp::Methods::OUT_RANGE:
       return std::make_pair(libhttp::Mux::ERROR_416, nullptr);
+    case libhttp::Methods::REDIR:
     case libhttp::Methods::OK:
       break;
   }
