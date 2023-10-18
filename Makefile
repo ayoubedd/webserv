@@ -1,6 +1,6 @@
 NAME=webserv
 CXX=g++
-CXXFLAGS+=-Wall -Wextra -Wreorder -I .
+CXXFLAGS+=-Wall -Wextra -Wreorder -I . -flto -O3
 
 CORE=core/main.cpp core/Sanitizer.cpp core/Multiplexer.cpp \
 		 core/Initialization.cpp
