@@ -35,13 +35,7 @@ void sessionsHandler(libnet::Netenv &net, libparse::Config &config) {
 
     if (request->state == libnet::SessionState::READING_BODY ||
         request->state == libnet::SessionState::READING_FIN)
-      httpCode = libhttp::Mux::multiplexer(session, config);
-
-    if (httpCode != libhttp::Status::OK) {
-      session->destroy = true;
-      sessionsBegin++;
-      continue;
-    }
+      libhttp::Mux::multiplexer(session, config);
 
     // Calling the writer.
     if (session->isNonBlocking(libnet::Session::SOCK_WRITE)) {
