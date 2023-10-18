@@ -3,7 +3,8 @@
 #include <arpa/inet.h>
 
 libhttp::Request::Request(sockaddr_in *clientAddr)
-    : method()
+    : sanitized(false)
+    , method()
     , reqTarget()
     , version()
     , headers()
@@ -40,5 +41,4 @@ void libhttp::Request::expandeRefererHeaderInPath() {
 
   this->reqTarget.path = libparse::joinPath(libhttp::RequestTarget::getPathFromUrl(referer->second),
                                             this->reqTarget.path);
-
 }

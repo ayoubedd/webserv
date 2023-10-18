@@ -10,6 +10,7 @@
 // TODO: update allBodyLen in chunked and multiform upload
 namespace libhttp {
   struct Request {
+    bool              sanitized;
     std::string       method;
     RequestTarget     reqTarget;
     std::string       version;
