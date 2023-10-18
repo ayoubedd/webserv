@@ -13,7 +13,7 @@ namespace libparse {
   std::string findRouteRoot(const libparse::Routes &routes, const libparse::RouteProps &route);
   std::string findRouteIndex(const libparse::Routes &routes, const libparse::RouteProps &route);
   std::string findResourceInFs(const libhttp::Request &req, const libparse::Domain &domain);
-  std::string findUploadDir(const libhttp::Request &req, const libparse::Domain &domain);
   std::string joinPath(const std::string &s1, const std::string &s2);
+  std::string findUploadDir(const libparse::Routes *routes, const libparse::RouteProps *route);
 
 } // namespace libparse
