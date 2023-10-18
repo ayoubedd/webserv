@@ -188,7 +188,6 @@ static StatusResPair postHandler(libhttp::Request &req, libhttp::Multipart *ml,
 }
 
 static StatusResPair callCoresspondingHandler(libnet::Session *session, libhttp::Request *req,
-                                              const libparse::Config     &config,
                                               const libparse::Domain     *domain,
                                               const libparse::RouteProps *route) {
   StatusResPair errRes;
@@ -208,14 +207,14 @@ static StatusResPair callCoresspondingHandler(libnet::Session *session, libhttp:
 
   else if (req->method == "GET") {
     std::string resourcePath = libparse::findResourceInFs(*req, *domain);
-    errRes.first = WebServ::Sanitizer::sanitizeGetRequest(*req, config);
+    errRes.first = WebServ::Sanitizer::sanitizeGetRequest(*req, *domain);
     if (errRes.first == libhttp::Status::OK)
       errRes = getHandler(*req, resourcePath);
   }
 
   else if (req->method == "DELETE") {
     std::string resourcePath = libparse::findResourceInFs(*req, *domain);
-    errRes.first = WebServ::Sanitizer::sanitizeGetRequest(*req, config);
+    errRes.first = WebServ::Sanitizer::sanitizeGetRequest(*req, *domain);
     if (errRes.first == libhttp::Status::OK)
       errRes = deleteHandler(resourcePath);
   }
@@ -238,9 +237,9 @@ static StatusResPair callCoresspondingHandler(libnet::Session *session, libhttp:
         break;
     }
 
-    std::string uploadRoot = libparse::findUploadDir(*req, *domain);
+    std::string uploadRoot = libparse::findUploadDir(&domain->routes, route);
 
-    errRes.first = WebServ::Sanitizer::sanitizePostRequest(*req, config);
+    errRes.first = WebServ::Sanitizer::sanitizePostRequest(*req, domain->routes, *route);
     if (errRes.first == libhttp::Status::OK)
       errRes = postHandler(*req, session->multipart, session->transferEncoding, session->sizedPost,
                            uploadRoot);
@@ -273,7 +272,7 @@ void libhttp::Mux::multiplexer(libnet::Session *session, const libparse::Config 
     }
 
   if (errRes.first == libhttp::Status::OK)
-    errRes = callCoresspondingHandler(session, req, config, domain, route.second);
+    errRes = callCoresspondingHandler(session, req, domain, route.second);
 
   // Errors
   switch (errRes.first) {

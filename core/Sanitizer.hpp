@@ -21,10 +21,11 @@ namespace WebServ {
     static Status::Code sanitizeRequest(const libhttp::Request &req,
                                         const libparse::Domain &domain);
 
-    static Status::Code sanitizePostRequest(const libhttp::Request &req,
-                                            const libparse::Config &config);
     static Status::Code sanitizeGetRequest(const libhttp::Request &req,
-                                           const libparse::Config &config);
+                                           const libparse::Domain &domain);
+    static Status::Code sanitizePostRequest(const libhttp::Request     &req,
+                                            const libparse::Routes     &routes,
+                                            const libparse::RouteProps &route);
   };
 
 } // namespace WebServ

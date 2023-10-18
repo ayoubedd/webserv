@@ -111,18 +111,17 @@ std::string libparse::findResourceInFs(const libhttp::Request &req,
   return fs;
 }
 
-std::string libparse::findUploadDir(const libhttp::Request &req, const libparse::Domain &domain) {
-  std::pair<std::string, const RouteProps *> route =
-      matchPathWithRoute(domain.routes, req.reqTarget.path);
-  if (!route.second->upload.empty())
+std::string libparse::findUploadDir(const libparse::Routes     *routes,
+                                    const libparse::RouteProps *route) {
+  if (route->upload.empty() == true)
     return "";
-  std::string root = findRouteRoot(domain.routes, *route.second);
-  if (route.second->upload[0] == '/') { // if the path is abs path
-    if (access(route.second->upload.c_str(), W_OK) != 0)
+  if (route->upload[0] == '/') { // if the path is abs path
+    if (access(route->upload.c_str(), W_OK) != 0)
       return "";
-    return route.second->upload;
+    return route->upload;
   }
-  std::string fs = joinPath(root, route.second->upload);
+  std::string root = findRouteRoot(*routes, *route);
+  std::string fs = joinPath(root, route->upload);
   if (access(fs.c_str(), W_OK) != 0)
     return "";
   return fs;
