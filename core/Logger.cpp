@@ -9,7 +9,7 @@
 #include <string>
 #include <utility>
 
-const char *Webserv::Logger::LOGGERLINE = " {TIME} {IPv4} {METHOD} {PATH} {VERSIONHTTP}";
+const char *Webserv::Logger::LOGGERLINE = "{TIME} {IPv4} {METHOD} {PATH} {VERSIONHTTP}";
 const char *Webserv::Logger::IPV4 = "{IPv4}";
 const char *Webserv::Logger::METHOD = "{METHOD}";
 const char *Webserv::Logger::VERSIONHTTP = "{VERSIONHTTP}";
