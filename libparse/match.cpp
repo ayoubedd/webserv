@@ -13,7 +13,7 @@ static inline bool matchHostHeaderPortWithDomain(const std::string &domainPort,
   std::string            host, headerPort;
 
   i = header.find(':');
-  headerPort = i == std::string::npos ? headerPort = "80" : headerPort.substr(i + 1);
+  headerPort = ((i == std::string::npos) ? headerPort = "80" : header.substr(i));
   return headerPort == domainPort;
 }
 
