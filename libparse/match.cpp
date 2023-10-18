@@ -7,16 +7,14 @@
 #include <unistd.h>
 #include <utility>
 
-static inline bool matchHostHeaderPortWithDomain(const std::string &domain,
+static inline bool matchHostHeaderPortWithDomain(const std::string &domainPort,
                                                  const std::string &header) {
   std::string::size_type i;
-  std::string            host;
+  std::string            host, headerPort;
 
   i = header.find(':');
-  host = header;
-  if (i == std::string::npos)
-    host += ":80";
-  return domain == host;
+  headerPort = i == std::string::npos ? headerPort = "80" : headerPort.substr(i + 1);
+  return headerPort == domainPort;
 }
 
 const libparse::Domain *libparse::matchReqWithServer(const libhttp::Request &req,
@@ -31,7 +29,7 @@ const libparse::Domain *libparse::matchReqWithServer(const libhttp::Request &req
   start = config.domains.begin();
   end = config.domains.end();
   while (start != end) {
-    if (matchHostHeaderPortWithDomain(start->first, host->second)) {
+    if (matchHostHeaderPortWithDomain(start->second.port, host->second)) {
       return &start->second;
     }
     start++;
@@ -72,31 +70,27 @@ libparse::matchPathWithRoute(const libparse::Routes &routes, const std::string &
   return std::make_pair(maxMatch, &routes.at(maxMatch));
 }
 
-std::string libparse::findRouteRoot(const libparse::Domain     *domain,
-                                    const libparse::RouteProps *route) {
-  if (!route)
-    return domain->root;
-  if (route->root.empty() == false)
-    return route->root;
+std::string libparse::findRouteRoot(const libparse::Routes     &routes,
+                                    const libparse::RouteProps &route) {
+  if (!route.root.empty())
+    return route.root;
   else
-    return domain->root;
+    return routes.find("/")->second.root;
 }
 
-std::string libparse::findRouteIndex(const libparse::Domain     *domain,
-                                     const libparse::RouteProps *route) {
-  if (!route)
-    return domain->root;
-  if (route->index.empty() == false)
-    return route->index;
+std::string libparse::findRouteIndex(const libparse::Routes     &routes,
+                                     const libparse::RouteProps &route) {
+  if (!route.index.empty())
+    return route.index;
   else
-    return domain->index;
+    return routes.find("/")->second.index;
 }
 
 std::string libparse::findResourceInFs(const libhttp::Request &req,
                                        const libparse::Domain &domain) {
   std::pair<std::string, const libparse::RouteProps *> r =
       matchPathWithRoute(domain.routes, req.reqTarget.path);
-  std::string fs = findRouteRoot(&domain, r.second);
+  std::string fs = findRouteRoot(domain.routes, *r.second);
   if (fs.empty())
     return "";
   fs = joinPath(fs, req.reqTarget.path);
@@ -107,7 +101,7 @@ std::string libparse::findResourceInFs(const libhttp::Request &req,
     return fs;
   if (st.st_mode & S_IFDIR && r.second && r.second->dirListening)
     return fs;
-  std::string index = findRouteIndex(&domain, r.second);
+  std::string index = findRouteIndex(domain.routes, *r.second);
   if (index.empty())
     return "";
   fs = joinPath(fs, index);
@@ -117,17 +111,17 @@ std::string libparse::findResourceInFs(const libhttp::Request &req,
 }
 
 std::string libparse::findUploadDir(const libhttp::Request &req, const libparse::Domain &domain) {
-  std::pair<std::string, const libparse::RouteProps *> route =
+  std::pair<std::string, const RouteProps *> route =
       matchPathWithRoute(domain.routes, req.reqTarget.path);
-  if (!route.second || !route.second->upload.first)
+  if (!route.second->upload.empty())
     return "";
-  std::string root = findRouteRoot(&domain, route.second);
-  if (route.second->upload.second[0] == '/') {
-    if (access(route.second->upload.second.c_str(), W_OK) != 0)
+  std::string root = findRouteRoot(domain.routes, *route.second);
+  if (route.second->upload[0] == '/') { // if the path is abs path
+    if (access(route.second->upload.c_str(), W_OK) != 0)
       return "";
-    return route.second->upload.second;
+    return route.second->upload;
   }
-  std::string fs = joinPath(root, route.second->upload.second);
+  std::string fs = joinPath(root, route.second->upload);
   if (access(fs.c_str(), W_OK) != 0)
     return "";
   return fs;
