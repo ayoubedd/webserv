@@ -43,6 +43,8 @@ namespace libparse {
     std::string log_info;
     std::string log_error;
     Domains     domains;
+
+    bool init();
   };
 
   typedef struct token {
