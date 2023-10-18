@@ -18,7 +18,7 @@ namespace libhttp {
     static const char *POST;
     static const char *DELETE;
 
-    enum error { OK, FILE_NOT_FOUND, FORBIDDEN,OUT_RANGE };
+    enum error { OK, FILE_NOT_FOUND, FORBIDDEN,OUT_RANGE,REDIR};
     struct file {
       std::string name;
       std::string date;
