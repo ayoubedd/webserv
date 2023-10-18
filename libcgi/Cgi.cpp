@@ -97,6 +97,17 @@ char **getScriptArgs(std::string &scriptPath) {
   return argv;
 }
 
+char **getScriptArgs(const std::string &interpreter, const std::string &scriptPath) {
+  char **argv;
+
+  argv = new char *[3];
+
+  argv[0] = ::strdup(interpreter.c_str());
+  argv[1] = ::strdup(scriptPath.c_str());
+  argv[2] = NULL;
+  return argv;
+}
+
 void delete2d(char **env) {
   unsigned int i;
 
@@ -153,9 +164,10 @@ libcgi::Cgi::Error libcgi::Cgi::write(std::vector<char> &body) {
   return OK;
 };
 
-libcgi::Cgi::Error libcgi::Cgi::exec() {
+libcgi::Cgi::Error libcgi::Cgi::exec(const std::string &interpreter) {
   char **env, **argv;
 
+  std::cerr << "exec running" << std::endl;
   lseek(this->cgiInput, 0, SEEK_SET);
   pid = fork();
   if (pid == 0) {
@@ -166,7 +178,8 @@ libcgi::Cgi::Error libcgi::Cgi::exec() {
     close(fd[1]);
     close(cgiInput);
 
-    argv = getScriptArgs(req.scriptPath);
+    interpreter.empty() ? argv = getScriptArgs(req.scriptPath)
+                        : argv = getScriptArgs(interpreter, req.scriptPath);
     env = headersAsEnv(req.env);
     ::execve(req.scriptPath.c_str(), argv, env);
 
