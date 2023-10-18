@@ -4,6 +4,8 @@
 #include "libhttp/Request.hpp"
 #include "libparse/Config.hpp"
 #include "libparse/match.hpp"
+#include <sstream>
+#include <string>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <utility>
@@ -20,10 +22,22 @@ WebServ::Sanitizer::sanitizeMethod(const std::string &method, const libparse::Ro
 
 WebServ::Sanitizer::Status::Code
 WebServ::Sanitizer::sanitizeReqLine(const libhttp::RequestTarget &reqTarget) {
-  std::string::size_type i = reqTarget.path.find("..");
-  if (i == std::string::npos)
-    return Status::OK;
-  return Status::BAD_REQUEST;
+  std::stringstream ss;
+  std::string       tok;
+  int               count = 0;
+  ss << reqTarget.path;
+  while (std::getline(ss, tok, '/')) {
+    if (tok.empty())
+      continue;
+    if (tok == "..") {
+      count--;
+      continue;
+    }
+    count++;
+  }
+  if (count < 0)
+    return Status::FORBIDDEN;
+  return Status::OK;
 }
 
 WebServ::Sanitizer::Status::Code
