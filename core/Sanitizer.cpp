@@ -25,6 +25,7 @@ WebServ::Sanitizer::sanitizeReqLine(const libhttp::RequestTarget &reqTarget) {
   std::stringstream ss;
   std::string       tok;
   int               count = 0;
+
   ss << reqTarget.path;
   while (std::getline(ss, tok, '/')) {
     if (tok.empty())
@@ -105,7 +106,7 @@ WebServ::Sanitizer::sanitizeRequest(const libhttp::Request &req, const libparse:
   e = sanitizeMethod(req.method, *route.second);
   if (e != Status::OK)
     return e;
-  return Status::OK;
+
   e = sanitizeReqLine(req.reqTarget);
   if (e != Status::OK)
     return e;
