@@ -49,6 +49,18 @@ extractInterpreterScriptPaths(const libparse::Domain *domain, const libparse::Ro
   return std::make_pair(cgi->second, resourcePath);
 }
 
+static bool shouldCloseSessions(libhttp::Request *request) {
+  libhttp::HeadersMap::iterator iter = request->headers.headers.find(libhttp::Headers::CONNECTION);
+
+  if (iter == request->headers.headers.end())
+    return false;
+
+  if (iter->second == "close")
+    return true;
+
+  return false;
+}
+
 static MuxErrResPair cgiHandler(libcgi::Cgi *cgi, const libparse::RouteProps *route,
                                 const libparse::Domain *domain, libhttp::Request *req) {
   libcgi::Cgi::Error cgiError;
