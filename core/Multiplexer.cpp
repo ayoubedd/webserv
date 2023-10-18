@@ -1,4 +1,5 @@
 #include "core/Multiplexer.hpp"
+#include "core/Logger.hpp"
 #include "libcgi/Cgi-res.hpp"
 #include "libhttp/Error-generate.hpp"
 #include "libhttp/Headers.hpp"
@@ -252,13 +253,18 @@ void libhttp::Mux::multiplexer(libnet::Session *session, const libparse::Config 
       break;
 
     default: {
+      // Generating Error
       libhttp::Response *response = libhttp::ErrorGenerator::generate(*domain, errRes.first);
+      errRes.first = libhttp::Status::DONE;
       session->writer.responses.push(response);
     }
   }
 
-  if (errRes.second != nullptr)
+  if (errRes.second != nullptr) {
+    // Logggin
+    Webserv::Logger::log(*req);
     session->writer.responses.push(errRes.second);
+  }
 
   if (errRes.first == libhttp::Status::DONE) {
     // Marking last resonse as done.
