@@ -65,7 +65,7 @@ int main(int argc, char *argv[]) {
     return 0;
   }
 
-  libparse::parser(argv[1], config);
+  libparse::checkConfig(argv[1], config);
 
   if (!config.defaultServer) {
     std::cerr << "missing default server in the config" << std::endl;
