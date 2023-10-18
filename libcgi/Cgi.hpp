@@ -10,6 +10,7 @@ namespace libcgi {
 
   struct Cgi {
     static const std::string blueprint;
+
     enum Error {
       OK,
       FAILED_OPEN_FILE,
@@ -49,7 +50,7 @@ namespace libcgi {
      * this function does not ensure that all bytes were written
      */
     Error write(std::vector<char> &body);
-    Error exec();
+    Error exec(const std::string &interpreter = "");
     Error read();
 
     /**

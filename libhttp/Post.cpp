@@ -18,13 +18,14 @@ enum HANDLER_ERROR {
 };
 
 libhttp::Post::BodyFormat libhttp::Post::extractBodyFormat(const libhttp::HeadersMap &headers) {
-  libhttp::HeadersMap::const_iterator transferEncodingIter = headers.find("Transfer-Encoding");
+  libhttp::HeadersMap::const_iterator transferEncodingIter = headers.find(libhttp::Headers::TRANSFER_ENCODING);
   if (transferEncodingIter != headers.end()) {
     if (transferEncodingIter->second.find("chunked") != std::string::npos)
       return libhttp::Post::CHUNKED;
   }
 
-  libhttp::HeadersMap::const_iterator contentTypeIter = headers.find("Content-Type");
+  libhttp::HeadersMap::const_iterator contentTypeIter =
+      headers.find(libhttp::Headers::CONTENT_TYPE);
   if (contentTypeIter != headers.end()) {
     if (contentTypeIter->second.find("multipart/form-data") != std::string::npos)
       return libhttp::Post::MULTIPART_FORMDATA;

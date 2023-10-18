@@ -312,19 +312,19 @@ std::pair<libhttp::Reader::error, bool > libhttp::Reader::readingBodyHundler() {
   return std::make_pair(OK, true); // there is no body
 }
 
-std::pair<libhttp::Reader::error, libnet::SessionState>
-libhttp::Reader::processReadBuffer(libnet::SessionState state) {
+std::pair<libhttp::Reader::error, libhttp::Request::State>
+libhttp::Reader::processReadBuffer(libhttp::Request::State state) {
   std::pair<error, bool> complete;
   error                  err;
 
   err = OK;
-  if (state == libnet::READING_HEADERS) {
+  if (state == Request::R_HEADERS) {
     complete = readingRequestHeaderHundler();
     if (complete.first != OK) {
       return std::make_pair(complete.first, state);
     }
     if (!complete.second) {
-      return std::make_pair(OK, libnet::READING_HEADERS);
+      return std::make_pair(OK, Request::R_HEADERS);
     }
     err = buildRequestLine();
     if (err != OK) {
@@ -341,15 +341,15 @@ libhttp::Reader::processReadBuffer(libnet::SessionState state) {
     return std::make_pair(complete.first, state);
   }
   if (!complete.second) {
-    return std::make_pair(OK, libnet::READING_BODY);
+    return std::make_pair(OK, Request::R_BODY);
   }
-  return std::make_pair(err, libnet::READING_FIN);
+  return std::make_pair(err, Request::R_FIN);
 }
 
 libhttp::Reader::error libhttp::Reader::read() {
-  char                                   buff[this->readBuffSize];
-  ssize_t                                buffLen;
-  std::pair<error, libnet::SessionState> futureState;
+  char                             buff[this->readBuffSize];
+  ssize_t                          buffLen;
+  std::pair<error, Request::State> futureState;
 
   // buffLen = ::read(this->fd, buff, readBuffSize);
   buffLen = recv(this->fd, buff, readBuffSize, 0);
@@ -362,12 +362,12 @@ libhttp::Reader::error libhttp::Reader::read() {
 
   this->raw.insert(this->raw.end(), buff, buff + buffLen);
   while (true) {
-    req = requests.size() == 0 || requests.back()->state == libnet::READING_FIN
+    req = requests.size() == 0 || requests.back()->state == Request::R_FIN
               ? new Request(&this->clientAddr)
               : requests.back();
     futureState = processReadBuffer(this->req->state);
     req->state = futureState.second;
-    if (futureState.first != OK || req->state != libnet::READING_FIN)
+    if (futureState.first != OK || req->state != Request::R_FIN)
       break;
     if (!this->requests.size() || this->req != this->requests.back())
       this->requests.push(req);

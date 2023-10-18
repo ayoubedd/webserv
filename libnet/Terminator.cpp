@@ -1,4 +1,5 @@
 #include "libnet/Terminator.hpp"
+#include <unistd.h>
 #include <vector>
 
 static void extractSessionsToClose(const libnet::Sessions &sessions, std::vector<int> &dst) {
@@ -11,6 +12,9 @@ static void extractSessionsToClose(const libnet::Sessions &sessions, std::vector
     if (session->destroy == true)
       dst.push_back(session->fd);
 
+    if (session->gracefulClose == true && session->writer.responses.empty() == true)
+      dst.push_back(session->fd);
+
     begin++;
   }
 }
@@ -20,15 +24,15 @@ void libnet::Terminator::terminate(libnet::Sessions &sessions) {
 
   extractSessionsToClose(sessions, sessionsToClose);
 
-  std::vector<int>::iterator sessionsToCloseBegin = sessionsToClose.begin();
-  std::vector<int>::iterator sessionsToClosEnd = sessionsToClose.end();
+  std::vector<int>::iterator begin = sessionsToClose.begin();
+  std::vector<int>::iterator end = sessionsToClose.end();
 
-  while (sessionsToCloseBegin != sessionsToClosEnd) {
-    libnet::Sessions::iterator sessionIter = sessions.find(*sessionsToCloseBegin);
+  while (begin != end) {
+    libnet::Sessions::iterator iter = sessions.find(*begin);
 
-    delete sessionIter->second;
-    sessions.erase(sessionIter);
+    delete iter->second;
+    sessions.erase(iter->first);
 
-    sessionsToCloseBegin++;
+    begin++;
   }
 }

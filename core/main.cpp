@@ -1,3 +1,4 @@
+#include "core/Initialization.hpp"
 #include "core/Multiplexer.hpp"
 #include "libnet/Net.hpp"
 #include "libnet/Terminator.hpp"
@@ -18,7 +19,6 @@ void sessionsHandler(libnet::Netenv &net, libparse::Config &config) {
 
     libhttp::Reader::error readerErr = libhttp::Reader::OK;
     libhttp::Writer::erorr writerError = libhttp::Writer::OK;
-    libhttp::Status::Code  httpCode = libhttp::Status::OK;
 
     // Calling the reader.
     if (session->isNonBlocking(libnet::Session::SOCK_READ)) {
@@ -32,15 +32,8 @@ void sessionsHandler(libnet::Netenv &net, libparse::Config &config) {
 
     libhttp::Request *request = session->reader.requests.front();
 
-    if (request->state == libnet::SessionState::READING_BODY ||
-        request->state == libnet::SessionState::READING_FIN)
-      httpCode = libhttp::Mux::multiplexer(session, config);
-
-    if (httpCode != libhttp::Status::OK) {
-      session->destroy = true;
-      sessionsBegin++;
-      continue;
-    }
+    if (request->state == libhttp::Request::R_BODY || request->state == libhttp::Request::R_FIN)
+      libhttp::Mux::multiplexer(session, config);
 
     // Calling the writer.
     if (session->isNonBlocking(libnet::Session::SOCK_WRITE)) {
@@ -65,12 +58,15 @@ int main(int argc, char *argv[]) {
     return 0;
   }
 
-  libparse::parser(argv[1], config);
+  libparse::checkConfig(argv[1], config);
 
   if (!config.defaultServer) {
     std::cerr << "missing default server in the config" << std::endl;
     return 1;
   }
+
+  if (WebServ::initializeFsEnv())
+    return EXIT_FAILURE;
 
   net.setupSockets(config);
 

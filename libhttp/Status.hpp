@@ -3,6 +3,7 @@
 namespace libhttp {
   struct Status {
     enum Code {
+      DONE = -1,
       OK = 200,
       CREATED = 201,
       PARTIAL_CONTENT = 206,

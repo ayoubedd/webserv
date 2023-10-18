@@ -10,6 +10,8 @@
 // TODO: update allBodyLen in chunked and multiform upload
 namespace libhttp {
   struct Request {
+    enum State { R_INIT, R_HEADERS, R_BODY, R_FIN, R_ERR };
+
     std::string       method;
     RequestTarget     reqTarget;
     std::string       version;
@@ -18,7 +20,7 @@ namespace libhttp {
                             // all read Content-Length
     std::vector<char>::size_type allBodyLen;
     sockaddr_in                 *clientAddr;
-    libnet::SessionState         state;
+    State                        state;
 
     Request(sockaddr_in *clientAddr);
     void expandeRefererHeaderInPath();
