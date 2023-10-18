@@ -122,6 +122,7 @@ static MuxErrResPair deleteHandler(const std::string &path) {
       return std::make_pair(libhttp::Mux::ERROR_403, nullptr);
     case libhttp::Methods::OUT_RANGE:
       return std::make_pair(libhttp::Mux::ERROR_416, nullptr);
+    case libhttp::Methods::REDIR:
     case libhttp::Methods::OK:
       break;
   }
@@ -141,6 +142,7 @@ static MuxErrResPair getHandler(libhttp::Request &req, const std::string &path) 
       return std::make_pair(libhttp::Mux::ERROR_403, nullptr);
     case libhttp::Methods::OUT_RANGE:
       return std::make_pair(libhttp::Mux::ERROR_416, nullptr);
+    case libhttp::Methods::REDIR:
     case libhttp::Methods::OK:
       break;
   }
@@ -253,6 +255,11 @@ libhttp::Status::Code libhttp::Mux::multiplexer(libnet::Session        *session,
     // Marking last resonse as done.
     if (session->writer.responses.back()->fd == -2) // if Respones is cgi
       session->writer.responses.back()->doneReading = true;
+
+    // Should close connection
+    if (shouldCloseSessions(session->reader.requests.front()))
+      session->gracefulClose = true;
+
     // Pooping request since its done.
     session->reader.requests.pop();
   }

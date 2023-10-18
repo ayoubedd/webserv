@@ -84,7 +84,8 @@ static void subscribeSessions(libnet::Sessions &sessions, fd_set *fdReadSet, fd_
     libnet::Session *session = begin->second;
 
     // Always Subscribe for reading from the socket
-    FD_SET(session->fd, fdReadSet);
+    if (session->gracefulClose != true)
+      FD_SET(session->fd, fdReadSet);
 
     // Subscribe for reading from pipe if cgi in READING_HEADERS or READING_BODY state
     if (session->cgi)

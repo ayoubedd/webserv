@@ -14,7 +14,7 @@
 #include <unistd.h>
 #include <utility>
 
-const std::string libcgi::Cgi::blueprint = "/tmp/webserv/cgi/input";
+const std::string libcgi::Cgi::blueprint = "/tmp/webserv/cgi/";
 
 ssize_t doesContainerHasBuff(const char *raw, size_t rLen, const char *ptr, size_t pLen) {
   for (size_t i = 0; rLen - i > pLen; i++) {
@@ -126,7 +126,7 @@ libcgi::Cgi::Error libcgi::Cgi::init(libhttp::Request *httpReq, std::string scri
 
   if (::pipe(fd) < 0)
     return FAILED_OPEN_PIPE;
-  this->cgiInputFileName = libhttp::generateFileName(this->blueprint);
+  this->cgiInputFileName = libhttp::generateFileName(this->blueprint + "input");
   cgiInput = open(this->cgiInputFileName.c_str(), O_RDWR | O_CREAT, 0644);
   if (cgiInput < 0)
     return FAILED_OPEN_FILE;

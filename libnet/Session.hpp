@@ -33,8 +33,9 @@ namespace libnet {
     libcgi::Cgi               *cgi;
     sockaddr_in               *clientAddr;
 
-    bool destroy;
-    int  permitedIo;
+    bool destroy;       // Flag for fatal Errors
+    bool gracefulClose; // Flag for Connections: close header
+    int  permitedIo;    // Flag for allowed blocking io
     // Bit-maping
     // 1: Able to read from socket
     // 2: Able to write to socket
