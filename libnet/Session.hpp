@@ -8,6 +8,7 @@
 #include "libhttp/TransferEncoding.hpp"
 #include "libhttp/Writer.hpp"
 #include "libnet/SessionState.hpp"
+#include <ctime>
 #include <netinet/in.h>
 #include <queue>
 
@@ -33,6 +34,10 @@ namespace libnet {
     libcgi::Cgi               *cgi;
     sockaddr_in               *clientAddr;
 
+    // Last time an event happend in this sessions
+    struct timeval lastModified;
+    bool           isSessionAcitve(size_t);
+
     bool destroy;       // Flag for fatal Errors
     bool gracefulClose; // Flag for Connections: close header
     int  permitedIo;    // Flag for allowed blocking io
@@ -49,3 +54,5 @@ namespace libnet {
     void cleanup();
   };
 } // namespace libnet
+
+size_t timevalToMsec(struct timeval time);

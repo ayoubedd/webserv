@@ -1,6 +1,7 @@
 #include "core/Initialization.hpp"
 #include "core/Logger.hpp"
 #include "core/Multiplexer.hpp"
+#include "core/Timer.hpp"
 #include "libnet/Net.hpp"
 #include "libnet/Terminator.hpp"
 #include "libparse/Config.hpp"
@@ -9,6 +10,8 @@
 #include <assert.h>
 #include <cstdlib>
 #include <cstring>
+#include <sys/select.h>
+#include <sys/time.h>
 #include <unistd.h>
 
 void sessionsHandler(libnet::Netenv &net, libparse::Config &config) {
@@ -24,6 +27,8 @@ void sessionsHandler(libnet::Netenv &net, libparse::Config &config) {
     // Calling the reader.
     if (session->isNonBlocking(libnet::Session::SOCK_READ)) {
       readerErr = session->reader.read();
+      WebServ::updateTime(&session->lastModified);
+
       if (readerErr != libhttp::Reader::OK) {
         session->destroy = true;
         sessionsBegin++;
@@ -39,6 +44,8 @@ void sessionsHandler(libnet::Netenv &net, libparse::Config &config) {
     // Calling the writer.
     if (session->isNonBlocking(libnet::Session::SOCK_WRITE)) {
       writerError = session->writer.write(session->isNonBlocking(libnet::Session::WRITER_READ));
+      WebServ::updateTime(&session->lastModified);
+
       if (writerError != libhttp::Writer::OK) {
         session->destroy = true;
         sessionsBegin++;
@@ -64,7 +71,7 @@ int main(int argc, char *argv[]) {
     return EXIT_FAILURE;
 
   if (config.defaultServer == NULL) {
-    std::cerr << "Error: missing default server" << std::endl;
+    std::cerr << "error: missing default server" << std::endl;
     return EXIT_FAILURE;
   }
 
@@ -74,7 +81,7 @@ int main(int argc, char *argv[]) {
 
   // Initializing logs
   if (config.init() != true) {
-    std::cerr << "Error: failure initializing logging system" << std::endl;
+    std::cerr << "error: failure initializing logging system" << std::endl;
     return EXIT_FAILURE;
   }
 

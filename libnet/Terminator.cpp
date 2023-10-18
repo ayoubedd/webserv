@@ -1,4 +1,5 @@
 #include "libnet/Terminator.hpp"
+#include "core/Timer.hpp"
 #include <unistd.h>
 #include <vector>
 
@@ -14,6 +15,9 @@ static void extractSessionsToClose(const libnet::Sessions &sessions, std::vector
 
     if (session->gracefulClose == true && session->writer.responses.empty() == true)
       dst.push_back(session->fd);
+
+    if (session->isSessionAcitve(SESSION_IDLE_TIME) == false)
+      session->gracefulClose = true;
 
     begin++;
   }
