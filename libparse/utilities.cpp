@@ -57,7 +57,7 @@ static bool fileExists(std::string &filename) {
   return false;
 }
 
-static bool directoryExists(std::string &path) {
+static bool directoryExists(std::string path) {
   if (path.empty())
     return true;
   DIR *dir = opendir(path.c_str());
@@ -96,16 +96,22 @@ std::pair<bool, std::string> checkFileExist(libparse::Config &config) {
       return std::make_pair(false, itD->second.error);
     itR = itD->second.routes.begin();
     while (itR != itD->second.routes.end()) {
-      if (!directoryExists(itD->second.routes[itR->first].upload))
-        return std::make_pair(false, "upload" + itD->second.routes[itR->first].upload);
+      if (!itD->second.routes[itR->first].upload.empty()) {
+        if (itD->second.routes[itR->first].upload[0] == '/') {
+          if (!directoryExists(itD->second.routes[itR->first].upload))
+            return std::make_pair(false, "upload " + itD->second.routes[itR->first].upload);
+        } else if (!directoryExists(itD->second.routes[itR->first].root +
+                                    itD->second.routes[itR->first].upload))
+          return std::make_pair(false, "upload " + itD->second.routes[itR->first].upload);
+      }
       if (!directoryExists(itD->second.routes[itR->first].root))
-        return std::make_pair(false, "root" + itD->second.routes[itR->first].root);
+        return std::make_pair(false, "root " + itD->second.routes[itR->first].root);
       path = itD->second.routes[itR->first].root + itD->second.routes[itR->first].index;
       if (!fileExists(path))
-        return std::make_pair(false, "index" + itD->second.routes[itR->first].index);
+        return std::make_pair(false, "index " + itD->second.routes[itR->first].index);
       res = checkFileExistAndEditableOfCgi(itD->second.routes[itR->first].cgi);
       if (!res.first)
-        return std::make_pair(false, "cgi" + res.second);
+        return std::make_pair(false, "cgi " + res.second);
       itR++;
     }
     itD++;
