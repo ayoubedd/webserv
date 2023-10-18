@@ -167,7 +167,6 @@ libcgi::Cgi::Error libcgi::Cgi::write(std::vector<char> &body) {
 libcgi::Cgi::Error libcgi::Cgi::exec(const std::string &interpreter) {
   char **env, **argv;
 
-  std::cerr << "exec running" << std::endl;
   lseek(this->cgiInput, 0, SEEK_SET);
   pid = fork();
   if (pid == 0) {
