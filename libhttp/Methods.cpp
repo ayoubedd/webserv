@@ -315,7 +315,9 @@ void setHeaders(libhttp::Response *response, std::string contentType, size_t Con
   response->buffer->insert(response->buffer->end(), tmp.c_str(), tmp.c_str() + tmp.length());
   tmp = "Content-Length: " + std::to_string(ContentLenght) + "\r\n";
   response->buffer->insert(response->buffer->end(), tmp.c_str(), tmp.c_str() + tmp.length());
-  tmp = "Content-Type: " + contentType + "\r\n\r\n";
+  tmp = "Content-Type: " + contentType + "\r\n";
+  response->buffer->insert(response->buffer->end(), tmp.c_str(), tmp.c_str() + tmp.length());
+  tmp = "Accept-Ranges: bytes\r\n\r\n";
   response->buffer->insert(response->buffer->end(), tmp.c_str(), tmp.c_str() + tmp.length());
 }
 
@@ -326,6 +328,9 @@ std::pair<libhttp::Methods::error, libhttp::Response *> libhttp::Get(libhttp::Re
 
   if (isFile(path)) {
     initFile(file, path);
+    if (path.empty())
+      return std::make_pair(libhttp::Methods::FORBIDDEN,
+                            libhttp::redirect(request.reqTarget.path + "/"));
     if (file.fd == -1)
       return std::make_pair(libhttp::Methods::REDIR,
                             libhttp::redirect(request.reqTarget.path + "/"));
