@@ -60,11 +60,11 @@ WebServ::Sanitizer::Status::Code WebServ::Sanitizer::sanitizeBodySize(const libh
 }
 
 WebServ::Sanitizer::Status::Code
-WebServ::Sanitizer::sanitizePostRequest(const libhttp::Request &req,
-                                        const libparse::Config &config) {
+WebServ::Sanitizer::sanitizePostRequest(const libhttp::Request &req, const libparse::Routes &routes,
+                                        const libparse::RouteProps &route) {
   if (req.method != libhttp::Methods::POST)
     return Status::OK;
-  std::string uploadDir = libparse::findUploadDir(req, *libparse::matchReqWithServer(req, config));
+  std::string uploadDir = libparse::findUploadDir(&routes, &route);
   if (uploadDir.empty())
     return Status::NOT_FOUND;
   libhttp::HeadersMap::const_iterator it =
@@ -89,17 +89,9 @@ WebServ::Sanitizer::sanitizeHttpVersion(const std::string &httpVersion) {
 
 WebServ::Sanitizer::Status::Code
 WebServ::Sanitizer::sanitizeGetRequest(const libhttp::Request &req,
-                                       const libparse::Config &config) {
+                                       const libparse::Domain &domain) {
 
-  const libparse::Domain *d = libparse::matchReqWithServer(req, config);
-  if (!d)
-    return Status::NOT_FOUND;
-
-  std::pair<std::string, const libparse::RouteProps *> r =
-      libparse::matchPathWithRoute(d->routes, req.reqTarget.path);
-  if (!r.second)
-    return Status::NOT_FOUND;
-  if (libparse::findResourceInFs(req, *d).empty())
+  if (libparse::findResourceInFs(req, domain).empty())
     return Status::NOT_FOUND;
   return Status::OK;
 }
