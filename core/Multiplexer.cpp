@@ -243,11 +243,11 @@ void libhttp::Mux::multiplexer(libnet::Session *session, const libparse::Config 
 
   // Errors
   switch (errRes.first) {
-    case libhttp::Status::OK:                 // Get
-    case libhttp::Status::CREATED:            // Post
-    case libhttp::Status::PARTIAL_CONTENT:    // Get range
-    case libhttp::Status::PERMANENT_REDIRECT: // Redirection
-    case libhttp::Status::DONE:               // Done what ever
+    case libhttp::Status::OK:
+    case libhttp::Status::CREATED:
+    case libhttp::Status::PARTIAL_CONTENT:
+    case libhttp::Status::PERMANENT_REDIRECT:
+    case libhttp::Status::DONE:
       break;
 
     default: {
