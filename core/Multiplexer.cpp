@@ -16,6 +16,39 @@
 
 typedef std::pair<libhttp::Mux::MuxHandlerError, libhttp::Response *> MuxErrResPair;
 
+static std::pair<std::string, std::string>
+extractInterpreterScriptPaths(const libparse::Domain *domain, const libparse::RouteProps *route,
+                              libhttp::Request *req) {
+  const std::string resourcePath = libparse::findResourceInFs(*req, *domain);
+
+  if (resourcePath.empty() == true)
+    return std::make_pair("", "");
+
+  std::string::size_type idx = resourcePath.rfind(".");
+
+  if (idx == std::string::npos)
+    return std::make_pair("", "");
+
+  if (idx == resourcePath.size())
+    return std::make_pair("", "");
+
+  idx++;
+
+  std::string ext;
+
+  try {
+    ext = resourcePath.substr(idx);
+  } catch (...) {
+    return std::make_pair("", "");
+  }
+
+  std::map<std::string, std::string>::const_iterator cgi = route->cgi.find(ext);
+  if (cgi == route->cgi.end())
+    return std::make_pair("", resourcePath);
+
+  return std::make_pair(cgi->second, resourcePath);
+}
+
 static bool shouldCloseSessions(libhttp::Request *request) {
   libhttp::HeadersMap::iterator iter = request->headers.headers.find(libhttp::Headers::CONNECTION);
 
@@ -28,14 +61,8 @@ static bool shouldCloseSessions(libhttp::Request *request) {
   return false;
 }
 
-static bool isRequestHandlerCgi(const libparse::RouteProps *route) {
-  if (route->cgi.second != "")
-    return true;
-  return false;
-}
-
 static MuxErrResPair cgiHandler(libcgi::Cgi *cgi, const libparse::RouteProps *route,
-                                libhttp::Request *req) {
+                                const libparse::Domain *domain, libhttp::Request *req) {
   libcgi::Cgi::Error cgiError;
 
   cgiError = libcgi::Cgi::OK;
@@ -43,12 +70,15 @@ static MuxErrResPair cgiHandler(libcgi::Cgi *cgi, const libparse::RouteProps *ro
   libcgi::Cgi::State prevState = cgi->state;
 
   switch (cgi->state) {
-    case libcgi::Cgi::INIT:
-      cgiError = cgi->init(req, route->cgi.second, "localhost", "./static/");
+    case libcgi::Cgi::INIT: {
+      std::pair<std::string, std::string> interprterScriptPathsPair;
+      interprterScriptPathsPair = extractInterpreterScriptPaths(domain, route, req);
+      // cgiError = cgi->init(req, route->cgi.second, "localhost", "./static/");
       if (cgiError != libcgi::Cgi::OK)
         break;
       cgiError = cgi->exec();
       break;
+    }
     case libcgi::Cgi::READING_HEADERS:
     case libcgi::Cgi::READING_BODY:
       cgiError = cgi->read();
@@ -155,10 +185,14 @@ static MuxErrResPair postHandler(libhttp::Request &req, libhttp::Multipart *ml,
 
 libhttp::Status::Code libhttp::Mux::multiplexer(libnet::Session        *session,
                                                 const libparse::Config &config) {
-  libhttp::Request       *req = session->reader.requests.front();
-  const libparse::Domain *domain = libparse::matchReqWithServer(*req, config);
-  const std::pair<std::string, const libparse::RouteProps *> route =
-      libparse::matchPathWithRoute(domain->routes, req->reqTarget.path);
+
+  libhttp::Request                                    *req;
+  const libparse::Domain                              *domain;
+  std::pair<std::string, const libparse::RouteProps *> route;
+
+  req = session->reader.requests.front();
+  domain = libparse::matchReqWithServer(*req, config);
+  route = libparse::matchPathWithRoute(domain->routes, req->reqTarget.path);
 
   MuxErrResPair errRes;
 
@@ -167,10 +201,10 @@ libhttp::Status::Code libhttp::Mux::multiplexer(libnet::Session        *session,
     errRes.second = libhttp::redirect(route.second->redir);
   }
 
-  else if (isRequestHandlerCgi(route.second)) {
+  else if (route.second->cgi.size()) {
     if (session->cgi == nullptr)
       session->cgi = new libcgi::Cgi(session->clientAddr);
-    errRes = cgiHandler(session->cgi, route.second, req);
+    errRes = cgiHandler(session->cgi, route.second, domain, req);
   }
 
   else if (req->method == "GET") {
