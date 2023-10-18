@@ -1,4 +1,5 @@
 #include "core/Initialization.hpp"
+#include "core/Logger.hpp"
 #include "core/Multiplexer.hpp"
 #include "libnet/Net.hpp"
 #include "libnet/Terminator.hpp"
@@ -32,8 +33,12 @@ void sessionsHandler(libnet::Netenv &net, libparse::Config &config) {
 
     libhttp::Request *request = session->reader.requests.front();
 
-    if (request->state == libhttp::Request::R_BODY || request->state == libhttp::Request::R_FIN)
+    if (request->state == libhttp::Request::R_BODY || request->state == libhttp::Request::R_FIN) {
+      if (request->state == libhttp::Request::R_FIN)
+
+        Webserv::Logger::log(*request, Webserv::Logger::INFO);
       libhttp::Mux::multiplexer(session, config);
+    }
 
     // Calling the writer.
     if (session->isNonBlocking(libnet::Session::SOCK_WRITE)) {
@@ -58,11 +63,17 @@ int main(int argc, char *argv[]) {
     return 0;
   }
 
-  libparse::checkConfig(argv[1], config);
+  if (!libparse::checkConfig(argv[1], config))
+    return 0;
 
   if (!config.defaultServer) {
     std::cerr << "missing default server in the config" << std::endl;
     return 1;
+  }
+
+  if (!config.init()) {
+    std::cerr << "could not init the config" << std::endl;
+    return -1;
   }
 
   if (WebServ::initializeFsEnv())

@@ -3,50 +3,49 @@
 #include "libhttp/Request.hpp"
 #include "libhttp/Response.hpp"
 #include <arpa/inet.h>
+#include <ctime>
+#include <fcntl.h>
 #include <iostream>
 #include <string>
 #include <utility>
 
-const char *Webserv::logger::LOGGERLINE = "{IPv4} {METHODS} {PATH} {VERSIONHTTP}";
-const char *Webserv::logger::IPV4 = "IPv4";
-const char *Webserv::logger::METHOD = "METHOD";
-const char *Webserv::logger::VERSIONHTTP = "VERSIONHTTP";
-const char *Webserv::logger::PATH = "PATH";
+const char *Webserv::Logger::LOGGERLINE = " {TIME} {IPv4} {METHOD} {PATH} {VERSIONHTTP}";
+const char *Webserv::Logger::IPV4 = "{IPv4}";
+const char *Webserv::Logger::METHOD = "{METHOD}";
+const char *Webserv::Logger::VERSIONHTTP = "{VERSIONHTTP}";
+const char *Webserv::Logger::PATH = "{PATH}";
+const char *Webserv::Logger::TIME = "{TIME}";
 
-Webserv::logger::error Webserv::logger::log(libparse::Config &config) {
-  std::string helo;
-  if (config.)
+std::string getCurrentTime() {
+  std::time_t rawTime;
+  std::tm    *timeInfo;
+  char        timeString[80];
 
-    return logger::error::OK;
+  std::time(&rawTime);
+  timeInfo = std::localtime(&rawTime);
+
+  std::strftime(timeString, sizeof(timeString), "%Y-%m-%d %H:%M:%S", timeInfo);
+
+  return std::string(timeString);
 }
 
-void Webserv::logger::loggerInfo(libhttp::Request &request) {
+void Webserv::Logger::log(const libhttp::Request &request, int option) {
 
-  std::string tmp;
-  // std::string loggerline;
-  // std::map<std::string, std::string> map;
-  // char                               ip4[INET_ADDRSTRLEN] = {0};
+  std::string                        tmp;
+  std::string                        loggerline(LOGGERLINE);
+  std::map<std::string, std::string> map;
+  char                               ip4[INET_ADDRSTRLEN] = {0};
 
-  // inet_ntop(AF_INET, &request.clientAddr->sin_addr, ip4, INET_ADDRSTRLEN);
-  // map.insert(std::make_pair(IPV4, ip4));
-  // map.insert(std::make_pair(METHOD, request.method));
-  // map.insert(std::make_pair(PATH, request.reqTarget.path));
-  // map.insert(std::make_pair(METHOD, "HTTP/1.1"));
-  // libhttp::ErrorGenerator::fillTemplate(loggerline, map);
-  // std::cout << loggerline << std::endl;
-}
+  inet_ntop(AF_INET, &request.clientAddr->sin_addr, ip4, INET_ADDRSTRLEN);
+  map.insert(std::make_pair(TIME, getCurrentTime()));
+  map.insert(std::make_pair(IPV4, ip4));
+  map.insert(std::make_pair(METHOD, request.method));
+  map.insert(std::make_pair(PATH, request.reqTarget.path));
+  map.insert(std::make_pair(VERSIONHTTP, "HTTP/1.1"));
+  libhttp::ErrorGenerator::fillTemplate(loggerline, map);
 
-void Webserv::logger::loggerError(libhttp::Request &request) {
-
-  // std::string                        loggerline(LOGGERLINE);
-  // std::map<std::string, std::string> map;
-  // char                               ip4[INET_ADDRSTRLEN] = {0};
-
-  // inet_ntop(AF_INET, &request.clientAddr->sin_addr, ip4, INET_ADDRSTRLEN);
-  // map.insert(std::make_pair(IPV4, ip4));
-  // map.insert(std::make_pair(METHOD, request.method));
-  // map.insert(std::make_pair(PATH, request.reqTarget.path));
-  // map.insert(std::make_pair(METHOD, "HTTP/1.1"));
-  // libhttp::ErrorGenerator::fillTemplate(loggerline, map);
-  // std::cerr << loggerline << std::endl;
+  if (option & INFO)
+    std::cout << loggerline << std::endl;
+  if (option & ERROR)
+    std::cerr << loggerline << std::endl;
 }

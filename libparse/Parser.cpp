@@ -1,6 +1,9 @@
 #include "Config.hpp"
 #include "utilities.hpp"
+#include <fcntl.h>
+#include <unistd.h>
 #include <utility>
+// #include <unistd.h>
 
 static bool strStartWith(const std::string str, const std::string prefix) {
   std::string::size_type i;
@@ -118,6 +121,31 @@ bool libparse::checkConfig(const std::string &fileName, libparse::Config &config
   if (!res.first) {
     std::cout << "Error Mulitple Port " << res.second << std::endl;
     return res.first;
+  }
+  return true;
+}
+
+bool libparse::Config::init() {
+  int fdInfo, fdError;
+
+  if (!this->log_info.empty()) {
+    fdInfo = open(this->log_info.c_str(), O_WRONLY);
+    if (fdInfo < 0)
+      return false;
+    if (::dup2(fdInfo, 1) < 0)
+      return false;
+    if (close(fdInfo) < 0)
+      return false;
+  }
+  if (!this->log_error.empty()) {
+
+    fdError = open(this->log_info.c_str(), O_WRONLY);
+    if (fdError < 0)
+      return false;
+    if (dup2(fdError, 2) < 0)
+      return false;
+    if (close(fdError) < 0)
+      return false;
   }
   return true;
 }

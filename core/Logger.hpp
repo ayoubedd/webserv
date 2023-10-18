@@ -8,15 +8,16 @@
 #include <unistd.h>
 
 namespace Webserv {
-  struct logger {
+  struct Logger {
+    static const int INFO = 0x01;
+    static const int ERROR = 0x02;
     enum error { OK, DUP, OPEN };
     static const char *LOGGERLINE;
     static const char *IPV4;
     static const char *METHOD;
     static const char *VERSIONHTTP;
     static const char *PATH;
-    static void        loggerInfo(libhttp::Request &request);
-    static void        loggerError(libhttp::Request &request);
-    static error       log(libparse::Config &config);
+    static const char *TIME;
+    static void        log(const libhttp::Request &request, int option = 0);
   };
 } // namespace Webserv
