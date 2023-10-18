@@ -17,7 +17,7 @@
 typedef std::pair<libhttp::Mux::MuxHandlerError, libhttp::Response *> MuxErrResPair;
 
 static bool shouldCloseSessions(libhttp::Request *request) {
-  libhttp::HeadersMap::iterator iter = request->headers.headers.find("Connection");
+  libhttp::HeadersMap::iterator iter = request->headers.headers.find(libhttp::Headers::CONNECTION);
 
   if (iter == request->headers.headers.end())
     return false;
