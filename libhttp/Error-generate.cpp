@@ -41,7 +41,8 @@ void libhttp::ErrorGenerator::fileAsString(const std::string &filename, std::str
   ss << file.rdbuf();
   buff = ss.str();
 }
-static void fillTemplate(std::string &file, const std::map<std::string, std::string > arg) {
+void libhttp::ErrorGenerator::fillTemplate(std::string                              &file,
+                                           const std::map<std::string, std::string > arg) {
   std::map<std::string, std::string>::const_iterator it;
   it = arg.begin();
   while (it != arg.end()) {

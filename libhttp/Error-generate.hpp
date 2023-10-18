@@ -32,5 +32,7 @@ namespace libhttp {
                               std::string defaultTemplate = "./static/error.html");
     static void      fileAsString(const std::string &filename,
                                   std::string       &buff); // filename should exitst of kbum
+
+    static void fillTemplate(std::string &file, const std::map<std::string, std::string > arg);
   };
 } // namespace libhttp
