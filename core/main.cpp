@@ -33,12 +33,8 @@ void sessionsHandler(libnet::Netenv &net, libparse::Config &config) {
 
     libhttp::Request *request = session->reader.requests.front();
 
-    if (request->state == libhttp::Request::R_BODY || request->state == libhttp::Request::R_FIN) {
-      if (request->state == libhttp::Request::R_FIN)
-
-        Webserv::Logger::log(*request, Webserv::Logger::INFO);
+    if (request->state == libhttp::Request::R_BODY || request->state == libhttp::Request::R_FIN)
       libhttp::Mux::multiplexer(session, config);
-    }
 
     // Calling the writer.
     if (session->isNonBlocking(libnet::Session::SOCK_WRITE)) {
@@ -55,41 +51,48 @@ void sessionsHandler(libnet::Netenv &net, libparse::Config &config) {
 }
 
 int main(int argc, char *argv[]) {
+  if (argc != 2) {
+    std::cerr << "Error: missing config file" << std::endl;
+    return EXIT_FAILURE;
+  }
+
   libparse::Config config;
   libnet::Netenv   net;
 
-  if (argc < 2) {
-    std::cerr << "error: missing config file \n";
-    return 0;
+  // Calling parser, and check
+  if (libparse::checkConfig(argv[1], config) == false)
+    return EXIT_FAILURE;
+
+  if (config.defaultServer == NULL) {
+    std::cerr << "Error: missing default server" << std::endl;
+    return EXIT_FAILURE;
   }
 
-  if (!libparse::checkConfig(argv[1], config))
-    return 0;
-
-  if (!config.defaultServer) {
-    std::cerr << "missing default server in the config" << std::endl;
-    return 1;
+  // Initializing logs
+  if (config.init() != true) {
+    std::cerr << "Error: failure initializing logging system" << std::endl;
+    return EXIT_FAILURE;
   }
 
-  if (!config.init()) {
-    std::cerr << "could not init the config" << std::endl;
-    return -1;
-  }
-
+  // Check for fs requirements
   if (WebServ::initializeFsEnv())
     return EXIT_FAILURE;
 
+  // Initializing sockets
   net.setupSockets(config);
 
   while (true) {
     net.prepFdSets();
     net.awaitEvents();
 
+    // Handing in-comming events
     sessionsHandler(net, config);
 
+    // Accepting new clients
     if (net.readySockets.empty() != true)
       net.acceptNewClients();
 
+    // Terminating sessions
     libnet::Terminator::terminate(net.sessions);
   };
   return 0;
