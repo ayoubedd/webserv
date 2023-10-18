@@ -321,6 +321,22 @@ void setHeaders(libhttp::Response *response, std::string contentType, size_t Con
   response->buffer->insert(response->buffer->end(), tmp.c_str(), tmp.c_str() + tmp.length());
 }
 
+void setHeaders(libhttp::Response *response, std::string contentType, size_t ContentLenght,
+                int statusCode, std::string status, int first, int last) {
+  std::string tmp;
+  tmp = "HTTP/1.1 " + std::to_string(statusCode) + " " + status + "\r\n";
+  response->buffer->insert(response->buffer->end(), tmp.c_str(), tmp.c_str() + tmp.length());
+  tmp = "Content-Length: " + std::to_string(last - first) + "\r\n";
+  response->buffer->insert(response->buffer->end(), tmp.c_str(), tmp.c_str() + tmp.length());
+  tmp = "Content-Type: " + contentType + "\r\n";
+  response->buffer->insert(response->buffer->end(), tmp.c_str(), tmp.c_str() + tmp.length());
+  tmp = "Accept-Ranges: bytes\r\n";
+  response->buffer->insert(response->buffer->end(), tmp.c_str(), tmp.c_str() + tmp.length());
+  tmp = "Content-Range: bytes " + std::to_string(first) + "-" + std::to_string(last - 1) + "/" +
+        std::to_string(ContentLenght) + "\r\n\r\n";
+  response->buffer->insert(response->buffer->end(), tmp.c_str(), tmp.c_str() + tmp.length());
+}
+
 std::pair<libhttp::Methods::error, libhttp::Response *> libhttp::Get(libhttp::Request &request,
                                                                      std::string       path) {
   libhttp::Response     *response = NULL;
@@ -344,8 +360,8 @@ std::pair<libhttp::Methods::error, libhttp::Response *> libhttp::Get(libhttp::Re
       response = new Response();
       response->fd = file.fd;
       setRange(response, range);
-      setHeaders(response, libparse::getTypeFile(libparse::Types(), path),
-                 range.second - range.first, 200, "OK");
+      setHeaders(response, libparse::getTypeFile(libparse::Types(), path), file.size, 206,
+                 "Partial Content", range.first, range.second);
     } else {
       response = new Response();
       setHeaders(response, libparse::getTypeFile(libparse::Types(), path), file.size, 200, "OK");
