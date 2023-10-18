@@ -72,6 +72,7 @@ static MuxErrResPair cgiHandler(libcgi::Cgi *cgi, const libparse::RouteProps *ro
   switch (cgi->state) {
     case libcgi::Cgi::INIT: {
       std::pair<std::string, std::string> interprterScriptPathsPair;
+
       interprterScriptPathsPair = extractInterpreterScriptPaths(domain, route, req);
       cgiError = cgi->init(req, interprterScriptPathsPair.second, "localhost", "./static/");
       if (cgiError != libcgi::Cgi::OK)

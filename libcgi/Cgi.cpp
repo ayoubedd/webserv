@@ -180,8 +180,7 @@ libcgi::Cgi::Error libcgi::Cgi::exec(const std::string &interpreter) {
     interpreter.empty() ? argv = getScriptArgs(req.scriptPath)
                         : argv = getScriptArgs(interpreter, req.scriptPath);
     env = headersAsEnv(req.env);
-    ::execve(req.scriptPath.c_str(), argv, env);
-
+    ::execve(argv[0], argv, env);
     exit(1);
   } else if (pid > 0) {
     this->state = READING_HEADERS;
