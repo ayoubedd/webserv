@@ -93,7 +93,8 @@ std::string libparse::findResourceInFs(const libhttp::Request &req,
   std::string fs = findRouteRoot(domain.routes, *r.second);
   if (fs.empty())
     return "";
-  fs = joinPath(fs, req.reqTarget.path);
+
+  fs = joinPath(fs, req.reqTarget.path.substr(r.first.size()));
   struct stat st;
   if (stat(fs.c_str(), &st) != 0)
     return "";
