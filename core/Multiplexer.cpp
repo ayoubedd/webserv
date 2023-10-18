@@ -1,5 +1,6 @@
 #include "core/Multiplexer.hpp"
 #include "core/Logger.hpp"
+#include "core/Sanitizer.hpp"
 #include "libcgi/Cgi-res.hpp"
 #include "libhttp/Error-generate.hpp"
 #include "libhttp/Headers.hpp"
@@ -187,61 +188,92 @@ static StatusResPair postHandler(libhttp::Request &req, libhttp::Multipart *ml,
   return std::make_pair(libhttp::Status::DONE, errResPair.second);
 }
 
-void libhttp::Mux::multiplexer(libnet::Session *session, const libparse::Config &config) {
-
-  libhttp::Request                                    *req;
-  const libparse::Domain                              *domain;
-  std::pair<std::string, const libparse::RouteProps *> route;
-
-  req = session->reader.requests.front();
-  domain = libparse::matchReqWithServer(*req, config);
-  route = libparse::matchPathWithRoute(domain->routes, req->reqTarget.path);
-
+static StatusResPair callCoresspondingHandler(libnet::Session *session, libhttp::Request *req,
+                                              const libparse::Domain     *domain,
+                                              const libparse::RouteProps *route) {
   StatusResPair errRes;
 
-  if (route.second->redir.empty() == false) {
+  errRes.first = libhttp::Status::OK;
+  errRes.second = NULL;
+  if (route->redir.empty() == false) {
     errRes.first = libhttp::Status::OK;
-    errRes.second = libhttp::redirect(route.second->redir);
+    errRes.second = libhttp::redirect(route->redir);
   }
 
-  else if (route.second->cgi.size()) {
+  else if (route->cgi.size()) {
     if (session->cgi == nullptr)
       session->cgi = new libcgi::Cgi(session->clientAddr);
-    errRes = cgiHandler(session->cgi, route.second, domain, req);
+    errRes = cgiHandler(session->cgi, route, domain, req);
   }
 
   else if (req->method == "GET") {
     std::string resourcePath = libparse::findResourceInFs(*req, *domain);
-    errRes = getHandler(*req, resourcePath);
+    errRes.first = WebServ::Sanitizer::sanitizeGetRequest(*req, *domain);
+    if (errRes.first == libhttp::Status::OK)
+      errRes = getHandler(*req, resourcePath);
   }
 
   else if (req->method == "DELETE") {
     std::string resourcePath = libparse::findResourceInFs(*req, *domain);
-    errRes = deleteHandler(resourcePath);
+    errRes.first = WebServ::Sanitizer::sanitizeGetRequest(*req, *domain);
+    if (errRes.first == libhttp::Status::OK)
+      errRes = deleteHandler(resourcePath);
   }
 
   else if (req->method == "POST") {
     libhttp::Post::BodyFormat bodyFormat = libhttp::Post::extractBodyFormat(req->headers.headers);
 
     switch (bodyFormat) {
-      case Post::CHUNKED:
+      case libhttp::Post::CHUNKED:
         if (session->transferEncoding == nullptr)
           session->transferEncoding = new libhttp::TransferEncoding();
         break;
-      case Post::MULTIPART_FORMDATA:
+      case libhttp::Post::MULTIPART_FORMDATA:
         if (session->multipart == nullptr)
           session->multipart = new libhttp::Multipart();
         break;
-      case Post::NORMAL:
+      case libhttp::Post::NORMAL:
         if (session->sizedPost == nullptr)
           session->sizedPost = new libhttp::SizedPost();
         break;
     }
 
-    std::string uploadRoot = libparse::findUploadDir(*req, *domain);
-    errRes = postHandler(*req, session->multipart, session->transferEncoding, session->sizedPost,
-                         uploadRoot);
+    std::string uploadRoot = libparse::findUploadDir(&domain->routes, route);
+
+    errRes.first = WebServ::Sanitizer::sanitizePostRequest(*req, domain->routes, *route);
+    if (errRes.first == libhttp::Status::OK)
+      errRes = postHandler(*req, session->multipart, session->transferEncoding, session->sizedPost,
+                           uploadRoot);
   }
+
+  return errRes;
+}
+
+void libhttp::Mux::multiplexer(libnet::Session *session, const libparse::Config &config) {
+
+  libhttp::Request                                    *req;
+  const libparse::Domain                              *domain;
+  std::pair<std::string, const libparse::RouteProps *> route;
+  StatusResPair                                        errRes;
+
+  req = session->reader.requests.front();
+  domain = libparse::matchReqWithServer(*req, config);
+  route = libparse::matchPathWithRoute(domain->routes, req->reqTarget.path);
+
+  errRes.first = libhttp::Status::OK;
+  errRes.second = NULL;
+
+  if (session->isNonBlocking(libnet::Session::SOCK_READ))
+    errRes.first = WebServ::Sanitizer::sanitizeBodySize(*req, domain->maxBodySize);
+
+  if (errRes.first == libhttp::Status::OK)
+    if (req->sanitized == false) {
+      errRes.first = WebServ::Sanitizer::sanitizeRequest(*req, *domain);
+      req->sanitized = true;
+    }
+
+  if (errRes.first == libhttp::Status::OK)
+    errRes = callCoresspondingHandler(session, req, domain, route.second);
 
   // Errors
   switch (errRes.first) {
@@ -256,7 +288,7 @@ void libhttp::Mux::multiplexer(libnet::Session *session, const libparse::Config 
       // Generating Error
       libhttp::Response *response = libhttp::ErrorGenerator::generate(*domain, errRes.first);
       errRes.first = libhttp::Status::DONE;
-      session->writer.responses.push(response);
+      errRes.second = response;
     }
   }
 

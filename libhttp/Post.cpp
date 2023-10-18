@@ -143,6 +143,7 @@ libhttp::Post::post(libhttp::Request &req, libhttp::TransferEncoding *te, libhtt
 
   bodyFormat = libhttp::Post::extractBodyFormat(req.headers.headers);
 
+  err = HANDLER_ERROR::OK;
   switch (bodyFormat) {
     case NORMAL:
       err = normalPostHandler(req, sp, uploadRoot);

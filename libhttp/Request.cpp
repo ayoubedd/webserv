@@ -3,7 +3,8 @@
 #include <arpa/inet.h>
 
 libhttp::Request::Request(sockaddr_in *clientAddr)
-    : method()
+    : sanitized(false)
+    , method()
     , reqTarget()
     , version()
     , headers()

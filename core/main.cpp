@@ -68,20 +68,21 @@ int main(int argc, char *argv[]) {
     return EXIT_FAILURE;
   }
 
+  // Check for fs requirements
+  if (WebServ::initializeFsEnv())
+    return EXIT_FAILURE;
+
   // Initializing logs
   if (config.init() != true) {
     std::cerr << "Error: failure initializing logging system" << std::endl;
     return EXIT_FAILURE;
   }
 
-  // Check for fs requirements
-  if (WebServ::initializeFsEnv())
-    return EXIT_FAILURE;
-
   // Initializing sockets
   net.setupSockets(config);
 
   while (true) {
+    // Prepate fds sets / await for new events
     net.prepFdSets();
     net.awaitEvents();
 

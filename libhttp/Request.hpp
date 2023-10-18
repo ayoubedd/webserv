@@ -11,7 +11,7 @@
 namespace libhttp {
   struct Request {
     enum State { R_INIT, R_HEADERS, R_BODY, R_FIN, R_ERR };
-
+    bool              sanitized;
     std::string       method;
     RequestTarget     reqTarget;
     std::string       version;
