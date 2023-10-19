@@ -58,7 +58,7 @@ void libparse::lexer(std::vector<libparse::tokens> &tokens, std::string &content
     else if (content[i] == '}')
       setNewToken(libparse::token::CURLYBARCKETLEFT, "}", tokens);
     else if (content[i] == ';')
-      setNewToken(libparse::token::ENDLINE, "_", tokens);
+      setNewToken(libparse::token::ENDLINE, ";", tokens);
     else if (isWhiteSpace(content[i]))
       skipWithSpace(content, &i), i--;
     else {
@@ -68,5 +68,5 @@ void libparse::lexer(std::vector<libparse::tokens> &tokens, std::string &content
     }
     i++;
   }
-  setNewToken(libparse::token::ENDFILE, "_", tokens);
+  setNewToken(libparse::token::ENDFILE, "End File", tokens);
 }

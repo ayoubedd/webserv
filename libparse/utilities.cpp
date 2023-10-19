@@ -97,15 +97,15 @@ std::pair<bool, std::string> checkFileExist(libparse::Config &config) {
     itR = itD->second.routes.begin();
     while (itR != itD->second.routes.end()) {
       if (!directoryExists(itD->second.routes[itR->first].upload))
-        return std::make_pair(false, "upload" + itD->second.routes[itR->first].upload);
+        return std::make_pair(false, itD->second.routes[itR->first].upload);
       if (!directoryExists(itD->second.routes[itR->first].root))
-        return std::make_pair(false, "root" + itD->second.routes[itR->first].root);
+        return std::make_pair(false, itD->second.routes[itR->first].root);
       path = itD->second.routes[itR->first].root + itD->second.routes[itR->first].index;
       if (!fileExists(path))
-        return std::make_pair(false, "index" + itD->second.routes[itR->first].index);
+        return std::make_pair(false, itD->second.routes[itR->first].index);
       res = checkFileExistAndEditableOfCgi(itD->second.routes[itR->first].cgi);
       if (!res.first)
-        return std::make_pair(false, "cgi" + res.second);
+        return std::make_pair(false, res.second);
       itR++;
     }
     itD++;
@@ -123,7 +123,7 @@ bool checkIsPath(std::string &path) {
 
 void advance(std::vector<libparse::tokens> &tokens, size_t *i) {
   if (*i > tokens.size()) {
-    std::cout << "Error in config File \n";
+    std::cerr << "Error in config File \n";
     exit(1);
   }
   (*i)++;
@@ -327,8 +327,6 @@ std::pair<bool, std::string> setUpRout(libparse::Config &config, std::string &na
           return std::make_pair(false, res.second);
       }
     } else {
-      std::cout << "Error in Route    " << tokens[*i].lexeme << "   " << tokens[*i - 1].lexeme
-                << "   " << tokens[*i - 2].lexeme << std::endl;
       return std::make_pair(false, tokens[*i].lexeme);
     }
     continue;
@@ -447,7 +445,6 @@ std::pair<bool, std::string> SetUpServer(libparse::Config              &config,
       if (!res.first)
         return std::make_pair(false, res.second);
     } else {
-      std::cout << "Error in server " << tokens[*i].lexeme << std::endl;
       return std::make_pair(false, tokens[*i].lexeme);
     }
     continue;

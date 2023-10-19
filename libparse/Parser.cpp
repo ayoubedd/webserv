@@ -1,6 +1,7 @@
 #include "Config.hpp"
 #include "utilities.hpp"
 #include <fcntl.h>
+#include <iostream>
 #include <unistd.h>
 #include <utility>
 // #include <unistd.h>
@@ -85,9 +86,9 @@ std::pair<bool, std::string> checkDefaultRout(libparse::Config &config) {
     if (itR == itD->second.routes.end())
       return std::make_pair(false, itD->first);
     if (itR->second.index.empty())
-      return std::make_pair(false, "index is empty in the server :" + itD->first);
+      return std::make_pair(false, "index at :" + itD->first);
     if (itR->second.root.empty())
-      return std::make_pair(false, "root is empty in the server :" + itD->first);
+      return std::make_pair(false, "root at :" + itD->first);
     itD++;
   }
   return std::make_pair(true, "");
@@ -104,22 +105,22 @@ bool libparse::checkConfig(const std::string &fileName, libparse::Config &config
   libparse::lexer(tokens, contentFile);
   res = parser(config, tokens);
   if (!res.first) {
-    std::cout << "Error invalide Token : " << res.second << std::endl;
+    std::cerr << "Error: invalid Token at `" << res.second << "`" << std::endl;
     return res.first;
   }
   res = checkFileExist(config);
   if (!res.first) {
-    std::cout << "File Not Exist or Not Editable : " << res.second << std::endl;
+    std::cerr << "Error: File Does Not Exist or executable at " << res.second << std::endl;
     return res.first;
   }
   res = checkDefaultRout(config);
   if (!res.first) {
-    std::cout << "Error Default Route " << res.second << std::endl;
+    std::cerr << "Error Default Route at " << res.second << std::endl;
     return res.first;
   }
   res = checkDuplicatePort(config);
   if (!res.first) {
-    std::cout << "Error Mulitple Port " << res.second << std::endl;
+    std::cerr << "Error Duplicat Port at " << res.second << std::endl;
     return res.first;
   }
   return true;
