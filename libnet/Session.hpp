@@ -36,7 +36,11 @@ namespace libnet {
 
     // Last time an event happend in this sessions
     struct timeval lastActivity;
-    bool           isSessionAcitve(size_t);
+
+    // The time cgi started processing a given request
+    struct timeval cgiProcessingStart;
+
+    bool           isSessionActive(bool);
 
     bool destroy;       // Flag for fatal Errors
     bool gracefulClose; // Flag for Connections: close header

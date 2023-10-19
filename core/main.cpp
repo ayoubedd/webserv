@@ -24,7 +24,7 @@ void sessionsHandler(libnet::Netenv &net, libparse::Config &config) {
     libhttp::Reader::error readerErr = libhttp::Reader::OK;
     libhttp::Writer::erorr writerError = libhttp::Writer::OK;
 
-    WebServ::updateTime(&session->lastActivity);
+    WebServ::syncTime(&session->lastActivity);
 
     // Calling the reader.
     if (session->isNonBlocking(libnet::Session::SOCK_READ)) {
@@ -36,9 +36,15 @@ void sessionsHandler(libnet::Netenv &net, libparse::Config &config) {
       }
     }
 
-    libhttp::Request *request = session->reader.requests.front();
+    libhttp::Request *request = NULL;
 
-    if (request->state == libhttp::Request::R_BODY || request->state == libhttp::Request::R_FIN)
+    if (session->reader.requests.empty() == true)
+      request = NULL;
+    else
+      request = session->reader.requests.front();
+
+    if (request != NULL &&
+        (request->state == libhttp::Request::R_BODY || request->state == libhttp::Request::R_FIN))
       libhttp::Mux::multiplexer(session, config);
 
     // Calling the writer.

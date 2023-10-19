@@ -1,6 +1,7 @@
 #include "core/Multiplexer.hpp"
 #include "core/Logger.hpp"
 #include "core/Sanitizer.hpp"
+#include "core/Timer.hpp"
 #include "libcgi/Cgi-res.hpp"
 #include "libhttp/Error-generate.hpp"
 #include "libhttp/Headers.hpp"
@@ -200,13 +201,44 @@ static StatusResPair callCoresspondingHandler(libnet::Session *session, libhttp:
   if (route->redir.empty() == false) {
     errRes.first = libhttp::Status::OK;
     errRes.second = libhttp::redirect(route->redir);
+    return errRes;
   }
 
-  else if (route->cgi.size()) {
+  else if (route->cgi.size() != 0) {
     if (session->cgi == nullptr)
       session->cgi = new libcgi::Cgi(session->clientAddr);
+
+    // Checking if cgi time outed.
+    if (session->cgi->state != libcgi::Cgi::INIT) // Only check in a running state
+    {
+
+      struct timeval now;
+      WebServ::syncTime(&now);
+
+      // Checking if cgi timeouted
+      if (session->isSessionActive(true) == false) {
+
+        // Cleaning up cgi
+        session->cgi->clean();
+
+        // denoting needed error to be generated
+        errRes.first = libhttp::Status::GATEWAY_TIMEOUT;
+        errRes.second = NULL;
+
+        return errRes;
+      }
+    }
+
+    // is cgi allowed to read
     bool allowedToRead = session->isNonBlocking(libnet::Session::CGI_READ);
+
+    // Preserving cgi previous state
+    libcgi::Cgi::State prevState = session->cgi->state;
     errRes = cgiHandler(session->cgi, route, domain, req, allowedToRead);
+
+    // Telling if that previous cal to cgi was a new request processing
+    if (prevState == libcgi::Cgi::INIT && session->cgi->state == libcgi::Cgi::READING_HEADERS)
+      WebServ::syncTime(&session->cgiProcessingStart);
   }
 
   else if (req->method == "GET") {

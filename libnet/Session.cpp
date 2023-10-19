@@ -21,7 +21,8 @@ libnet::Session::Session(int fd, sockaddr_in *clientAddr)
     , destroy(false)
     , gracefulClose(false)
     , permitedIo(0) {
-  WebServ::updateTime(&lastActivity);
+  WebServ::syncTime(&lastActivity);
+  WebServ::syncTime(&cgiProcessingStart);
 }
 
 libnet::Session::~Session() {
@@ -48,15 +49,20 @@ bool libnet::Session::isNonBlocking(int perm) {
   return false;
 }
 
-size_t timevalToMsec(struct timeval time) { return (time.tv_sec * 1000) + (time.tv_usec / 1000); }
-
-bool libnet::Session::isSessionAcitve(size_t threshold) {
+bool libnet::Session::isSessionActive(bool isCgiCheck) {
   struct timeval now;
 
-  WebServ::updateTime(&now);
+  WebServ::syncTime(&now);
 
-  if ((timevalToMsec(lastActivity) + (threshold * 1000)) > timevalToMsec(now))
-    return true;
+  if (isCgiCheck == true) // CGI check
+    if (WebServ::timevalToMsec(now) >
+        (WebServ::timevalToMsec(cgiProcessingStart) + (CGI_TIMEOUT * 1000)))
+      return false;
 
-  return false;
+  // Session check
+  if (WebServ::timevalToMsec(now) >
+      (WebServ::timevalToMsec(lastActivity) + (SESSION_IDLE_TIME * 1000)))
+    return false;
+
+  return true;
 }

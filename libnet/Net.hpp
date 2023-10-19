@@ -27,6 +27,7 @@ namespace libnet {
     void destroySession(libnet::Session *session);
 
     struct timeval timeHolder;
+    bool           isSessionsTimming;
 
     int largestFd(void);
 

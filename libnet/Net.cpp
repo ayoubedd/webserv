@@ -84,8 +84,27 @@ void libnet::Netenv::subscribeSessions() {
     // Skip sessions with empty response queue
     libnet::Session *session = begin->second;
 
-    if (timevalToMsec(session->lastActivity) < timevalToMsec(timeHolder))
-      timeHolder = session->lastActivity;
+    bool isCgiRunning = session->cgi != NULL && (session->cgi->state != libcgi::Cgi::INIT);
+
+    size_t sessionLeftTime = WebServ::calcLeftTime(session->lastActivity, SESSION_IDLE_TIME);
+
+    size_t cgiLeftTime = 0;
+    if (isCgiRunning == true)
+      cgiLeftTime = WebServ::calcLeftTime(session->cgiProcessingStart, CGI_TIMEOUT);
+
+    size_t leftTime;
+
+    if (isCgiRunning == false)
+      leftTime = sessionLeftTime;
+    else if (cgiLeftTime < sessionLeftTime)
+      leftTime = cgiLeftTime;
+    else
+      leftTime = sessionLeftTime;
+
+    if ((leftTime * 1000) < WebServ::timevalToMsec(timeHolder)) {
+      timeHolder.tv_sec = (unsigned long)leftTime;
+      timeHolder.tv_usec = 0;
+    }
 
     // Always Subscribe for reading from the socket
     if (session->gracefulClose != true)
@@ -119,22 +138,11 @@ void libnet::Netenv::prepFdSets(void) {
   FD_ZERO(&fdReadSet);
   FD_ZERO(&fdWriteSet);
 
-  WebServ::updateTime(&timeHolder);
+  WebServ::syncTime(&timeHolder);
 
   // Add Clients & Sockets fds to ReadSet
   subscribeSockets();
   subscribeSessions();
-
-  struct timeval now;
-  WebServ::updateTime(&now);
-
-  if (sessions.size() == 0) {
-    timeHolder.tv_sec = now.tv_sec;
-    return;
-  }
-
-  ssize_t mostTime = timevalToMsec(now) - timevalToMsec(timeHolder);
-  timeHolder.tv_sec = ((SESSION_IDLE_TIME * 1000) - mostTime) / 1000;
 }
 
 int libnet::Netenv::largestFd(void) {
@@ -215,8 +223,16 @@ void extractReadySessions(libnet::Sessions &src, libnet::Sessions &dst, fd_set *
           FD_ISSET(session->cgi->fd[0], fdReadSet))
         session->permitedIo |= libnet::Session::CGI_READ;
 
+    bool isCgiRunning = session->cgi != NULL && (session->cgi->state != libcgi::Cgi::INIT);
+
     // Telling if should pass this session to be handled
     if (session->permitedIo != 0)
+      dst.insert(std::make_pair(session->fd, session));
+
+    else if (isCgiRunning && session->isSessionActive(true))
+      dst.insert(std::make_pair(session->fd, session));
+
+    else if (session->isSessionActive(false))
       dst.insert(std::make_pair(session->fd, session));
 
     sessionsBegin++;
@@ -224,7 +240,15 @@ void extractReadySessions(libnet::Sessions &src, libnet::Sessions &dst, fd_set *
 }
 
 void libnet::Netenv::awaitEvents(void) {
-  int err = select(largestFd() + 1, &fdReadSet, &fdWriteSet, NULL, &timeHolder);
+  std::cout << "blocking for most : " << timeHolder.tv_sec << std::endl;
+
+  int err;
+
+  if (timeHolder.tv_sec == 0)
+    err = select(largestFd() + 1, &fdReadSet, &fdWriteSet, NULL, NULL);
+  else
+    err = select(largestFd() + 1, &fdReadSet, &fdWriteSet, NULL, &timeHolder);
+
   if (err == -1) {
     std::cerr << "select: " << strerror(errno) << std::endl;
     exit(EXIT_FAILURE);
