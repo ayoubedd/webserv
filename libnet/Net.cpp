@@ -121,7 +121,8 @@ void libnet::Netenv::subscribeSessions() {
       libhttp::Response *response = session->writer.responses.front();
 
       // Subscribe for writting
-      FD_SET(session->fd, &fdWriteSet);
+      if ((response->fd > 0 || (response->fd == -2 && response->doneReading == false)))
+        FD_SET(session->fd, &fdWriteSet);
 
       // Subscribe for reading if current response has a fd != -1
       // and not done reading
@@ -240,14 +241,7 @@ void extractReadySessions(libnet::Sessions &src, libnet::Sessions &dst, fd_set *
 }
 
 void libnet::Netenv::awaitEvents(void) {
-  std::cout << "blocking for most : " << timeHolder.tv_sec << std::endl;
-
-  int err;
-
-  if (timeHolder.tv_sec == 0)
-    err = select(largestFd() + 1, &fdReadSet, &fdWriteSet, NULL, NULL);
-  else
-    err = select(largestFd() + 1, &fdReadSet, &fdWriteSet, NULL, &timeHolder);
+  int err = select(largestFd() + 1, &fdReadSet, &fdWriteSet, NULL, &timeHolder);
 
   if (err == -1) {
     std::cerr << "select: " << strerror(errno) << std::endl;
