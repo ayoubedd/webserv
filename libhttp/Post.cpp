@@ -18,7 +18,8 @@ enum HANDLER_ERROR {
 };
 
 libhttp::Post::BodyFormat libhttp::Post::extractBodyFormat(const libhttp::HeadersMap &headers) {
-  libhttp::HeadersMap::const_iterator transferEncodingIter = headers.find(libhttp::Headers::TRANSFER_ENCODING);
+  libhttp::HeadersMap::const_iterator transferEncodingIter =
+      headers.find(libhttp::Headers::TRANSFER_ENCODING);
   if (transferEncodingIter != headers.end()) {
     if (transferEncodingIter->second.find("chunked") != std::string::npos)
       return libhttp::Post::CHUNKED;
@@ -177,7 +178,7 @@ libhttp::Post::post(libhttp::Request &req, libhttp::TransferEncoding *te, libhtt
   // Start building response.
 
   libhttp::Response *res = new libhttp::Response();
-  std::string        headers = "HTTP/1.1 201 Created\r\n\r\n";
+  std::string        headers = "HTTP/1.1 201 Created\r\nContent-Length: 0\r\n\r\n";
 
   res->buffer->insert(res->buffer->begin(), headers.begin(), headers.end());
 
