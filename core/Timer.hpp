@@ -6,7 +6,7 @@
 namespace WebServ {
 
 #define SESSION_IDLE_TIME 60 // Time in seconds, for a Sessions to be ildle in.
-#define CGI_TIMEOUT 5        // Time in seconds, for cgi response to be ready.
+#define CGI_TIMEOUT 20        // Time in seconds, for cgi response to be ready.
 
   void   expireSessions(libnet::Sessions &);
   void   syncTime(struct timeval *);
