@@ -121,7 +121,8 @@ void libnet::Netenv::subscribeSessions() {
       libhttp::Response *response = session->writer.responses.front();
 
       // Subscribe for writting
-      if ((response->fd > 0 || (response->fd == -2 && response->doneReading == false)))
+      if ((response->fd > 0 || (response->fd == -2 && response->doneReading == false) ||
+           response->buffer->size() != 0))
         FD_SET(session->fd, &fdWriteSet);
 
       // Subscribe for reading if current response has a fd != -1
