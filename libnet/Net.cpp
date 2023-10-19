@@ -1,4 +1,5 @@
 #include "libnet/Net.hpp"
+#include "core/Timer.hpp"
 #include "libnet/Session.hpp"
 #include <algorithm>
 #include <arpa/inet.h>
@@ -65,17 +66,17 @@ void libnet::Netenv::setupSockets(libparse::Config &config) {
   }
 }
 
-static void subscribeSockets(libnet::Sockets &sockets, fd_set *set) {
+void libnet::Netenv::subscribeSockets() {
   libnet::Sockets::iterator begin = sockets.begin();
   libnet::Sockets::iterator end = sockets.end();
 
   while (begin != end) {
-    FD_SET(*begin, set);
+    FD_SET(*begin, &fdReadSet);
     begin++;
   }
 }
 
-static void subscribeSessions(libnet::Sessions &sessions, fd_set *fdReadSet, fd_set *fdWriteSet) {
+void libnet::Netenv::subscribeSessions() {
   libnet::Sessions::iterator begin = sessions.begin();
   libnet::Sessions::iterator end = sessions.end();
 
@@ -83,27 +84,51 @@ static void subscribeSessions(libnet::Sessions &sessions, fd_set *fdReadSet, fd_
     // Skip sessions with empty response queue
     libnet::Session *session = begin->second;
 
+    bool isCgiRunning = session->cgi != NULL && (session->cgi->state != libcgi::Cgi::INIT);
+
+    size_t sessionLeftTime = WebServ::calcLeftTime(session->lastActivity, SESSION_IDLE_TIME);
+
+    size_t cgiLeftTime = 0;
+    if (isCgiRunning == true)
+      cgiLeftTime = WebServ::calcLeftTime(session->cgiProcessingStart, CGI_TIMEOUT);
+
+    size_t leftTime;
+
+    if (isCgiRunning == false)
+      leftTime = sessionLeftTime;
+    else if (cgiLeftTime < sessionLeftTime)
+      leftTime = cgiLeftTime;
+    else
+      leftTime = sessionLeftTime;
+
+    if ((leftTime * 1000) < WebServ::timevalToMsec(timeHolder)) {
+      timeHolder.tv_sec = (unsigned long)leftTime;
+      timeHolder.tv_usec = 0;
+    }
+
     // Always Subscribe for reading from the socket
     if (session->gracefulClose != true)
-      FD_SET(session->fd, fdReadSet);
+      FD_SET(session->fd, &fdReadSet);
 
     // Subscribe for reading from pipe if cgi in READING_HEADERS or READING_BODY state
     if (session->cgi)
       if (session->cgi->state == libcgi::Cgi::READING_HEADERS ||
           session->cgi->state == libcgi::Cgi::READING_BODY)
-        FD_SET(session->cgi->fd[0], fdReadSet);
+        FD_SET(session->cgi->fd[0], &fdReadSet);
 
     // Subscribe for writting if there something to write
     if (session->writer.responses.empty() != true) {
       libhttp::Response *response = session->writer.responses.front();
 
       // Subscribe for writting
-      FD_SET(session->fd, fdWriteSet);
+      if ((response->fd > 0 || (response->fd == -2 && response->doneReading == false) ||
+           response->buffer->size() != 0))
+        FD_SET(session->fd, &fdWriteSet);
 
       // Subscribe for reading if current response has a fd != -1
       // and not done reading
       if (response->fd > 0 && response->doneReading == false)
-        FD_SET(response->fd, fdReadSet);
+        FD_SET(response->fd, &fdReadSet);
     }
 
     begin++;
@@ -115,9 +140,11 @@ void libnet::Netenv::prepFdSets(void) {
   FD_ZERO(&fdReadSet);
   FD_ZERO(&fdWriteSet);
 
+  WebServ::syncTime(&timeHolder);
+
   // Add Clients & Sockets fds to ReadSet
-  subscribeSockets(sockets, &fdReadSet);
-  subscribeSessions(sessions, &fdReadSet, &fdWriteSet);
+  subscribeSockets();
+  subscribeSessions();
 }
 
 int libnet::Netenv::largestFd(void) {
@@ -164,8 +191,8 @@ static void extractReadySockets(libnet::Sockets &src, libnet::Sockets &dst, fd_s
   }
 }
 
-static void extractReadySessions(libnet::Sessions &src, libnet::Sessions &dst, fd_set *fdReadSet,
-                                 fd_set *fdWriteSet) {
+void extractReadySessions(libnet::Sessions &src, libnet::Sessions &dst, fd_set *fdReadSet,
+                          fd_set *fdWriteSet) {
   libnet::Sessions::iterator sessionsBegin = src.begin();
   libnet::Sessions::iterator sessionsEnd = src.end();
 
@@ -194,12 +221,20 @@ static void extractReadySessions(libnet::Sessions &src, libnet::Sessions &dst, f
     // Check if CGI allowed to read from pipe
     if (session->cgi)
       if ((session->cgi->state == libcgi::Cgi::READING_HEADERS ||
-           session->cgi->state == libcgi::Cgi::READING_HEADERS) &&
+           session->cgi->state == libcgi::Cgi::READING_BODY) &&
           FD_ISSET(session->cgi->fd[0], fdReadSet))
         session->permitedIo |= libnet::Session::CGI_READ;
 
+    bool isCgiRunning = session->cgi != NULL && (session->cgi->state != libcgi::Cgi::INIT);
+
     // Telling if should pass this session to be handled
     if (session->permitedIo != 0)
+      dst.insert(std::make_pair(session->fd, session));
+
+    else if (isCgiRunning && session->isSessionActive(true))
+      dst.insert(std::make_pair(session->fd, session));
+
+    else if (session->isSessionActive(false))
       dst.insert(std::make_pair(session->fd, session));
 
     sessionsBegin++;
@@ -207,7 +242,8 @@ static void extractReadySessions(libnet::Sessions &src, libnet::Sessions &dst, f
 }
 
 void libnet::Netenv::awaitEvents(void) {
-  int err = select(largestFd() + 1, &fdReadSet, &fdWriteSet, NULL, NULL);
+  int err = select(largestFd() + 1, &fdReadSet, &fdWriteSet, NULL, &timeHolder);
+
   if (err == -1) {
     std::cerr << "select: " << strerror(errno) << std::endl;
     exit(EXIT_FAILURE);
