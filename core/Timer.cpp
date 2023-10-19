@@ -4,21 +4,25 @@
 #include <sys/select.h>
 #include <sys/time.h>
 
-void WebServ::expireSessions(libnet::Sessions &sessions) {
-  libnet::Sessions::iterator begin = sessions.begin();
-  libnet::Sessions::iterator end = sessions.end();
+size_t WebServ::timevalToMsec(struct timeval time) { return (time.tv_sec * 1000) + (time.tv_usec / 1000); }
 
-  while (begin != end) {
-    libnet::Session *session = begin->second;
-    if (session->isSessionAcitve(1000))
-      session->gracefulClose = true;
-    begin++;
-  }
-}
-
-void WebServ::updateTime(struct timeval *time) {
+void WebServ::syncTime(struct timeval *time) {
   if (gettimeofday(time, NULL) == -1) {
     std::cerr << "error: failure getting time of day" << std::endl;
     exit(EXIT_FAILURE);
   }
 }
+size_t WebServ::calcLeftTime(struct timeval event, size_t threshold) {
+  size_t         leftTime;
+  struct timeval now;
+
+  WebServ::syncTime(&now);
+
+  leftTime = WebServ::timevalToMsec(now) - WebServ::timevalToMsec(event);
+
+  if (threshold < leftTime)
+    return 0;
+
+  return threshold - leftTime;
+}
+
