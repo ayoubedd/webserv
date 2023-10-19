@@ -140,7 +140,7 @@ bool libparse::Config::init() {
   }
   if (!this->log_error.empty()) {
 
-    fdError = open(this->log_info.c_str(), O_WRONLY);
+    fdError = open(this->log_error.c_str(), O_WRONLY);
     if (fdError < 0)
       return false;
     if (dup2(fdError, 2) < 0)
