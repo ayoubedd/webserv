@@ -308,6 +308,7 @@ void libhttp::Mux::multiplexer(libnet::Session *session, const libparse::Config 
       session->gracefulClose = true;
 
     // Pooping request since its done.
+    delete session->reader.requests.front();
     session->reader.requests.pop();
   }
 }
