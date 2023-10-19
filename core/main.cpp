@@ -24,16 +24,17 @@ void sessionsHandler(libnet::Netenv &net, libparse::Config &config) {
     libhttp::Reader::error readerErr = libhttp::Reader::OK;
     libhttp::Writer::erorr writerError = libhttp::Writer::OK;
 
-    WebServ::syncTime(&session->lastActivity);
-
     // Calling the reader.
     if (session->isNonBlocking(libnet::Session::SOCK_READ)) {
       readerErr = session->reader.read();
+
       if (readerErr != libhttp::Reader::OK) {
         session->destroy = true;
         sessionsBegin++;
         continue;
       }
+
+      WebServ::syncTime(&session->lastActivity);
     }
 
     libhttp::Request *request = NULL;
@@ -49,12 +50,17 @@ void sessionsHandler(libnet::Netenv &net, libparse::Config &config) {
 
     // Calling the writer.
     if (session->isNonBlocking(libnet::Session::SOCK_WRITE)) {
+
       writerError = session->writer.write(session->isNonBlocking(libnet::Session::WRITER_READ));
-      if (writerError != libhttp::Writer::OK) {
+
+      if (writerError != libhttp::Writer::OK && writerError != libhttp::Writer::WRITTEN_NADA) {
         session->destroy = true;
         sessionsBegin++;
         continue;
       }
+
+      if (writerError != libhttp::Writer::WRITTEN_NADA)
+        WebServ::syncTime(&session->lastActivity);
     }
 
     sessionsBegin++;
