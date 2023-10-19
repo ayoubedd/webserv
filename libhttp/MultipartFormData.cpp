@@ -20,9 +20,7 @@ void libhttp::MultipartEntity::MultipartEntity::clean() {
 
 libhttp::MultipartEntity::~MultipartEntity(){};
 
-libhttp::MultipartFormData::~MultipartFormData() {
-  cleanup(READY);
-}
+libhttp::MultipartFormData::~MultipartFormData() { cleanup(READY); }
 
 void libhttp::MultipartFormData::cleanup(libhttp::MultipartFormData::Status newStatus) {
   if (newStatus != DONE && entities.size()) {
@@ -284,7 +282,9 @@ libhttp::MultipartFormData::read(libhttp::Request &req, const std::string &uploa
       // Extracting filename of the part
       std::string providedFileName =
           extractHeaderPropKeyValue(entity.headers, "Content-Disposition", "filename");
-      providedFileName = providedFileName.substr(1, providedFileName.length() - 2);
+      providedFileName = providedFileName.empty()
+                             ? "upload_"
+                             : providedFileName.substr(1, providedFileName.length() - 2);
 
       if (!providedFileName.length())
         entity.filePath = libhttp::generateFileName(uploadRoot + "/uploaded_file");
