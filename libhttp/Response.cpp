@@ -19,7 +19,7 @@ libhttp::Response::Response(std::vector<char> *vec) {
 }
 
 libhttp::Response::~Response(void) {
-  if (fd != -1)
+  if (fd > 0)
     close(fd);
   delete buffer;
 }
