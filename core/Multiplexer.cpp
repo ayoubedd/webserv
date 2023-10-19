@@ -198,12 +198,15 @@ static StatusResPair callCoresspondingHandler(libnet::Session *session, libhttp:
 
   errRes.first = libhttp::Status::OK;
   errRes.second = NULL;
+
+  // Redirection
   if (route->redir.empty() == false) {
     errRes.first = libhttp::Status::DONE;
     errRes.second = libhttp::redirect(route->redir);
     return errRes;
   }
 
+  // Cgi
   else if (route->cgi.size() != 0) {
     if (session->cgi == nullptr)
       session->cgi = new libcgi::Cgi(session->clientAddr);
@@ -241,6 +244,7 @@ static StatusResPair callCoresspondingHandler(libnet::Session *session, libhttp:
       WebServ::syncTime(&session->cgiProcessingStart);
   }
 
+  // Get
   else if (req->method == "GET") {
     std::string resourcePath = libparse::findResourceInFs(*req, *domain);
     errRes.first = WebServ::Sanitizer::sanitizeGetRequest(*req, *domain);
@@ -248,6 +252,7 @@ static StatusResPair callCoresspondingHandler(libnet::Session *session, libhttp:
       errRes = getHandler(*req, resourcePath);
   }
 
+  // Delete
   else if (req->method == "DELETE") {
     std::string resourcePath = libparse::findResourceInFs(*req, *domain);
     errRes.first = WebServ::Sanitizer::sanitizeGetRequest(*req, *domain);
@@ -255,6 +260,7 @@ static StatusResPair callCoresspondingHandler(libnet::Session *session, libhttp:
       errRes = deleteHandler(resourcePath);
   }
 
+  // Post
   else if (req->method == "POST") {
     libhttp::Post::BodyFormat bodyFormat = libhttp::Post::extractBodyFormat(req->headers.headers);
 
