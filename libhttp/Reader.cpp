@@ -29,7 +29,6 @@ void libhttp::Reader::clearRawDataIndices() {
 libhttp::Reader::~Reader() {
   if (requests.empty() == true)
     return;
-
   while (requests.empty() != true) {
     libhttp::Request *request = requests.front();
     delete request;
@@ -38,7 +37,7 @@ libhttp::Reader::~Reader() {
 }
 void libhttp::Reader::moveRawDataToRequestBody(std::vector<char>::iterator first,
                                                std::vector<char>::iterator last) {
-  this->req->allBodyLen += last - first + 1; // this need to be checked
+  this->req->allBodyLen += last - first; // this need to be checked
   this->req->body.insert(this->req->body.end(), first, last);
   this->raw.erase(first, last);
 }
@@ -256,7 +255,9 @@ std::pair<libhttp::Reader::error, bool> libhttp::Reader::processChunkedEncoding(
     }
   }
   if (!found) {
-    this->moveRawDataToRequestBody(this->raw.begin(), this->raw.end());
+    this->moveRawDataToRequestBody(
+        this->raw.begin(),
+        this->raw.end() - 4); // 4 if i need just one character to complete the delimeter
     return std::make_pair(OK, false);
   }
   i += 5;
@@ -292,7 +293,9 @@ std::pair<libhttp::Reader::error, bool> libhttp::Reader::processMultiPartFormDat
     return std::make_pair(OK, false);
   bodyEndIdx = getLastBoundry(this->raw, boundry);
   if (!bodyEndIdx.first) {
-    this->moveRawDataToRequestBody(this->raw.begin(), this->raw.end());
+    this->moveRawDataToRequestBody(this->raw.begin(),
+                                   this->raw.end() - boundry.size() +
+                                       1); // if i need one char to compelete the delemeter
     return std::make_pair(OK, false);
   }
   this->moveRawDataToRequestBody(this->raw.begin(), this->raw.begin() + bodyEndIdx.second);
@@ -375,7 +378,8 @@ libhttp::Reader::error libhttp::Reader::read() {
       this->requests.push(req);
     clearRawDataIndices();
   }
-  if (!this->requests.size() || this->req != this->requests.back())
+  if (!this->requests.size() || this->req != this->requests.back()) {
     this->requests.push(req);
+  }
   return futureState.first;
 }
