@@ -18,6 +18,6 @@ namespace Webserv {
     static const char *VERSIONHTTP;
     static const char *PATH;
     static const char *TIME;
-    static void        log(const libhttp::Request &request, int option = 0);
+    static void        log(const libhttp::Request &request, int option = 1);
   };
 } // namespace Webserv
