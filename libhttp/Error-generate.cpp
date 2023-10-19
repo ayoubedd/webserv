@@ -39,6 +39,7 @@ void libhttp::ErrorGenerator::fileAsString(const std::string &filename, std::str
   if (!file.is_open())
     return;
   ss << file.rdbuf();
+  file.close();
   buff = ss.str();
 }
 void libhttp::ErrorGenerator::fillTemplate(std::string                              &file,
@@ -71,8 +72,7 @@ libhttp::Response *libhttp::ErrorGenerator::generate(const libparse::Domain &dom
   fileAsString(filename, file);
   if (file.empty())
     return NULL;
-  Response *r = new Response;
-  r->buffer = new std::vector<char>;
+  Response                          *r = new Response;
   std::map<std::string, std::string> arg;
   arg[STATUS_CODE_VARIABLE] = asStr(code);
   switch (code) {
