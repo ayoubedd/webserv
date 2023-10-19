@@ -79,7 +79,10 @@ libhttp::Writer::erorr libhttp::Writer::write(bool permitedToRead) {
   size_t bytesToWrite = readWriteBufferSize < response->buffer->size() ? readWriteBufferSize
                                                                        : response->buffer->size();
 
-  ssize_t writtenBytes = ::send(sock, &(*response->buffer)[0], bytesToWrite, 0);
+  ssize_t writtenBytes = 0;
+
+  if (bytesToWrite != 0)
+    writtenBytes = ::send(sock, &(*response->buffer)[0], bytesToWrite, 0);
 
   if (writtenBytes == -1)
     return libhttp::Writer::ERORR_WRITTING_TO_FD;
@@ -100,6 +103,9 @@ libhttp::Writer::erorr libhttp::Writer::write(bool permitedToRead) {
     delete response;
     responses.pop();
   }
+
+  if (writtenBytes == 0)
+    return libhttp::Writer::WRITTEN_NADA;
 
   return libhttp::Writer::OK;
 }
