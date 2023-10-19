@@ -11,6 +11,7 @@ namespace libhttp {
       OK,
       ERORR_WRITTING_TO_FD,
       ERORR_READING_FROM_FD,
+      WRITTEN_NADA,
     };
 
     int                    sock;

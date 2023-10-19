@@ -102,9 +102,8 @@ std::pair<bool, std::string> checkFileExist(libparse::Config &config) {
             return std::make_pair(false, "upload " + itD->second.routes[itR->first].upload);
         } else if (!directoryExists(itD->second.routes[itR->first].root +
                                     itD->second.routes[itR->first].upload))
-          return std::make_pair(
-              false, "upload " + itD->second.routes[itR->first].root +
-                         itD->second.routes[itR->first].root itD->second.routes[itR->first].upload);
+          return std::make_pair(false, "upload " + itD->second.routes[itR->first].root +
+                                           itD->second.routes[itR->first].upload);
       }
       if (!directoryExists(itD->second.routes[itR->first].root))
         return std::make_pair(false, "root " + itD->second.routes[itR->first].root);

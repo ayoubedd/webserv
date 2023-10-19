@@ -3,7 +3,8 @@ CXX=g++
 CXXFLAGS+=-Wall -Wextra -Wreorder -I . -flto -O3
 
 CORE=core/main.cpp core/Sanitizer.cpp core/Multiplexer.cpp \
-		 core/Initialization.cpp core/Logger.cpp
+		 core/Initialization.cpp core/Logger.cpp \
+		 core/Timer.cpp
 
 LIBHTTP=libhttp/Headers.cpp libhttp/Request.cpp libhttp/Reader.cpp \
 				 libhttp/Request-target.cpp libhttp/Chunk.cpp libhttp/MultipartFormData.cpp \
