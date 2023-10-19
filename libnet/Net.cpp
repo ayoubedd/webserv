@@ -211,7 +211,7 @@ void extractReadySessions(libnet::Sessions &src, libnet::Sessions &dst, fd_set *
     // Check if CGI allowed to read from pipe
     if (session->cgi)
       if ((session->cgi->state == libcgi::Cgi::READING_HEADERS ||
-           session->cgi->state == libcgi::Cgi::READING_HEADERS) &&
+           session->cgi->state == libcgi::Cgi::READING_BODY) &&
           FD_ISSET(session->cgi->fd[0], fdReadSet))
         session->permitedIo |= libnet::Session::CGI_READ;
 
