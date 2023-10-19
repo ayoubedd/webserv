@@ -1,6 +1,7 @@
 #include "core/Multiplexer.hpp"
 #include "core/Logger.hpp"
 #include "core/Sanitizer.hpp"
+#include "core/Timer.hpp"
 #include "libcgi/Cgi-res.hpp"
 #include "libhttp/Error-generate.hpp"
 #include "libhttp/Headers.hpp"
@@ -66,7 +67,8 @@ static bool shouldCloseSessions(libhttp::Request *request) {
 }
 
 static StatusResPair cgiHandler(libcgi::Cgi *cgi, const libparse::RouteProps *route,
-                                const libparse::Domain *domain, libhttp::Request *req) {
+                                const libparse::Domain *domain, libhttp::Request *req,
+                                bool allowedToRead) {
   libcgi::Cgi::Error cgiError;
 
   cgiError = libcgi::Cgi::OK;
@@ -86,7 +88,8 @@ static StatusResPair cgiHandler(libcgi::Cgi *cgi, const libparse::RouteProps *ro
     }
     case libcgi::Cgi::READING_HEADERS:
     case libcgi::Cgi::READING_BODY:
-      cgiError = cgi->read();
+      if (allowedToRead == true)
+        cgiError = cgi->read();
       break;
     case libcgi::Cgi::ERR:
     case libcgi::Cgi::FIN:
@@ -104,9 +107,9 @@ static StatusResPair cgiHandler(libcgi::Cgi *cgi, const libparse::RouteProps *ro
     case libcgi::Cgi::FAILED_READ:
     case libcgi::Cgi::MALFORMED:
     case libcgi::Cgi::FAILED_WAITPID:
-    case libcgi::Cgi::CHIIED_RETURN_ERR:
       cgi->clean();
       return std::make_pair(libhttp::Status::INTERNAL_SERVER_ERROR, nullptr);
+    case libcgi::Cgi::CHIIED_RETURN_ERR:
     case libcgi::Cgi::OK:
       break;
   }
@@ -195,17 +198,53 @@ static StatusResPair callCoresspondingHandler(libnet::Session *session, libhttp:
 
   errRes.first = libhttp::Status::OK;
   errRes.second = NULL;
+
+  // Redirection
   if (route->redir.empty() == false) {
-    errRes.first = libhttp::Status::OK;
+    errRes.first = libhttp::Status::DONE;
     errRes.second = libhttp::redirect(route->redir);
+    return errRes;
   }
 
-  else if (route->cgi.size()) {
+  // Cgi
+  else if (route->cgi.size() != 0) {
     if (session->cgi == nullptr)
       session->cgi = new libcgi::Cgi(session->clientAddr);
-    errRes = cgiHandler(session->cgi, route, domain, req);
+
+    // Checking if cgi time outed.
+    if (session->cgi->state != libcgi::Cgi::INIT) // Only check in a running state
+    {
+
+      struct timeval now;
+      WebServ::syncTime(&now);
+
+      // Checking if cgi timeouted
+      if (session->isSessionActive(true) == false) {
+
+        // Cleaning up cgi
+        session->cgi->clean();
+
+        // denoting needed error to be generated
+        errRes.first = libhttp::Status::GATEWAY_TIMEOUT;
+        errRes.second = NULL;
+
+        return errRes;
+      }
+    }
+
+    // is cgi allowed to read
+    bool allowedToRead = session->isNonBlocking(libnet::Session::CGI_READ);
+
+    // Preserving cgi previous state
+    libcgi::Cgi::State prevState = session->cgi->state;
+    errRes = cgiHandler(session->cgi, route, domain, req, allowedToRead);
+
+    // Telling if that previous cal to cgi was a new request processing
+    if (prevState == libcgi::Cgi::INIT && session->cgi->state == libcgi::Cgi::READING_HEADERS)
+      WebServ::syncTime(&session->cgiProcessingStart);
   }
 
+  // Get
   else if (req->method == "GET") {
     std::string resourcePath = libparse::findResourceInFs(*req, *domain);
     errRes.first = WebServ::Sanitizer::sanitizeGetRequest(*req, *domain);
@@ -213,6 +252,7 @@ static StatusResPair callCoresspondingHandler(libnet::Session *session, libhttp:
       errRes = getHandler(*req, resourcePath);
   }
 
+  // Delete
   else if (req->method == "DELETE") {
     std::string resourcePath = libparse::findResourceInFs(*req, *domain);
     errRes.first = WebServ::Sanitizer::sanitizeGetRequest(*req, *domain);
@@ -220,6 +260,7 @@ static StatusResPair callCoresspondingHandler(libnet::Session *session, libhttp:
       errRes = deleteHandler(resourcePath);
   }
 
+  // Post
   else if (req->method == "POST") {
     libhttp::Post::BodyFormat bodyFormat = libhttp::Post::extractBodyFormat(req->headers.headers);
 
@@ -303,9 +344,13 @@ void libhttp::Mux::multiplexer(libnet::Session *session, const libparse::Config 
     if (session->writer.responses.back()->fd == -2) // if Respones is cgi
       session->writer.responses.back()->doneReading = true;
 
-    // Should close connection
-    if (shouldCloseSessions(session->reader.requests.front()))
-      session->gracefulClose = true;
+    // if data still incoming stop listeining,
+    // and flag session for graceful closing
+    if (errRes.first != libhttp::Status::OK)
+      if (session->reader.requests.front()->state != libhttp::Request::R_FIN) {
+        session->reader.clearRawDataIndices();
+        session->gracefulClose = true;
+      }
 
     // Pooping request since its done.
     delete session->reader.requests.front();

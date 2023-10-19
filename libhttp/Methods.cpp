@@ -129,7 +129,7 @@ std::string getFileLastModification(const std::string &file_path) {
 
   if (stat(file_path.c_str(), &stats) == 0) {
     tm = gmtime(&stats.st_mtime);
-    strftime(buffer, 100, "%a, %d %b %Y %H:%M:%S GMT", tm);
+    strftime(buffer, 100, "%a, %d %b %Y %H:%M:%S", tm);
   }
   return std::string(buffer);
 }
