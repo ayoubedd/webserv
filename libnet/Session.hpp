@@ -35,7 +35,7 @@ namespace libnet {
     sockaddr_in               *clientAddr;
 
     // Last time an event happend in this sessions
-    struct timeval lastModified;
+    struct timeval lastActivity;
     bool           isSessionAcitve(size_t);
 
     bool destroy;       // Flag for fatal Errors

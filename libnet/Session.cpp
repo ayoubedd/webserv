@@ -21,7 +21,7 @@ libnet::Session::Session(int fd, sockaddr_in *clientAddr)
     , destroy(false)
     , gracefulClose(false)
     , permitedIo(0) {
-  WebServ::updateTime(&lastModified);
+  WebServ::updateTime(&lastActivity);
 }
 
 libnet::Session::~Session() {
@@ -55,7 +55,7 @@ bool libnet::Session::isSessionAcitve(size_t threshold) {
 
   WebServ::updateTime(&now);
 
-  if ((timevalToMsec(lastModified) + (threshold * 1000)) > timevalToMsec(now))
+  if ((timevalToMsec(lastActivity) + (threshold * 1000)) > timevalToMsec(now))
     return true;
 
   return false;

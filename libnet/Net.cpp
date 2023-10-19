@@ -84,8 +84,8 @@ void libnet::Netenv::subscribeSessions() {
     // Skip sessions with empty response queue
     libnet::Session *session = begin->second;
 
-    if (timevalToMsec(session->lastModified) < timevalToMsec(timeHolder))
-      timeHolder = session->lastModified;
+    if (timevalToMsec(session->lastActivity) < timevalToMsec(timeHolder))
+      timeHolder = session->lastActivity;
 
     // Always Subscribe for reading from the socket
     if (session->gracefulClose != true)
