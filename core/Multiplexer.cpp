@@ -107,9 +107,9 @@ static StatusResPair cgiHandler(libcgi::Cgi *cgi, const libparse::RouteProps *ro
     case libcgi::Cgi::FAILED_READ:
     case libcgi::Cgi::MALFORMED:
     case libcgi::Cgi::FAILED_WAITPID:
-    case libcgi::Cgi::CHIIED_RETURN_ERR:
       cgi->clean();
       return std::make_pair(libhttp::Status::INTERNAL_SERVER_ERROR, nullptr);
+    case libcgi::Cgi::CHIIED_RETURN_ERR:
     case libcgi::Cgi::OK:
       break;
   }
@@ -199,7 +199,7 @@ static StatusResPair callCoresspondingHandler(libnet::Session *session, libhttp:
   errRes.first = libhttp::Status::OK;
   errRes.second = NULL;
   if (route->redir.empty() == false) {
-    errRes.first = libhttp::Status::OK;
+    errRes.first = libhttp::Status::DONE;
     errRes.second = libhttp::redirect(route->redir);
     return errRes;
   }
