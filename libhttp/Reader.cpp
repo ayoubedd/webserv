@@ -38,6 +38,7 @@ libhttp::Reader::~Reader() {
 }
 void libhttp::Reader::moveRawDataToRequestBody(std::vector<char>::iterator first,
                                                std::vector<char>::iterator last) {
+  this->req->allBodyLen += last - first + 1; // this need to be checked
   this->req->body.insert(this->req->body.end(), first, last);
   this->raw.erase(first, last);
 }
@@ -188,16 +189,17 @@ std::pair<libhttp::Reader::error, bool> libhttp::Reader::readingRequestHeaderHun
 
   found = false;
   for (i = 0; i < raw.size(); i++) {
-    if (!this->reqLineEnd && raw[i] == CR && raw[i + 1] == LF) // segfult
+    if (!this->reqLineEnd && raw.size() > i + 1 && raw[i] == CR && raw[i + 1] == LF)
       this->reqLineEnd = i;
-    if (raw[i] == CR && raw[i + 1] == LF && raw[i + 2] == CR && raw[i + 3] == LF) { // segfult
+    if (raw.size() > i + 3 && raw[i] == CR && raw[i + 1] == LF && raw[i + 2] == CR &&
+        raw[i + 3] == LF) {
       found = true;
       break;
     }
   }
   if (!found)
     return std::make_pair(OK, found);
-  this->headerEnd = i + 2; // 2 for the /r/n for the last header file
+  this->headerEnd = i + 2;
   return std::make_pair(OK, found);
 }
 
