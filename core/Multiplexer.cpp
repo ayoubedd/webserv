@@ -344,13 +344,18 @@ void libhttp::Mux::multiplexer(libnet::Session *session, const libparse::Config 
     if (session->writer.responses.back()->fd == -2) // if Respones is cgi
       session->writer.responses.back()->doneReading = true;
 
+    libhttp::Request *request = session->reader.requests.front();
+
     // if data still incoming stop listeining,
     // and flag session for graceful closing
     if (errRes.first != libhttp::Status::OK)
-      if (session->reader.requests.front()->state != libhttp::Request::R_FIN) {
+      if (request->state != libhttp::Request::R_FIN) {
         session->reader.clearRawDataIndices();
         session->gracefulClose = true;
       }
+
+    if (shouldCloseSessions(request) == true)
+      session->gracefulClose = true;
 
     // Pooping request since its done.
     delete session->reader.requests.front();
