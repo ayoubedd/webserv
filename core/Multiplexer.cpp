@@ -184,19 +184,21 @@ static StatusResPair getHandler(libhttp::Request &req, const std::string &path) 
 static StatusResPair postHandler(libhttp::Request &req, libhttp::Multipart *ml,
                                  libhttp::TransferEncoding *tr, libhttp::SizedPost *zp,
                                  const std::string &uploadRoot) {
-  std::pair<libhttp::Post::Intel, libhttp::Response *> errResPair;
+  std::pair<libhttp::Status::Code, libhttp::Response *> errResPair;
 
   errResPair = libhttp::Post::post(req, tr, ml, zp, uploadRoot);
 
   switch (errResPair.first) {
-    case libhttp::Post::ERROR_400:
+    case libhttp::Status::BAD_REQUEST:
       return std::make_pair(libhttp::Status::BAD_REQUEST, static_cast<libhttp::Response *>(NULL));
-    case libhttp::Post::ERROR_500:
+    case libhttp::Status::INTERNAL_SERVER_ERROR:
       return std::make_pair(libhttp::Status::INTERNAL_SERVER_ERROR,
                             static_cast<libhttp::Response *>(NULL));
-    case libhttp::Post::OK:
+    case libhttp::Status::OK:
       return std::make_pair(libhttp::Status::OK, static_cast<libhttp::Response *>(NULL));
-    case libhttp::Post::DONE:
+
+    case libhttp::Status::CREATED:
+    default:
       break;
   }
 

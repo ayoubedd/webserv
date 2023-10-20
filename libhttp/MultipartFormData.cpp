@@ -313,7 +313,8 @@ libhttp::MultipartFormData::read(libhttp::Request &req, const std::string &uploa
       // Checking if the file of the current part is already open
       // if not so open it.
       if (!file.is_open()) {
-        file.open(entity.filePath, std::fstream::out | std::fstream::binary | std::fstream::app);
+        file.open(entity.filePath.c_str(),
+                  std::fstream::out | std::fstream::binary | std::fstream::app);
 
         // Failure Opening the file
         if (!file.is_open()) {
@@ -372,10 +373,10 @@ std::string libhttp::generateFileName(const std::string &prefix) {
     return prefix;
 
   while (true) {
-    if (access((prefix + "_" + std::asStr(i)).c_str(), F_OK) != 0)
+    if (access((prefix + "_" + asStr(i)).c_str(), F_OK) != 0)
       break;
     i++;
   };
 
-  return prefix + "_" + std::asStr(i);
+  return prefix + "_" + asStr(i);
 }
