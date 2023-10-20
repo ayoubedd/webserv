@@ -22,6 +22,35 @@ libhttp::Writer::~Writer() {
   }
 }
 
+static bool isConnectionClosed(int fd) {
+  char           buff[2];
+  fd_set         readSet;
+  fd_set         writeSet;
+  struct timeval time;
+
+  time.tv_sec = 0;
+  time.tv_usec = 0;
+
+  FD_ZERO(&readSet);
+  FD_ZERO(&writeSet);
+
+  FD_SET(fd, &readSet);
+  FD_SET(fd, &writeSet);
+
+  int res = select(fd + 1, &readSet, &writeSet, NULL, &time);
+  if (res == -1)
+    return true;
+
+  if (FD_ISSET(fd, &readSet))
+    if (recv(fd, buff, 1, MSG_PEEK) <= 0)
+      return true;
+
+  if (FD_ISSET(fd, &writeSet))
+    return false;
+
+  return true;
+}
+
 libhttp::Writer::erorr libhttp::Writer::write(bool permitedToRead) {
   // Check Responses queue is not empty
   if (responses.empty() == true)
@@ -81,8 +110,11 @@ libhttp::Writer::erorr libhttp::Writer::write(bool permitedToRead) {
 
   ssize_t writtenBytes = 0;
 
-  if (bytesToWrite != 0)
+  if (bytesToWrite != 0) {
+    if (isConnectionClosed(sock) == true)
+      return libhttp::Writer::ERORR_WRITTING_TO_FD;
     writtenBytes = ::send(sock, &(*response->buffer)[0], bytesToWrite, 0);
+  }
 
   if (writtenBytes == -1)
     return libhttp::Writer::ERORR_WRITTING_TO_FD;
