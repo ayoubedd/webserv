@@ -216,13 +216,17 @@ std::string generateTemplate(std::string &path) {
     else {
       std::string temp;
       size = test[i].second.size;
-      temp = std::to_string(size);
-      if (size > 1000000) {
-        size %= 1000000;
-        temp = std::to_string(size) + "M";
-        if (size > 1000) {
-          size %= 1000;
-          temp = std::to_string(size) + "G";
+      temp = std::to_string(size) + "B";
+      if (size > 1024) {
+        size /= 1024;
+        temp = std::to_string(size) + "KB";
+        if (size > 1024) {
+          size /= 1024;
+          temp = std::to_string(size) + "M";
+          if (size > 1024) {
+            size /= 1024;
+            temp = std::to_string(size) + "G";
+          }
         }
       }
       ft_replace(tmp, "{{SIZE_OR_TYPE}}", temp);
