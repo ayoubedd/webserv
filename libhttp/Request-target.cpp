@@ -134,7 +134,9 @@ std::string libhttp::RequestTarget::getPathFromUrl(const std::string &url) {
   std::string::size_type i, j;
 
   path = url;
-  if (url.front() == '/')
+  std::string hello = "hello";
+
+  if (*path.begin() == '/')
     return path;
   i = path.find('/');
   if (i == std::string::npos)

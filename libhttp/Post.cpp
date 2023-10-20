@@ -160,15 +160,17 @@ libhttp::Post::post(libhttp::Request &req, libhttp::TransferEncoding *te, libhtt
   // Error handling
   switch (err) {
     case HANDLER_ERROR::OK:
-      return std::make_pair(libhttp::Post::Intel::OK, nullptr);
+      return std::make_pair(libhttp::Post::Intel::OK, static_cast<libhttp::Response *>(NULL));
 
     case HANDLER_ERROR::ERROR_WRITTING_TO_FILE:
     case HANDLER_ERROR::ERROR_OPENING_FILE:
     case ERROR_FILE_NOT_OPEN:
-      return std::make_pair(libhttp::Post::Intel::ERROR_500, nullptr);
+      return std::make_pair(libhttp::Post::Intel::ERROR_500,
+                            static_cast<libhttp::Response *>(NULL));
 
     case HANDLER_ERROR::BAD_REQUEST:
-      return std::make_pair(libhttp::Post::Intel::ERROR_400, nullptr);
+      return std::make_pair(libhttp::Post::Intel::ERROR_400,
+                            static_cast<libhttp::Response *>(NULL));
 
     case HANDLER_ERROR::DONE:
       break;

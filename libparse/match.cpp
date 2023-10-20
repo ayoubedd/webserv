@@ -135,11 +135,11 @@ std::string libparse::joinPath(const std::string &s1, const std::string &s2) {
   if (s2.empty())
     return s1;
   path = s1;
-  if (path.back() == '/' && s2.front() == '/') {
-    path.pop_back();
+  if (*(path.end() - 1) == '/' && *s2.begin() == '/') {
+    path.erase(path.end() - 1);
     return path + s2;
   }
-  if (path.back() != '/' && s2.front() != '/') {
+  if (*(path.end() - 1) != '/' && *s2.begin() != '/') {
     path.push_back('/');
     return path + s2;
   }

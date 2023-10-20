@@ -62,7 +62,7 @@ static bool directoryExists(std::string path) {
     return true;
   DIR *dir = opendir(path.c_str());
 
-  if (dir == nullptr) {
+  if (dir == NULL) {
     return false;
   }
   closedir(dir);
