@@ -187,8 +187,8 @@ std::vector<char> *generateHeaders(int statusCode, std::string status) {
 
 std::string generateTemplate(std::string &path) {
   std::string       templateStatic;
-  std::ifstream     templateFile("static/index.html");
-  std::ifstream     itemFile("static/list-item.html");
+  std::ifstream     templateFile("./static/templates/dir_listing.html");
+  std::ifstream     itemFile("./static/templates/dir_listing_item.html");
   std::stringstream buf, buffer;
   std::string       listItem;
   std::string       listItemTemplate;
