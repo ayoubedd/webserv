@@ -36,6 +36,8 @@ namespace libparse {
     std::string index;
     std::string port;
     Routes      routes;
+
+    Domain();
   };
 
   struct Config {
