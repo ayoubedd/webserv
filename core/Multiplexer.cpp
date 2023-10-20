@@ -96,7 +96,6 @@ static StatusResPair cgiHandler(libcgi::Cgi *cgi, const libparse::RouteProps *ro
     case libcgi::Cgi::FIN:
       break;
   }
-  std::cerr << cgi->state << std::endl;
 
   switch (cgiError) {
     case libcgi::Cgi::FAILED_OPEN_FILE:
