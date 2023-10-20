@@ -187,7 +187,7 @@ std::vector<char> *generateHeaders(int statusCode, std::string status) {
   std::string        tmp;
   std::vector<char> *headers = new std::vector<char>;
 
-  tmp = "HTTP/1.1 " + asStr(statusCode) + " " + status + "\r\n";
+  tmp = "HTTP/1.1 " + asStr(statusCode) + " " + status + "\r\nContent-Length: 0\r\n\r\n";
   headers->insert(headers->end(), tmp.c_str(), tmp.c_str() + tmp.length());
   return headers;
 }
