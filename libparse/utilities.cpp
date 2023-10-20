@@ -34,7 +34,7 @@ int convertToInt(std::string str) {
   ss >> num;
   if (!str.empty()) {
     try {
-      return std::stoi(str.c_str());
+      return atoi(str.c_str());
     } catch (...) {
       return -1;
     }
@@ -51,7 +51,7 @@ bool convertStrToBool(std::string str) {
 static bool fileExists(std::string &filename) {
   if (filename.empty())
     return true;
-  std::ifstream file(filename);
+  std::ifstream file(filename.c_str());
   if (file)
     return true;
   return false;
@@ -62,7 +62,7 @@ static bool directoryExists(std::string path) {
     return true;
   DIR *dir = opendir(path.c_str());
 
-  if (dir == nullptr) {
+  if (dir == NULL) {
     return false;
   }
   closedir(dir);

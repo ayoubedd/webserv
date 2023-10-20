@@ -24,4 +24,4 @@ namespace libnet {
 
 } // namespace libnet
 
-std::ostream &operator<<(std::ostream &os, const libnet::SessionState s);
+// std::ostream &operator<<(std::ostream &os, const libnet::SessionState s);

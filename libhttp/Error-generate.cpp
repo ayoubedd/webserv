@@ -35,7 +35,7 @@ void libhttp::ErrorGenerator::fileAsString(const std::string &filename, std::str
   std::ifstream     file;
   std::stringstream ss;
 
-  file.open(filename);
+  file.open(filename.c_str());
   if (!file.is_open())
     return;
   ss << file.rdbuf();

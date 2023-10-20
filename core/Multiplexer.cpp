@@ -109,7 +109,8 @@ static StatusResPair cgiHandler(libcgi::Cgi *cgi, const libparse::RouteProps *ro
     case libcgi::Cgi::MALFORMED:
     case libcgi::Cgi::FAILED_WAITPID:
       cgi->clean();
-      return std::make_pair(libhttp::Status::INTERNAL_SERVER_ERROR, nullptr);
+      return std::make_pair(libhttp::Status::INTERNAL_SERVER_ERROR,
+                            static_cast<libhttp::Response *>(NULL));
     case libcgi::Cgi::CHIIED_RETURN_ERR:
     case libcgi::Cgi::OK:
       break;
@@ -118,11 +119,12 @@ static StatusResPair cgiHandler(libcgi::Cgi *cgi, const libparse::RouteProps *ro
   if (cgi->state == libcgi::Cgi::FIN && prevState == libcgi::Cgi::READING_HEADERS) {
     delete cgi->res.sockBuff;
     cgi->clean();
-    return std::make_pair(libhttp::Status::INTERNAL_SERVER_ERROR, nullptr);
+    return std::make_pair(libhttp::Status::INTERNAL_SERVER_ERROR,
+                          static_cast<libhttp::Response *>(NULL));
   }
 
   if (cgi->state != libcgi::Cgi::READING_BODY && cgi->state != libcgi::Cgi::FIN)
-    return std::make_pair(libhttp::Status::OK, nullptr);
+    return std::make_pair(libhttp::Status::OK, static_cast<libhttp::Response *>(NULL));
 
   // here and onward the state must be READING_BODY
   if (prevState == libcgi::Cgi::READING_HEADERS && cgi->state == libcgi::Cgi::READING_BODY) {
@@ -133,10 +135,10 @@ static StatusResPair cgiHandler(libcgi::Cgi *cgi, const libparse::RouteProps *ro
 
   if (cgi->state == libcgi::Cgi::FIN) {
     cgi->clean();
-    return std::make_pair(libhttp::Status::DONE, nullptr);
+    return std::make_pair(libhttp::Status::DONE, static_cast<libhttp::Response *>(NULL));
   }
 
-  return std::make_pair(libhttp::Status::OK, nullptr);
+  return std::make_pair(libhttp::Status::OK, static_cast<libhttp::Response *>(NULL));
 }
 
 static StatusResPair deleteHandler(const std::string &path) {
@@ -144,11 +146,12 @@ static StatusResPair deleteHandler(const std::string &path) {
 
   switch (errResPair.first) {
     case libhttp::Methods::FILE_NOT_FOUND:
-      return std::make_pair(libhttp::Status::NOT_FOUND, nullptr);
+      return std::make_pair(libhttp::Status::NOT_FOUND, static_cast<libhttp::Response *>(NULL));
     case libhttp::Methods::FORBIDDEN:
-      return std::make_pair(libhttp::Status::FORBIDDEN, nullptr);
+      return std::make_pair(libhttp::Status::FORBIDDEN, static_cast<libhttp::Response *>(NULL));
     case libhttp::Methods::OUT_RANGE:
-      return std::make_pair(libhttp::Status::RANGE_NOT_SATISFIABLE, nullptr);
+      return std::make_pair(libhttp::Status::RANGE_NOT_SATISFIABLE,
+                            static_cast<libhttp::Response *>(NULL));
     case libhttp::Methods::REDIR:
     case libhttp::Methods::OK:
       break;
@@ -164,11 +167,12 @@ static StatusResPair getHandler(libhttp::Request &req, const std::string &path) 
 
   switch (errResPair.first) {
     case libhttp::Methods::FILE_NOT_FOUND:
-      return std::make_pair(libhttp::Status::NOT_FOUND, nullptr);
+      return std::make_pair(libhttp::Status::NOT_FOUND, static_cast<libhttp::Response *>(NULL));
     case libhttp::Methods::FORBIDDEN:
-      return std::make_pair(libhttp::Status::FORBIDDEN, nullptr);
+      return std::make_pair(libhttp::Status::FORBIDDEN, static_cast<libhttp::Response *>(NULL));
     case libhttp::Methods::OUT_RANGE:
-      return std::make_pair(libhttp::Status::RANGE_NOT_SATISFIABLE, nullptr);
+      return std::make_pair(libhttp::Status::RANGE_NOT_SATISFIABLE,
+                            static_cast<libhttp::Response *>(NULL));
     case libhttp::Methods::REDIR:
     case libhttp::Methods::OK:
       break;
@@ -180,18 +184,21 @@ static StatusResPair getHandler(libhttp::Request &req, const std::string &path) 
 static StatusResPair postHandler(libhttp::Request &req, libhttp::Multipart *ml,
                                  libhttp::TransferEncoding *tr, libhttp::SizedPost *zp,
                                  const std::string &uploadRoot) {
-  std::pair<libhttp::Post::Intel, libhttp::Response *> errResPair;
+  std::pair<libhttp::Status::Code, libhttp::Response *> errResPair;
 
   errResPair = libhttp::Post::post(req, tr, ml, zp, uploadRoot);
 
   switch (errResPair.first) {
-    case libhttp::Post::ERROR_400:
-      return std::make_pair(libhttp::Status::BAD_REQUEST, nullptr);
-    case libhttp::Post::ERROR_500:
-      return std::make_pair(libhttp::Status::INTERNAL_SERVER_ERROR, nullptr);
-    case libhttp::Post::OK:
-      return std::make_pair(libhttp::Status::OK, nullptr);
-    case libhttp::Post::DONE:
+    case libhttp::Status::BAD_REQUEST:
+      return std::make_pair(libhttp::Status::BAD_REQUEST, static_cast<libhttp::Response *>(NULL));
+    case libhttp::Status::INTERNAL_SERVER_ERROR:
+      return std::make_pair(libhttp::Status::INTERNAL_SERVER_ERROR,
+                            static_cast<libhttp::Response *>(NULL));
+    case libhttp::Status::OK:
+      return std::make_pair(libhttp::Status::OK, static_cast<libhttp::Response *>(NULL));
+
+    case libhttp::Status::CREATED:
+    default:
       break;
   }
 
@@ -215,7 +222,7 @@ static StatusResPair callCoresspondingHandler(libnet::Session *session, libhttp:
 
   // Cgi
   else if (route->cgi.size() != 0) {
-    if (session->cgi == nullptr)
+    if (session->cgi == NULL)
       session->cgi = new libcgi::Cgi(session->clientAddr);
 
     // Checking if cgi time outed.
@@ -273,15 +280,15 @@ static StatusResPair callCoresspondingHandler(libnet::Session *session, libhttp:
 
     switch (bodyFormat) {
       case libhttp::Post::CHUNKED:
-        if (session->transferEncoding == nullptr)
+        if (session->transferEncoding == NULL)
           session->transferEncoding = new libhttp::TransferEncoding();
         break;
       case libhttp::Post::MULTIPART_FORMDATA:
-        if (session->multipart == nullptr)
+        if (session->multipart == NULL)
           session->multipart = new libhttp::Multipart();
         break;
       case libhttp::Post::NORMAL:
-        if (session->sizedPost == nullptr)
+        if (session->sizedPost == NULL)
           session->sizedPost = new libhttp::SizedPost();
         break;
     }
@@ -340,7 +347,7 @@ void libhttp::Mux::multiplexer(libnet::Session *session, const libparse::Config 
     }
   }
 
-  if (errRes.second != nullptr) {
+  if (errRes.second != NULL) {
     // Logggin
     Webserv::Logger::log(*req);
     session->writer.responses.push(errRes.second);

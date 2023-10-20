@@ -56,8 +56,8 @@ extractChunkSize(std::vector<char> &vec) {
   }
 }
 
-libhttp::ChunkDecoder::ErrorStatusPair
-libhttp::ChunkDecoder::read(libhttp::Request &req, const std::string &uploadRoot) {
+libhttp::ChunkDecoder::ErrorStatusPair libhttp::ChunkDecoder::read(libhttp::Request  &req,
+                                                                   const std::string &uploadRoot) {
   switch (status) {
     case READY: {
       // Open the file with the appropriate name
@@ -72,7 +72,7 @@ libhttp::ChunkDecoder::read(libhttp::Request &req, const std::string &uploadRoot
         filePath = libhttp::generateFileName(uploadRoot + "/" + providedFileName);
 
       // Open file
-      file.open(filePath, std::fstream::out | std::fstream::binary | std::fstream::trunc);
+      file.open(filePath.c_str(), std::fstream::out | std::fstream::binary | std::fstream::trunc);
 
       // Check if the is opened
       if (!file.is_open()) {
@@ -210,6 +210,4 @@ void libhttp::ChunkDecoder::reset(libhttp::ChunkDecoder::Status newStatus) {
   filePath = "";
 }
 
-libhttp::ChunkEncoder::ChunkEncoder(void) {
-
-}
+libhttp::ChunkEncoder::ChunkEncoder(void) {}
