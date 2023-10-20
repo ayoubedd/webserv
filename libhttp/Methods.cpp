@@ -212,10 +212,9 @@ std::string generateTemplate(std::string &path) {
   for (size_t i = 0; i < test.size(); i++) {
     tmp = listItemTemplate;
     if (test[i].second.size == -1)
-      ft_replace(tmp, "{{LINK_HERE}}", test[i].second.name + "/");
+      ft_replace(tmp, "{{LINK_HERE}}", "/" + test[i].second.name + "/");
     else
-      ft_replace(tmp, "{{LINK_HERE}}", test[i].second.name);
-    ft_replace(tmp, "{{LINK_HERE}}", test[i].second.name);
+      ft_replace(tmp, "{{LINK_HERE}}", "/" + test[i].second.name);
     ft_replace(tmp, "{{FILE_NAME}}", test[i].second.name);
     ft_replace(tmp, "{{LAST_MODIFIED}}", test[i].second.date);
     if (test[i].second.size == -1)
