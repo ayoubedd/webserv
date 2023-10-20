@@ -5,6 +5,10 @@
 #include <utility>
 // #include <unistd.h>
 
+libparse::Domain::Domain()
+    : maxBodySize(-1)
+    , maxHeaserSize(-1){};
+
 static bool strStartWith(const std::string str, const std::string prefix) {
   std::string::size_type i;
 

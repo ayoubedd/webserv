@@ -187,7 +187,7 @@ std::vector<char> *generateHeaders(int statusCode, std::string status) {
   std::string        tmp;
   std::vector<char> *headers = new std::vector<char>;
 
-  tmp = "HTTP/1.1 " + asStr(statusCode) + " " + status + "\r\n";
+  tmp = "HTTP/1.1 " + asStr(statusCode) + " " + status + "\r\nContent-Length: 0\r\n\r\n";
   headers->insert(headers->end(), tmp.c_str(), tmp.c_str() + tmp.length());
   return headers;
 }
@@ -212,10 +212,9 @@ std::string generateTemplate(std::string &path) {
   for (size_t i = 0; i < test.size(); i++) {
     tmp = listItemTemplate;
     if (test[i].second.size == -1)
-      ft_replace(tmp, "{{LINK_HERE}}", test[i].second.name + "/");
+      ft_replace(tmp, "{{LINK_HERE}}", "/" + test[i].second.name + "/");
     else
-      ft_replace(tmp, "{{LINK_HERE}}", test[i].second.name);
-    ft_replace(tmp, "{{LINK_HERE}}", test[i].second.name);
+      ft_replace(tmp, "{{LINK_HERE}}", "/" + test[i].second.name);
     ft_replace(tmp, "{{FILE_NAME}}", test[i].second.name);
     ft_replace(tmp, "{{LAST_MODIFIED}}", test[i].second.date);
     if (test[i].second.size == -1)
