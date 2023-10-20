@@ -18,7 +18,7 @@ namespace libhttp {
     std::queue<Response *> responses;
     size_t                 readWriteBufferSize;
 
-    Writer(int sock, int bufferSize = 1024);
+    Writer(int sock, int bufferSize = 65535);
     ~Writer();
 
     erorr write(bool);
