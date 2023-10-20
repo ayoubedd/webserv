@@ -80,7 +80,8 @@ static StatusResPair cgiHandler(libcgi::Cgi *cgi, const libparse::RouteProps *ro
       std::pair<std::string, std::string> interprterScriptPathsPair;
 
       interprterScriptPathsPair = extractInterpreterScriptPaths(domain, route, req);
-      cgiError = cgi->init(req, interprterScriptPathsPair.second, "localhost", "./static/");
+      cgiError =
+          cgi->init(req, interprterScriptPathsPair.second, "localhost", "./static/", domain->port);
       if (cgiError != libcgi::Cgi::OK)
         break;
       cgiError = cgi->exec(interprterScriptPathsPair.first);
@@ -95,6 +96,7 @@ static StatusResPair cgiHandler(libcgi::Cgi *cgi, const libparse::RouteProps *ro
     case libcgi::Cgi::FIN:
       break;
   }
+  std::cerr << cgi->state << std::endl;
 
   switch (cgiError) {
     case libcgi::Cgi::FAILED_OPEN_FILE:
@@ -112,6 +114,12 @@ static StatusResPair cgiHandler(libcgi::Cgi *cgi, const libparse::RouteProps *ro
     case libcgi::Cgi::CHIIED_RETURN_ERR:
     case libcgi::Cgi::OK:
       break;
+  }
+
+  if (cgi->state == libcgi::Cgi::FIN && prevState == libcgi::Cgi::READING_HEADERS) {
+    delete cgi->res.sockBuff;
+    cgi->clean();
+    return std::make_pair(libhttp::Status::INTERNAL_SERVER_ERROR, nullptr);
   }
 
   if (cgi->state != libcgi::Cgi::READING_BODY && cgi->state != libcgi::Cgi::FIN)
