@@ -17,7 +17,7 @@ libhttp::SizedPost::Error libhttp::SizedPost::init(const std::string &filePath,
                                                    ssize_t            contentLength) {
   this->contentLength = contentLength;
 
-  file.open(filePath, std::fstream::out);
+  file.open(filePath.c_str(), std::fstream::out);
   if (file.is_open() == false) {
     reset();
     return ERROR_OPENING_FILE;

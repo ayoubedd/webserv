@@ -272,11 +272,11 @@ std::pair<libhttp::Reader::error, bool> libhttp::Reader::processContentLength() 
     return std::make_pair(OK, false);
   if (this->req->allBodyLen + this->raw.size() >= cl) {
     chunk = cl - this->req->allBodyLen;
-    this->req->allBodyLen += chunk;
+
     this->moveRawDataToRequestBody(this->raw.begin(), this->raw.begin() + chunk);
     return std::make_pair(OK, true);
   }
-  this->req->allBodyLen += raw.size();
+
   this->moveRawDataToRequestBody(this->raw.begin(), this->raw.end());
   return std::make_pair(OK, false);
 }

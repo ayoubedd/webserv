@@ -17,7 +17,7 @@ namespace libhttp {
     std::queue<Request *> requests;
     sockaddr_in           clientAddr;
 
-    Reader(int fd, sockaddr_in clientAddr, unsigned int readBuffSize = 8190);
+    Reader(int fd, sockaddr_in clientAddr, unsigned int readBuffSize = 65535);
     ~Reader(void);
     enum error {
       OK,

@@ -14,9 +14,9 @@ libnet::Session::Session(int fd, sockaddr_in *clientAddr)
     , reader(fd, *clientAddr)
     , writer(fd)
     , transferEncoding(NULL)
-    , multipart(nullptr)
-    , sizedPost(nullptr)
-    , cgi(nullptr)
+    , multipart(NULL)
+    , sizedPost(NULL)
+    , cgi(NULL)
     , clientAddr(clientAddr)
     , destroy(false)
     , gracefulClose(false)
@@ -26,16 +26,16 @@ libnet::Session::Session(int fd, sockaddr_in *clientAddr)
 }
 
 libnet::Session::~Session() {
-  if (transferEncoding != nullptr)
+  if (transferEncoding != NULL)
     delete transferEncoding;
 
-  if (multipart != nullptr)
+  if (multipart != NULL)
     delete multipart;
 
-  if (sizedPost != nullptr)
+  if (sizedPost != NULL)
     delete sizedPost;
 
-  if (cgi != nullptr)
+  if (cgi != NULL)
     delete cgi;
 
   close(fd);

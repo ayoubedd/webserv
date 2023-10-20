@@ -157,7 +157,7 @@ libcgi::Cgi::Error libcgi::Cgi::init(libhttp::Request *httpReq, std::string scri
 libcgi::Cgi::Error libcgi::Cgi::write(std::vector<char> &body) {
   ssize_t len;
 
-  len = ::write(this->cgiInput, &body.front(), body.size());
+  len = ::write(this->cgiInput, &body.at(0), body.size());
   if (len < 0)
     return FAILED_WRITE;
   this->bodySize += len;

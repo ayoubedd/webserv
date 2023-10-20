@@ -109,7 +109,7 @@ void libcgi::Respons::write(const char *ptr, size_t len) {
 }
 
 void libcgi::Respons::init() {
-  if (this->sockBuff != nullptr) {
+  if (this->sockBuff != NULL) {
     assert(false);
   }
 

@@ -23,7 +23,7 @@ bool deleteFile(const char *pathFile) {
 
   DIR *dir = opendir(pathFile);
 
-  if (dir == nullptr) {
+  if (dir == NULL) {
     return false;
   }
   if (remove(pathFile) != 0) {
@@ -38,7 +38,7 @@ bool deleteSubDirectory(const char *path) {
   struct dirent *entry;
   DIR           *dir = opendir(path);
 
-  if (dir == nullptr) {
+  if (dir == NULL) {
     return false;
   }
   while ((entry = readdir(dir))) {
@@ -69,7 +69,7 @@ bool deleteDirectory(const char *path) {
   struct dirent *entry;
   DIR           *dir = opendir(path);
 
-  if (dir == nullptr) {
+  if (dir == NULL) {
     return false;
   }
   while ((entry = readdir(dir))) {
@@ -176,11 +176,18 @@ libhttp::Response *setResponse(libhttp::Response *response, int fd, size_t bytes
   return response;
 }
 
+static std::string asStr(size_t i) {
+  std::stringstream ss;
+
+  ss << i;
+  return ss.str();
+}
+
 std::vector<char> *generateHeaders(int statusCode, std::string status) {
   std::string        tmp;
   std::vector<char> *headers = new std::vector<char>;
 
-  tmp = "HTTP/1.1 " + std::to_string(statusCode) + " " + status + "\r\n";
+  tmp = "HTTP/1.1 " + asStr(statusCode) + " " + status + "\r\n";
   headers->insert(headers->end(), tmp.c_str(), tmp.c_str() + tmp.length());
   return headers;
 }
@@ -216,16 +223,16 @@ std::string generateTemplate(std::string &path) {
     else {
       std::string temp;
       size = test[i].second.size;
-      temp = std::to_string(size) + "B";
+      temp = asStr(size) + "B";
       if (size > 1024) {
         size /= 1024;
-        temp = std::to_string(size) + "KB";
+        temp = asStr(size) + "KB";
         if (size > 1024) {
           size /= 1024;
-          temp = std::to_string(size) + "M";
+          temp = asStr(size) + "M";
           if (size > 1024) {
             size /= 1024;
-            temp = std::to_string(size) + "G";
+            temp = asStr(size) + "G";
           }
         }
       }
@@ -315,9 +322,9 @@ bool setRange(libhttp::Response *response, std::pair<int, int> range) {
 void setHeaders(libhttp::Response *response, std::string contentType, size_t ContentLenght,
                 int statusCode, std::string status) {
   std::string tmp;
-  tmp = "HTTP/1.1 " + std::to_string(statusCode) + " " + status + "\r\n";
+  tmp = "HTTP/1.1 " + asStr(statusCode) + " " + status + "\r\n";
   response->buffer->insert(response->buffer->end(), tmp.c_str(), tmp.c_str() + tmp.length());
-  tmp = "Content-Length: " + std::to_string(ContentLenght) + "\r\n";
+  tmp = "Content-Length: " + asStr(ContentLenght) + "\r\n";
   response->buffer->insert(response->buffer->end(), tmp.c_str(), tmp.c_str() + tmp.length());
   tmp = "Content-Type: " + contentType + "\r\n";
   response->buffer->insert(response->buffer->end(), tmp.c_str(), tmp.c_str() + tmp.length());
@@ -328,16 +335,16 @@ void setHeaders(libhttp::Response *response, std::string contentType, size_t Con
 void setHeaders(libhttp::Response *response, std::string contentType, size_t ContentLenght,
                 int statusCode, std::string status, int first, int last) {
   std::string tmp;
-  tmp = "HTTP/1.1 " + std::to_string(statusCode) + " " + status + "\r\n";
+  tmp = "HTTP/1.1 " + asStr(statusCode) + " " + status + "\r\n";
   response->buffer->insert(response->buffer->end(), tmp.c_str(), tmp.c_str() + tmp.length());
-  tmp = "Content-Length: " + std::to_string(last - first) + "\r\n";
+  tmp = "Content-Length: " + asStr(last - first) + "\r\n";
   response->buffer->insert(response->buffer->end(), tmp.c_str(), tmp.c_str() + tmp.length());
   tmp = "Content-Type: " + contentType + "\r\n";
   response->buffer->insert(response->buffer->end(), tmp.c_str(), tmp.c_str() + tmp.length());
   tmp = "Accept-Ranges: bytes\r\n";
   response->buffer->insert(response->buffer->end(), tmp.c_str(), tmp.c_str() + tmp.length());
-  tmp = "Content-Range: bytes " + std::to_string(first) + "-" + std::to_string(last - 1) + "/" +
-        std::to_string(ContentLenght) + "\r\n\r\n";
+  tmp = "Content-Range: bytes " + asStr(first) + "-" + asStr(last - 1) + "/" +
+        asStr(ContentLenght) + "\r\n\r\n";
   response->buffer->insert(response->buffer->end(), tmp.c_str(), tmp.c_str() + tmp.length());
 }
 
@@ -360,7 +367,7 @@ std::pair<libhttp::Methods::error, libhttp::Response *> libhttp::Get(libhttp::Re
       if (!range.second)
         range.second = file.size;
       if (!checkRange(file, range))
-        return std::make_pair(libhttp::Methods::OUT_RANGE, nullptr);
+        return std::make_pair(libhttp::Methods::OUT_RANGE, response);
       response = new Response();
       response->fd = file.fd;
       setRange(response, range);
@@ -377,7 +384,7 @@ std::pair<libhttp::Methods::error, libhttp::Response *> libhttp::Get(libhttp::Re
   fileName = libhttp::generateFileName("/tmp/webserv/dir_listing");
   int fdStatic = open(fileName.c_str(), O_RDWR | O_CREAT, 0644);
   if (fdStatic == -1)
-    return std::make_pair(libhttp::Methods::FORBIDDEN, nullptr);
+    return std::make_pair(libhttp::Methods::FORBIDDEN, static_cast<libhttp::Response *>(NULL));
 
   response = new Response();
   templateStatic = generateTemplate(path);
@@ -390,7 +397,7 @@ std::pair<libhttp::Methods::error, libhttp::Response *> libhttp::Get(libhttp::Re
 }
 
 std::pair<libhttp::Methods::error, libhttp::Response *> libhttp::Delete(std::string path) {
-  libhttp::Response *response = new Response(nullptr);
+  libhttp::Response *response = new Response(NULL);
 
   if (findResource(path)) {
     if (isFolder(path)) {
