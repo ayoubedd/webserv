@@ -70,8 +70,6 @@ libhttp::Response *libhttp::ErrorGenerator::generate(const libparse::Domain &dom
   std::string filename = domain.error.empty() ? std::string(defaultTemplate) : domain.error;
   std::string file, status = STATUS_LINE_TEMPLATE;
   fileAsString(filename, file);
-  if (file.empty())
-    return NULL;
   Response                          *r = new Response;
   std::map<std::string, std::string> arg;
   arg[STATUS_CODE_VARIABLE] = asStr(code);
