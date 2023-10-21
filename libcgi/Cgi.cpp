@@ -1,7 +1,6 @@
 #include "libcgi/Cgi.hpp"
 #include "libhttp/Multipart.hpp"
 #include "libhttp/MultipartFormData.hpp"
-#include "libnet/SessionState.hpp"
 #include <assert.h>
 #include <cstdlib>
 #include <cstring>
