@@ -1,7 +1,6 @@
 #include "libnet/Session.hpp"
 #include "core/Timer.hpp"
 #include "libhttp/Writer.hpp"
-#include <bits/types/struct_timeval.h>
 #include <cstdlib>
 #include <cstring>
 #include <netinet/ip.h>

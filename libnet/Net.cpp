@@ -242,6 +242,7 @@ void extractReadySessions(libnet::Sessions &src, libnet::Sessions &dst, fd_set *
 }
 
 void libnet::Netenv::awaitEvents(void) {
+  timeHolder.tv_sec %= timeHolder.tv_sec;
   int err = select(largestFd() + 1, &fdReadSet, &fdWriteSet, NULL, &timeHolder);
 
   if (err == -1) {
