@@ -244,6 +244,9 @@ void extractReadySessions(libnet::Sessions &src, libnet::Sessions &dst, fd_set *
 void libnet::Netenv::awaitEvents(void) {
   int err;
 
+  // Time to block should not exceed SESSION_IDLE_TIME
+  timeHolder.tv_sec %= SESSION_IDLE_TIME;
+
   if (timeHolder.tv_sec == 0)
     err = select(largestFd() + 1, &fdReadSet, &fdWriteSet, NULL, NULL);
   else
