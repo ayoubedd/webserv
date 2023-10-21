@@ -46,7 +46,7 @@ bool deleteSubDirectory(const char *path) {
     if (!strcmp(entry->d_name, ".") || !strcmp(entry->d_name, ".."))
       continue;
     else {
-      std::string entryPath = std::string(path) + entry->d_name;
+      std::string entryPath = std::string(path) + "/" + entry->d_name;
       struct stat statBuf;
       if (stat(entryPath.c_str(), &statBuf) == 0) {
         if (S_ISDIR(statBuf.st_mode)) {
@@ -77,7 +77,7 @@ bool deleteDirectory(const char *path) {
     if (!strcmp(entry->d_name, ".") || !strcmp(entry->d_name, ".."))
       continue;
     else {
-      std::string entryPath = std::string(path) + entry->d_name;
+      std::string entryPath = std::string(path) + "/" + entry->d_name;
       struct stat statBuf;
       if (stat(entryPath.c_str(), &statBuf) == 0) {
         if (S_ISDIR(statBuf.st_mode)) {
