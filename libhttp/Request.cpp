@@ -31,14 +31,3 @@ std::ostream &operator<<(std::ostream &os, const libhttp::Request &req) {
   os << "body: " << std::string(req.body.begin(), req.body.end()) << std::endl;
   return os;
 }
-
-void libhttp::Request::expandeRefererHeaderInPath() {
-  libhttp::HeadersMap::const_iterator referer;
-
-  referer = this->headers.headers.find(libhttp::Headers::REFERER);
-  if (referer == this->headers.headers.end())
-    return;
-
-  this->reqTarget.path = libparse::joinPath(libhttp::RequestTarget::getPathFromUrl(referer->second),
-                                            this->reqTarget.path);
-}
