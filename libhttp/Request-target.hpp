@@ -19,6 +19,5 @@ namespace libhttp {
 
     static std::string encode(const std::string &uri);
     static std::string decode(const std::string &uri);
-    static std::string getPathFromUrl(const std::string &url);
   };
 } // namespace libhttp
