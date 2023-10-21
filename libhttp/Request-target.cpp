@@ -128,27 +128,3 @@ void libhttp::RequestTarget::build(std::string &reqTarget) {
   getParamsFromReqTarget(reqTarget, this->params, this->rawPramas);
   this->anchor = getAnchoreFromReqTrget(reqTarget);
 }
-
-std::string libhttp::RequestTarget::getPathFromUrl(const std::string &url) {
-  std::string            path;
-  std::string::size_type i, j;
-
-  path = url;
-  std::string hello = "hello";
-
-  if (*path.begin() == '/')
-    return path;
-  i = path.find('/');
-  if (i == std::string::npos)
-    return "";
-  i = path.find('/', i + 1);
-  if (i == std::string::npos)
-    return "";
-  i = path.find('/', i + 1);
-  if (i == std::string::npos)
-    return "";
-  j = path.rfind("/");
-  if (i == j)
-    return "/";
-  return path.substr(i, j - i + 1);
-}

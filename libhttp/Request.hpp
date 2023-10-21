@@ -23,7 +23,6 @@ namespace libhttp {
     State                        state;
 
     Request(sockaddr_in *clientAddr);
-    void expandeRefererHeaderInPath();
   };
 } // namespace libhttp
 
