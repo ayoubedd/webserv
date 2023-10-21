@@ -213,15 +213,8 @@ static StatusResPair callCoresspondingHandler(libnet::Session *session, libhttp:
   errRes.first = libhttp::Status::OK;
   errRes.second = NULL;
 
-  // Redirection
-  if (route->redir.empty() == false) {
-    errRes.first = libhttp::Status::DONE;
-    errRes.second = libhttp::redirect(route->redir);
-    return errRes;
-  }
-
   // Cgi
-  else if (route->cgi.size() != 0) {
+  if (route->cgi.size() != 0) {
     if (session->cgi == NULL)
       session->cgi = new libcgi::Cgi(session->clientAddr);
 
@@ -318,15 +311,25 @@ void libhttp::Mux::multiplexer(libnet::Session *session, const libparse::Config 
   errRes.first = libhttp::Status::OK;
   errRes.second = NULL;
 
-  if (session->isNonBlocking(libnet::Session::SOCK_READ))
-    errRes.first = WebServ::Sanitizer::sanitizeBodySize(*req, domain->maxBodySize);
+  // Redirection
+  if (route.second->redir.empty() == false) {
+    errRes.first = libhttp::Status::DONE;
+    errRes.second = libhttp::redirect(route.second->redir);
+  }
 
+  // Making sure we didn't exceed maxBodySize
+  if (errRes.first == libhttp::Status::OK)
+    if (session->isNonBlocking(libnet::Session::SOCK_READ))
+      errRes.first = WebServ::Sanitizer::sanitizeBodySize(*req, domain->maxBodySize);
+
+  // Request sanity check
   if (errRes.first == libhttp::Status::OK)
     if (req->sanitized == false) {
       errRes.first = WebServ::Sanitizer::sanitizeRequest(*req, *domain);
       req->sanitized = true;
     }
 
+  // Calling implementations
   if (errRes.first == libhttp::Status::OK)
     errRes = callCoresspondingHandler(session, req, domain, route.second);
 
@@ -368,6 +371,7 @@ void libhttp::Mux::multiplexer(libnet::Session *session, const libparse::Config 
         session->gracefulClose = true;
       }
 
+    // Flag session to gracefulClose if Connection: close is set
     if (shouldCloseSessions(request) == true)
       session->gracefulClose = true;
 
