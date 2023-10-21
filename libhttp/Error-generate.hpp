@@ -29,7 +29,7 @@ namespace libhttp {
     static const char *TITLE;
 
     static Response *generate(const libparse::Domain &domain, Status::Code code,
-                              std::string defaultTemplate = "./static/error.html");
+                              std::string defaultTemplate = "static/templates/errors.html");
     static void      fileAsString(const std::string &filename,
                                   std::string       &buff); // filename should exitst of kbum
 
