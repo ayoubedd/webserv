@@ -1,6 +1,5 @@
 #pragma once
 
-#include "libnet/SessionState.hpp"
 #include <sys/types.h>
 #include <vector>
 
