@@ -100,6 +100,8 @@ std::string libparse::findResourceInFs(const libhttp::Request &req,
     return "";
   if (st.st_mode & S_IFREG)
     return fs;
+  if (st.st_mode & S_IFDIR && r.second && !r.second->dirListening && fs[fs.size() - 1] != '/')
+    return fs;
   if (st.st_mode & S_IFDIR && r.second && r.second->dirListening)
     return fs;
   std::string index = findRouteIndex(domain.routes, *r.second);
