@@ -356,7 +356,7 @@ std::pair<libhttp::Methods::error, libhttp::Response *> libhttp::Get(libhttp::Re
   DIR *isdir = opendir(path.c_str());
   if (isdir) {
     closedir(isdir);
-    if (!isFolder(path))
+    if (!isFolder(request.reqTarget.path))
       return std::make_pair(libhttp::Methods::REDIR,
                             libhttp::redirect(request.reqTarget.path + "/"));
     std::string fileName, templateStatic;
