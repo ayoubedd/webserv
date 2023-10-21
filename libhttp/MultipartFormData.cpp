@@ -49,6 +49,8 @@ void libhttp::MultipartFormData::cleanup(libhttp::MultipartFormData::Status newS
   status = newStatus;
 
   // Clean entity
+  if (newStatus != DONE)
+    std::remove(entity.filePath.c_str());
   entity.clean();
 
   // Clear delimiters
