@@ -1,4 +1,5 @@
 #include "Config.hpp"
+#include "libparse/match.hpp"
 #include <cstddef>
 #include <cstring>
 #include <ctime>
@@ -69,18 +70,25 @@ static bool directoryExists(std::string path) {
   return true;
 }
 
-std::pair<bool, std::string>
-checkFileExistAndEditableOfCgi(std::map<std::string, std::string> cgi) {
-  std::map<std::string, std::string>::iterator it = cgi.begin();
-  while (it != cgi.end()) {
-    if (fileExists(it->second)) {
-      if (!checkIsEditable(it->second))
-        return std::make_pair(false, " ");
+static std::string getFileName(const std::string &root, const std::string &script) {
+  if (script[0] == '/')
+    return script; // this is interpreter
+  return libparse::joinPath(root, script);
+}
+
+std::pair<bool, std::string> checkFileExistAndEditableOfCgi(const libparse::RouteProps &route) {
+  std::map<std::string, std::string>::const_iterator it = route.cgi.begin();
+  std::map<std::string, std::string>::const_iterator end = route.cgi.end();
+  while (it != end) {
+    std::string path = getFileName(route.root, it->second);
+    if (fileExists(path)) {
+      if (!checkIsEditable(path))
+        return std::make_pair(false, path);
     } else
-      return std::make_pair(false, " ");
+      return std::make_pair(false, path);
     it++;
   }
-  return std::make_pair(true, " ");
+  return std::make_pair(true, "");
 }
 
 std::pair<bool, std::string> checkFileExist(libparse::Config &config) {
@@ -110,7 +118,13 @@ std::pair<bool, std::string> checkFileExist(libparse::Config &config) {
       path = itD->second.routes[itR->first].root + itD->second.routes[itR->first].index;
       if (!fileExists(path))
         return std::make_pair(false, itD->second.routes[itR->first].index);
-      res = checkFileExistAndEditableOfCgi(itD->second.routes[itR->first].cgi);
+      if (itD->second.routes[itR->first].cgi.size()) {
+        if (itD->second.routes[itR->first].index.empty())
+          return std::make_pair(false, itD->second.routes[itR->first].index);
+        if (itD->second.routes[itR->first].root.empty())
+          return std::make_pair(false, itD->second.routes[itR->first].root);
+      }
+      res = checkFileExistAndEditableOfCgi(itD->second.routes[itR->first]);
       if (!res.first)
         return std::make_pair(false, res.second);
       itR++;
