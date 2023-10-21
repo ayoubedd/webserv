@@ -7,7 +7,6 @@
 #include "libhttp/Sized-Post.hpp"
 #include "libhttp/TransferEncoding.hpp"
 #include "libhttp/Writer.hpp"
-#include "libnet/SessionState.hpp"
 #include <ctime>
 #include <netinet/in.h>
 #include <queue>

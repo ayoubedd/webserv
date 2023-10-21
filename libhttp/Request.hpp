@@ -2,12 +2,10 @@
 
 #include "libhttp/Headers.hpp"
 #include "libhttp/Request-target.hpp"
-#include "libnet/SessionState.hpp"
 #include <iostream>
 #include <netinet/ip.h>
 #include <vector>
 
-// TODO: update allBodyLen in chunked and multiform upload
 namespace libhttp {
   struct Request {
     enum State { R_INIT, R_HEADERS, R_BODY, R_FIN, R_ERR };
