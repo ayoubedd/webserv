@@ -254,23 +254,20 @@ static StatusResPair callCoresspondingHandler(libnet::Session *session, libhttp:
   // Get
   else if (req->method == "GET") {
     std::string resourcePath = libparse::findResourceInFs(*req, *domain);
-    errRes.first = WebServ::Sanitizer::sanitizeGetRequest(*req, *domain);
-    if (errRes.first == libhttp::Status::OK)
-      errRes = getHandler(*req, resourcePath);
+    errRes = getHandler(*req, resourcePath);
   }
 
   // Delete
   else if (req->method == "DELETE") {
     std::string resourcePath = libparse::findResourceInFs(*req, *domain);
-    errRes.first = WebServ::Sanitizer::sanitizeGetRequest(*req, *domain);
-    if (errRes.first == libhttp::Status::OK)
-      errRes = deleteHandler(resourcePath);
+    errRes = deleteHandler(resourcePath);
   }
 
   // Post
   else if (req->method == "POST") {
     libhttp::Post::BodyFormat bodyFormat = libhttp::Post::extractBodyFormat(req->headers.headers);
 
+    // Allocating resources as needed
     switch (bodyFormat) {
       case libhttp::Post::CHUNKED:
         if (session->transferEncoding == NULL)
@@ -287,11 +284,8 @@ static StatusResPair callCoresspondingHandler(libnet::Session *session, libhttp:
     }
 
     std::string uploadRoot = libparse::findUploadDir(&domain->routes, route);
-
-    errRes.first = WebServ::Sanitizer::sanitizePostRequest(*req, domain->routes, *route);
-    if (errRes.first == libhttp::Status::OK)
-      errRes = postHandler(*req, session->multipart, session->transferEncoding, session->sizedPost,
-                           uploadRoot);
+    errRes = postHandler(*req, session->multipart, session->transferEncoding, session->sizedPost,
+                         uploadRoot);
   }
 
   return errRes;
@@ -318,16 +312,14 @@ void libhttp::Mux::multiplexer(libnet::Session *session, const libparse::Config 
   }
 
   // Making sure we didn't exceed maxBodySize
-  if (errRes.first == libhttp::Status::OK)
-    if (session->isNonBlocking(libnet::Session::SOCK_READ))
-      errRes.first = WebServ::Sanitizer::sanitizeBodySize(*req, domain->maxBodySize);
+  if (errRes.first == libhttp::Status::OK && session->isNonBlocking(libnet::Session::SOCK_READ))
+    errRes.first = WebServ::Sanitizer::sanitizeBodySize(*req, domain->maxBodySize);
 
   // Request sanity check
-  if (errRes.first == libhttp::Status::OK)
-    if (req->sanitized == false) {
-      errRes.first = WebServ::Sanitizer::sanitizeRequest(*req, *domain);
-      req->sanitized = true;
-    }
+  if (errRes.first == libhttp::Status::OK && req->sanitized == false) {
+    errRes.first = WebServ::Sanitizer::sanitizeRequest(*req, *domain);
+    req->sanitized = true;
+  }
 
   // Calling implementations
   if (errRes.first == libhttp::Status::OK)
@@ -343,6 +335,23 @@ void libhttp::Mux::multiplexer(libnet::Session *session, const libparse::Config 
       break;
 
     default: {
+      // Cleaning up if excceded maxBodySize in the middle of a upload
+      if (errRes.first == libhttp::Status::PAYLOAD_TOO_LARGE) {
+        libhttp::Post::BodyFormat bodyFormat =
+            libhttp::Post::extractBodyFormat(req->headers.headers);
+
+        switch (bodyFormat) {
+          case Post::CHUNKED:
+            session->transferEncoding->chunk.decoder.reset(libhttp::ChunkDecoder::READY);
+            break;
+          case Post::MULTIPART_FORMDATA:
+            session->multipart->formData.cleanup(libhttp::MultipartFormData::READY);
+            break;
+          case Post::NORMAL:
+            break;
+        }
+      }
+
       // Generating Error
       libhttp::Response *response = libhttp::ErrorGenerator::generate(*domain, errRes.first);
       errRes.first = libhttp::Status::DONE;
