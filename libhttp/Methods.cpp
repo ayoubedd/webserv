@@ -7,6 +7,7 @@
 #include <cstddef>
 #include <cstring>
 #include <ctime>
+#include <dirent.h>
 #include <fcntl.h>
 #include <fstream>
 #include <iostream>
@@ -352,46 +353,50 @@ std::pair<libhttp::Methods::error, libhttp::Response *> libhttp::Get(libhttp::Re
   libhttp::Response     *response = NULL;
   libhttp::Methods::file file;
 
-  if (isFile(path)) {
-    initFile(file, path);
-    if (path.empty())
-      return std::make_pair(libhttp::Methods::FORBIDDEN,
-                            libhttp::redirect(request.reqTarget.path + "/"));
-    if (file.fd == -1)
+  DIR *isdir = opendir(path.c_str());
+  if (isdir) {
+    closedir(isdir);
+    if (!isFolder(path))
       return std::make_pair(libhttp::Methods::REDIR,
                             libhttp::redirect(request.reqTarget.path + "/"));
-    if (checkRangeRequest(request.headers)) {
+    std::string fileName, templateStatic;
+    fileName = libhttp::generateFileName("/tmp/webserv/dir_listing");
+    int fdStatic = open(fileName.c_str(), O_RDWR | O_CREAT, 0644);
+    if (fdStatic == -1)
+      return std::make_pair(libhttp::Methods::FORBIDDEN, static_cast<libhttp::Response *>(NULL));
 
-      std::pair<int, int> range = getStartandEndRangeRequest(request.headers["Range"]);
-      if (!range.second)
-        range.second = file.size;
-      if (!checkRange(file, range))
-        return std::make_pair(libhttp::Methods::OUT_RANGE, response);
-      response = new Response();
-      response->fd = file.fd;
-      setRange(response, range);
-      setHeaders(response, libparse::getTypeFile(libparse::Types(), path), file.size, 206,
-                 "Partial Content", range.first, range.second);
-    } else {
-      response = new Response();
-      setHeaders(response, libparse::getTypeFile(libparse::Types(), path), file.size, 200, "OK");
-    }
-    response->fd = file.fd;
+    response = new Response();
+    templateStatic = generateTemplate(path);
+    write(fdStatic, templateStatic.c_str(), templateStatic.length());
+    response->fd = fdStatic;
+    setHeaders(response, "text/html", templateStatic.length(), 200, "OK");
+    lseek(fdStatic, 0, SEEK_SET);
+    std::remove(fileName.c_str());
     return std::make_pair(libhttp::Methods::OK, response);
   }
-  std::string fileName, templateStatic;
-  fileName = libhttp::generateFileName("/tmp/webserv/dir_listing");
-  int fdStatic = open(fileName.c_str(), O_RDWR | O_CREAT, 0644);
-  if (fdStatic == -1)
-    return std::make_pair(libhttp::Methods::FORBIDDEN, static_cast<libhttp::Response *>(NULL));
+  initFile(file, path);
+  if (path.empty())
+    return std::make_pair(libhttp::Methods::FORBIDDEN,
+                          libhttp::redirect(request.reqTarget.path + "/"));
+  if (file.fd == -1)
+    return std::make_pair(libhttp::Methods::REDIR, libhttp::redirect(request.reqTarget.path + "/"));
+  if (checkRangeRequest(request.headers)) {
 
-  response = new Response();
-  templateStatic = generateTemplate(path);
-  write(fdStatic, templateStatic.c_str(), templateStatic.length());
-  response->fd = fdStatic;
-  setHeaders(response, "text/html", templateStatic.length(), 200, "OK");
-  lseek(fdStatic, 0, SEEK_SET);
-  std::remove(fileName.c_str());
+    std::pair<int, int> range = getStartandEndRangeRequest(request.headers["Range"]);
+    if (!range.second)
+      range.second = file.size;
+    if (!checkRange(file, range))
+      return std::make_pair(libhttp::Methods::OUT_RANGE, response);
+    response = new Response();
+    response->fd = file.fd;
+    setRange(response, range);
+    setHeaders(response, libparse::getTypeFile(libparse::Types(), path), file.size, 206,
+               "Partial Content", range.first, range.second);
+  } else {
+    response = new Response();
+    setHeaders(response, libparse::getTypeFile(libparse::Types(), path), file.size, 200, "OK");
+  }
+  response->fd = file.fd;
   return std::make_pair(libhttp::Methods::OK, response);
 }
 
