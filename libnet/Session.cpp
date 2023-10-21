@@ -21,7 +21,6 @@ libnet::Session::Session(int fd, sockaddr_in *clientAddr)
     , gracefulClose(false)
     , permitedIo(0) {
   WebServ::syncTime(&lastActivity);
-  WebServ::syncTime(&cgiProcessingStart);
 }
 
 libnet::Session::~Session() {
@@ -53,10 +52,11 @@ bool libnet::Session::isSessionActive(bool isCgiCheck) {
 
   WebServ::syncTime(&now);
 
-  if (isCgiCheck == true) // CGI check
+  if (isCgiCheck == true && cgi && cgi->state != libcgi::Cgi::INIT) {
     if (WebServ::timevalToMsec(now) >
         (WebServ::timevalToMsec(cgiProcessingStart) + (CGI_TIMEOUT * 1000)))
       return false;
+  }
 
   // Session check
   if (WebServ::timevalToMsec(now) >

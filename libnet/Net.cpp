@@ -86,11 +86,11 @@ void libnet::Netenv::subscribeSessions() {
 
     bool isCgiRunning = session->cgi != NULL && (session->cgi->state != libcgi::Cgi::INIT);
 
-    size_t sessionLeftTime = WebServ::calcLeftTime(session->lastActivity, SESSION_IDLE_TIME);
+    size_t sessionLeftTime = WebServ::calcLeftTime(session->lastActivity, SESSION_IDLE_TIME * 1000);
 
     size_t cgiLeftTime = 0;
     if (isCgiRunning == true)
-      cgiLeftTime = WebServ::calcLeftTime(session->cgiProcessingStart, CGI_TIMEOUT);
+      cgiLeftTime = WebServ::calcLeftTime(session->cgiProcessingStart, CGI_TIMEOUT * 1000);
 
     size_t leftTime;
 
@@ -101,8 +101,8 @@ void libnet::Netenv::subscribeSessions() {
     else
       leftTime = sessionLeftTime;
 
-    if ((leftTime * 1000) < WebServ::timevalToMsec(timeHolder)) {
-      timeHolder.tv_sec = (unsigned long)leftTime;
+    if (leftTime < WebServ::timevalToMsec(timeHolder)) {
+      timeHolder.tv_sec = leftTime / 1000;
       timeHolder.tv_usec = 0;
     }
 
@@ -225,16 +225,14 @@ void extractReadySessions(libnet::Sessions &src, libnet::Sessions &dst, fd_set *
           FD_ISSET(session->cgi->fd[0], fdReadSet))
         session->permitedIo |= libnet::Session::CGI_READ;
 
-    bool isCgiRunning = session->cgi != NULL && (session->cgi->state != libcgi::Cgi::INIT);
-
     // Telling if should pass this session to be handled
     if (session->permitedIo != 0)
       dst.insert(std::make_pair(session->fd, session));
 
-    else if (isCgiRunning && session->isSessionActive(true))
+    else if (session->isSessionActive(true) == false)
       dst.insert(std::make_pair(session->fd, session));
 
-    else if (session->isSessionActive(false))
+    else if (session->isSessionActive(false) == false)
       dst.insert(std::make_pair(session->fd, session));
 
     sessionsBegin++;
@@ -242,15 +240,7 @@ void extractReadySessions(libnet::Sessions &src, libnet::Sessions &dst, fd_set *
 }
 
 void libnet::Netenv::awaitEvents(void) {
-  int err;
-
-  // Time to block should not exceed SESSION_IDLE_TIME
-  timeHolder.tv_sec %= SESSION_IDLE_TIME;
-
-  if (timeHolder.tv_sec == 0)
-    err = select(largestFd() + 1, &fdReadSet, &fdWriteSet, NULL, NULL);
-  else
-    err = select(largestFd() + 1, &fdReadSet, &fdWriteSet, NULL, &timeHolder);
+  int err = select(largestFd() + 1, &fdReadSet, &fdWriteSet, NULL, &timeHolder);
 
   if (err == -1) {
     std::cerr << "select: " << strerror(errno) << std::endl;

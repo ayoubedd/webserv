@@ -13,16 +13,15 @@ static void extractSessionsToClose(const libnet::Sessions &sessions, std::vector
     if (session->destroy == true)
       dst.push_back(session->fd);
 
-    // Check for cgi is running
-    if (session->cgi != NULL && session->cgi->state != libcgi::Cgi::INIT) {
-      if (session->isSessionActive(true) == false)
-        session->gracefulClose = true;
-    } else {
-      if (session->isSessionActive(false) == false)
-        session->gracefulClose = true;
-    }
+    else if (session->cgi != NULL && session->cgi->state != libcgi::Cgi::INIT) {
 
-    if (session->gracefulClose == true && session->writer.responses.empty() == true)
+      if (session->isSessionActive(true) == false)
+        session->destroy = true;
+
+    } else if (session->isSessionActive(false) == false)
+      session->destroy = true;
+
+    else if (session->gracefulClose == true && session->writer.responses.empty() == true)
       dst.push_back(session->fd);
 
     begin++;
