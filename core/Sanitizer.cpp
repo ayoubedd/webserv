@@ -115,5 +115,17 @@ WebServ::Sanitizer::sanitizeRequest(const libhttp::Request &req, const libparse:
   if (e != Status::OK)
     return e;
 
+  if (req.method == "GET" || req.method == "DELETE") {
+    e = sanitizeGetRequest(req, domain);
+    if (e != Status::OK)
+      return e;
+  }
+
+  if (req.method == "POST") {
+    e = sanitizePostRequest(req, domain.routes, *route.second);
+    if (e != Status::OK)
+      return e;
+  }
+
   return Status::OK;
 }
