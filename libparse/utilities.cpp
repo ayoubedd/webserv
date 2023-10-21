@@ -75,9 +75,9 @@ checkFileExistAndEditableOfCgi(std::map<std::string, std::string> cgi) {
   while (it != cgi.end()) {
     if (fileExists(it->second)) {
       if (!checkIsEditable(it->second))
-        return std::make_pair(false, " ");
+        return std::make_pair(false, it->second);
     } else
-      return std::make_pair(false, " ");
+      return std::make_pair(false, it->second);
     it++;
   }
   return std::make_pair(true, " ");
