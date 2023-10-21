@@ -369,16 +369,26 @@ libhttp::MultipartFormData::read(libhttp::Request &req, const std::string &uploa
 }
 
 std::string libhttp::generateFileName(const std::string &prefix) {
-  std::string::size_type i = 0;
-
   if (access(prefix.c_str(), F_OK) != 0)
     return prefix;
 
+  std::string            filename;
+  std::string            ext;
+  std::string::size_type idx = prefix.rfind(".");
+
+  if (idx != std::string::npos && idx != 0) {
+    filename = prefix.substr(0, idx);
+    ext = prefix.substr(idx + 1);
+  } else
+    filename = prefix;
+
+  std::string            newPath;
+  std::string::size_type i = 0;
   while (true) {
-    if (access((prefix + "_" + asStr(i)).c_str(), F_OK) != 0)
+    newPath = filename + "_" + asStr(i) + (ext.length() > 0 ? "." : "") + ext;
+    if (access((newPath).c_str(), F_OK) != 0)
       break;
     i++;
   };
-
-  return prefix + "_" + asStr(i);
+  return newPath;
 }
