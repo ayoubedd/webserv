@@ -55,6 +55,7 @@ namespace libhttp {
     Status                       status;
     MultipartEntity              entity;
     std::vector<MultipartEntity> entities;
+    std::string                  boundary;
     std::string                  del;
     std::string                  afterBodyDel;
     std::string                  closeDel;
