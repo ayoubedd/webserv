@@ -158,19 +158,21 @@ libcgi::Cgi::Error libcgi::Cgi::init(libhttp::Request *httpReq, std::string scri
 libcgi::Cgi::Error libcgi::Cgi::write(libhttp::Request &req) {
   ssize_t len = 0;
 
-  if (req.body.size()) {
-    len = ::write(this->cgiInput, &req.body[0], req.body.size());
-    if (len < 0)
-      return FAILED_WRITE;
-    req.body.erase(req.body.begin(), req.body.begin() + len);
-  }
+  if (req.body.size())
+    while (true) {
+      len = ::write(this->cgiInput, &(req.body[0]), req.body.size());
+      if (len == 0)
+        break;
+      if (len < 0)
+        return FAILED_WRITE;
+      this->bodySize += len;
+      req.body.erase(req.body.begin(), req.body.begin() + len);
+    }
 
   if (req.state == libhttp::Request::R_FIN && req.body.size() == 0) {
     this->req.env[libcgi::Request::CONTENT_LENGTH] = asStr(this->bodySize);
     state = libcgi::Cgi::READING_HEADERS;
   }
-
-  this->bodySize += len;
   return OK;
 };
 
