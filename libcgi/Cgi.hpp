@@ -26,7 +26,7 @@ namespace libcgi {
       MALFORMED
     };
 
-    enum State { INIT, READING_HEADERS, READING_BODY, FIN, ERR };
+    enum State { INIT, WRITTING_BODY, READING_HEADERS, READING_BODY, FIN, ERR };
 
     sockaddr_in *clientAddr;
     Request      req;
@@ -49,7 +49,8 @@ namespace libcgi {
     /**
      * this function does not ensure that all bytes were written
      */
-    Error write(std::vector<char> &body);
+
+    Error write(libhttp::Request &req);
     Error exec(const std::string &interpreter = "");
     Error read();
 
