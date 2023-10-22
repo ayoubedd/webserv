@@ -1,6 +1,6 @@
 NAME=webserv
 CXX=g++
-CXXFLAGS+=-Wall -Wextra -Wreorder -std=c++98 -I . -flto -O3
+CXXFLAGS+=-Wall -Wextra -Werror -Wreorder -std=c++98 -I .
 
 CORE=core/main.cpp core/Sanitizer.cpp core/Multiplexer.cpp \
 		 core/Initialization.cpp core/Logger.cpp \
@@ -33,24 +33,11 @@ $(NAME): $(OBJFILES)
 	@mkdir -p build
 	$(CXX) $(CXXFLAGS) $(OBJFILES) -o $(NAME)
 
-debug: CXXFLAGS += -ggdb
-debug: $(NAME)
-
-fsanitize: CXXFLAGS += -fsanitize=address
-fsanitize: debug
-
-bear: compile_commands.json
-
-compile_commands.json:
-	bear -- make
-
 clean:
 	rm -rf $(OBJFILES)
 
 fclean: clean
 	rm -rf $(NAME)
-
-build: all clean
 
 re: clean all
 
