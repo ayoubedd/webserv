@@ -10,6 +10,7 @@
 #include <assert.h>
 #include <cstdlib>
 #include <cstring>
+#include <signal.h>
 #include <sys/select.h>
 #include <sys/time.h>
 #include <unistd.h>
@@ -97,6 +98,9 @@ int main(int argc, char *argv[]) {
 
   // Initializing sockets
   net.setupSockets(config);
+
+  // Ignoring SIGPIPE
+  signal(SIGPIPE, SIG_IGN);
 
   while (true) {
     // Prepate fds sets / await for new events
