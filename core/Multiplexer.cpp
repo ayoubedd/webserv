@@ -76,15 +76,20 @@ static StatusResPair cgiHandler(libcgi::Cgi *cgi, const libparse::RouteProps *ro
   libcgi::Cgi::State prevState = cgi->state;
 
   switch (cgi->state) {
-    case libcgi::Cgi::INIT: {
+    case libcgi::Cgi::INIT:
+    case libcgi::Cgi::WRITTING_BODY: {
       std::pair<std::string, std::string> interprterScriptPathsPair;
-
       interprterScriptPathsPair = extractInterpreterScriptPaths(domain, route, req);
+
       cgiError =
           cgi->init(req, interprterScriptPathsPair.second, "localhost", "./static/", domain->port);
-      if (cgiError != libcgi::Cgi::OK)
-        break;
-      cgiError = cgi->exec(interprterScriptPathsPair.first);
+
+      if (cgiError == libcgi::Cgi::OK)
+        if (cgi->state == libcgi::Cgi::WRITTING_BODY)
+          cgiError = cgi->write(*req);
+
+      if (cgiError == libcgi::Cgi::OK)
+        cgiError = cgi->exec(interprterScriptPathsPair.first);
       break;
     }
     case libcgi::Cgi::READING_HEADERS:
