@@ -4,7 +4,9 @@
 #include <sys/select.h>
 #include <sys/time.h>
 
-size_t WebServ::timevalToMsec(struct timeval time) { return (time.tv_sec * 1000) + (time.tv_usec / 1000); }
+size_t WebServ::timevalToMsec(struct timeval time) {
+  return (time.tv_sec * 1000) + (time.tv_usec / 1000);
+}
 
 void WebServ::syncTime(struct timeval *time) {
   if (gettimeofday(time, NULL) == -1) {
@@ -12,17 +14,16 @@ void WebServ::syncTime(struct timeval *time) {
     exit(EXIT_FAILURE);
   }
 }
-size_t WebServ::calcLeftTime(struct timeval event, size_t threshold) {
-  size_t         leftTime;
+size_t WebServ::calcLeftTime(struct timeval then, size_t threshold) {
+  size_t         spentTime;
   struct timeval now;
 
   WebServ::syncTime(&now);
 
-  leftTime = WebServ::timevalToMsec(now) - WebServ::timevalToMsec(event);
+  spentTime = WebServ::timevalToMsec(now) - WebServ::timevalToMsec(then);
 
-  if (threshold < leftTime)
+  if (spentTime > threshold)
     return 0;
 
-  return threshold - leftTime;
+  return threshold - spentTime;
 }
-
