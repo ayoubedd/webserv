@@ -81,15 +81,22 @@ static StatusResPair cgiHandler(libcgi::Cgi *cgi, const libparse::RouteProps *ro
       std::pair<std::string, std::string> interprterScriptPathsPair;
       interprterScriptPathsPair = extractInterpreterScriptPaths(domain, route, req);
 
-      cgiError =
-          cgi->init(req, interprterScriptPathsPair.second, "localhost", "./static/", domain->port);
+      // Only initialize when needed
+      if (cgi->state == libcgi::Cgi::INIT)
+        cgiError = cgi->init(req, interprterScriptPathsPair.second, "localhost", "./static/",
+                             domain->port);
 
+      // on success writer request body
+      // to cgi stdin
       if (cgiError == libcgi::Cgi::OK)
         if (cgi->state == libcgi::Cgi::WRITTING_BODY)
           cgiError = cgi->write(*req);
 
-      if (cgiError == libcgi::Cgi::OK)
-        cgiError = cgi->exec(interprterScriptPathsPair.first);
+      // execute script only when done writitng the hole
+      // request body
+      if (req->state == libhttp::Request::R_FIN)
+        if (cgiError == libcgi::Cgi::OK)
+          cgiError = cgi->exec(interprterScriptPathsPair.first);
       break;
     }
     case libcgi::Cgi::READING_HEADERS:
