@@ -66,7 +66,7 @@ WebServ::Sanitizer::sanitizePostRequest(const libhttp::Request &req, const libpa
   if (req.method != libhttp::Methods::POST)
     return Status::OK;
   std::string uploadDir = libparse::findUploadDir(&routes, &route);
-  if (uploadDir.empty())
+  if (uploadDir.empty() && route.cgi.empty())
     return Status::NOT_FOUND;
   libhttp::HeadersMap::const_iterator it =
       req.headers.headers.find(libhttp::Headers::CONTENT_LENGTH);
