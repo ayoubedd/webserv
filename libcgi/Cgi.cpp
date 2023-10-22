@@ -45,7 +45,8 @@ std::pair<libcgi::Cgi::Error, libcgi::Cgi::State> libcgi::Cgi::handleCgiBuff(cha
       return std::make_pair(OK, this->state);
     }
     this->state = READING_BODY;
-    this->res.cgiHeader.insert(this->res.cgiHeader.end(), ptr, ptr + idx + 2); // plus the \r\n
+    this->res.cgiHeader.insert(this->res.cgiHeader.end(), ptr,
+                               ptr + idx + 2); // plus the \r\n
     err = this->res.build();
     if (err != Respons::OK)
       return std::make_pair(MALFORMED, this->state);
@@ -150,15 +151,25 @@ libcgi::Cgi::Error libcgi::Cgi::init(libhttp::Request *httpReq, std::string scri
                  serverSoftware);
   this->req.build(httpReq);
   this->res.init();
+  state = libcgi::Cgi::WRITTING_BODY;
   return OK;
 }
 
-libcgi::Cgi::Error libcgi::Cgi::write(std::vector<char> &body) {
-  ssize_t len;
+libcgi::Cgi::Error libcgi::Cgi::write(libhttp::Request &req) {
+  ssize_t len = 0;
 
-  len = ::write(this->cgiInput, &body.at(0), body.size());
-  if (len < 0)
-    return FAILED_WRITE;
+  if (req.body.size()) {
+    len = ::write(this->cgiInput, &req.body[0], req.body.size());
+    if (len < 0)
+      return FAILED_WRITE;
+    req.body.erase(req.body.begin(), req.body.begin() + len);
+  }
+
+  if (req.state == libhttp::Request::R_FIN && req.body.size() == 0) {
+    this->req.env[libcgi::Request::CONTENT_LENGTH] = asStr(this->bodySize);
+    state = libcgi::Cgi::READING_HEADERS;
+  }
+
   this->bodySize += len;
   return OK;
 };
