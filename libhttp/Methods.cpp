@@ -271,7 +271,6 @@ void initFile(libhttp::Methods::file &file, std::string fileName) {
   }
   ssize_t size = inFile.tellg();
   inFile.close();
-  file.size = static_cast<size_t>(size);
   if (size == -1) {
     return;
   }
@@ -289,18 +288,18 @@ bool checkRangeRequest(libhttp::Headers &headers) {
   return false;
 }
 
-bool checkRange(libhttp::Methods::file &file, std::pair<int, int> range) {
+bool checkRange(libhttp::Methods::file &file, std::pair<size_t, size_t> range) {
 
   if (range.second < range.first) {
     return false;
   }
-  if (range.second > file.size) {
+  if (range.second > (size_t)file.size) {
     return false;
   }
   return true;
 }
 
-std::pair<int, int> getStartandEndRangeRequest(std::string str) {
+std::pair<size_t, size_t> getStartandEndRangeRequest(std::string str) {
   int start = 0, end = 0;
 
   std::stringstream strm(str.substr(6, str.find("-", 6) - 6));
@@ -313,7 +312,7 @@ std::pair<int, int> getStartandEndRangeRequest(std::string str) {
 
 off_t advanceOffSet(int fd, size_t start) { return lseek(fd, start, SEEK_SET); }
 
-bool setRange(libhttp::Response *response, std::pair<int, int> range) {
+bool setRange(libhttp::Response *response, std::pair<size_t, size_t> range) {
   response->bytesToServe = range.second - range.first;
   // off_t offSet;
   return (advanceOffSet(response->fd, range.first) != -1);
@@ -333,7 +332,7 @@ void setHeaders(libhttp::Response *response, std::string contentType, size_t Con
 }
 
 void setHeaders(libhttp::Response *response, std::string contentType, size_t ContentLenght,
-                int statusCode, std::string status, int first, int last) {
+                int statusCode, std::string status, size_t first, size_t last) {
   std::string tmp;
   tmp = "HTTP/1.1 " + asStr(statusCode) + " " + status + "\r\n";
   response->buffer->insert(response->buffer->end(), tmp.c_str(), tmp.c_str() + tmp.length());
@@ -381,8 +380,7 @@ std::pair<libhttp::Methods::error, libhttp::Response *> libhttp::Get(libhttp::Re
   if (file.fd == -1)
     return std::make_pair(libhttp::Methods::REDIR, libhttp::redirect(request.reqTarget.path + "/"));
   if (checkRangeRequest(request.headers)) {
-
-    std::pair<int, int> range = getStartandEndRangeRequest(request.headers["Range"]);
+    std::pair<size_t, size_t> range = getStartandEndRangeRequest(request.headers["Range"]);
     if (!range.second)
       range.second = file.size;
     if (!checkRange(file, range))

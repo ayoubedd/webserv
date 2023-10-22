@@ -42,6 +42,20 @@ int convertToInt(std::string str) {
   }
   return 0;
 }
+ssize_t convertToLong(std::string str) {
+  ssize_t           num;
+  std::stringstream ss;
+  ss << str;
+  ss >> num;
+  if (!str.empty()) {
+    try {
+      return atoll(str.c_str());
+    } catch (...) {
+      return -1;
+    }
+  }
+  return 0;
+}
 
 bool convertStrToBool(std::string str) {
   if (str == "on")
@@ -372,14 +386,14 @@ bool checkDomain(std::string &nameDomain) {
 
 std::pair<bool, std::string> setUpKey(libparse::Config &config, std::string nameDomain,
                                       std::vector<libparse::tokens> &tokens, size_t *i) {
-  int num;
+  ssize_t num;
   if (tokens[*i].type == libparse::token::MAXBODYSIZE) {
     advance(tokens, i);
     if (tokens[*i].type == libparse::token::ENDLINE)
       return std::make_pair(false, "max_body_size");
     if (!checkIsInt(tokens[*i].lexeme))
       return std::make_pair(false, "max_body_size");
-    num = convertToInt(tokens[*i].lexeme);
+    num = convertToLong(tokens[*i].lexeme);
     if (num == -1)
       return std::make_pair(false, "max_body_size");
     config.domains[nameDomain].maxBodySize = num;
