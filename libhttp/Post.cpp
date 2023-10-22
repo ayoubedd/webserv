@@ -129,6 +129,18 @@ multipartFormDataPostHandler(libhttp::Request &req, libhttp::MultipartFormData &
   return libhttp::Post::DONE;
 }
 
+static void removeNoneFileParts(std::vector<libhttp::MultipartEntity> &entities) {
+  std::vector<libhttp::MultipartEntity>::iterator begin = entities.begin();
+  std::vector<libhttp::MultipartEntity>::iterator end = entities.end();
+
+  while (begin != end) {
+    if (begin->type != libhttp::MultipartEntity::FILE) {
+      std::remove(begin->filePath.c_str());
+    }
+    begin++;
+  }
+}
+
 std::pair<libhttp::Status::Code, libhttp::Response *>
 libhttp::Post::post(libhttp::Request &req, libhttp::TransferEncoding *te, libhttp::Multipart *mp,
                     libhttp::SizedPost *sp, const std::string &uploadRoot) {
@@ -167,6 +179,10 @@ libhttp::Post::post(libhttp::Request &req, libhttp::TransferEncoding *te, libhtt
     case Post::DONE:
       break;
   }
+
+  // Removing non files parts.
+  removeNoneFileParts(mp->formData.entities);
+  mp->formData.entities.clear();
 
   // Success.
   // Start building response.

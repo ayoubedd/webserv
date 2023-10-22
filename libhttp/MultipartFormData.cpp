@@ -43,7 +43,8 @@ void libhttp::MultipartFormData::cleanup(libhttp::MultipartFormData::Status newS
   searchedBytes = 0;
 
   // Clear entities vec
-  entities.clear();
+  if (newStatus != DONE)
+    entities.clear();
 
   // Set status to newStatus
   status = newStatus;
@@ -57,6 +58,7 @@ void libhttp::MultipartFormData::cleanup(libhttp::MultipartFormData::Status newS
   del.clear();
   afterBodyDel.clear();
   closeDel.clear();
+  boundary.clear();
 
   // Close file
   file.close();
@@ -210,8 +212,7 @@ libhttp::MultipartFormData::ErrorStatePair
 libhttp::MultipartFormData::read(libhttp::Request &req, const std::string &uploadRoot) {
   // Should extract the boundary at the first time.
   if (status == READY) {
-    std::string boundary =
-        extractHeaderPropKeyValue(req.headers.headers, "Content-Type", "boundary");
+    boundary = extractHeaderPropKeyValue(req.headers.headers, "Content-Type", "boundary");
 
     // Check if boundary extracted
     if (!boundary.length()) {
@@ -292,9 +293,13 @@ libhttp::MultipartFormData::read(libhttp::Request &req, const std::string &uploa
       // Extracting filename of the part
       std::string providedFileName =
           extractHeaderPropKeyValue(entity.headers, "Content-Disposition", "filename");
-      providedFileName = providedFileName.empty()
-                             ? "upload_"
-                             : providedFileName.substr(1, providedFileName.length() - 2);
+      providedFileName =
+          providedFileName.empty() ? "" : providedFileName.substr(1, providedFileName.length() - 2);
+
+      if (providedFileName.size() != 0)
+        entity.type = MultipartEntity::FILE;
+      else
+        entity.type = MultipartEntity::OTHER;
 
       if (!providedFileName.length())
         entity.filePath = libhttp::generateFileName(uploadRoot + "/uploaded_file");

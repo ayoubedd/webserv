@@ -342,10 +342,12 @@ void libhttp::Mux::multiplexer(libnet::Session *session, const libparse::Config 
 
         switch (bodyFormat) {
           case Post::CHUNKED:
-            session->transferEncoding->chunk.decoder.reset(libhttp::ChunkDecoder::READY);
+            if (session->transferEncoding)
+              session->transferEncoding->chunk.decoder.reset(libhttp::ChunkDecoder::READY);
             break;
           case Post::MULTIPART_FORMDATA:
-            session->multipart->formData.cleanup(libhttp::MultipartFormData::READY);
+            if (session->multipart)
+              session->multipart->formData.cleanup(libhttp::MultipartFormData::READY);
             break;
           case Post::NORMAL:
             break;
