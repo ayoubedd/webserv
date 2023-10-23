@@ -182,6 +182,7 @@ libcgi::Cgi::Error libcgi::Cgi::exec(const std::string &interpreter) {
   lseek(this->cgiInput, 0, SEEK_SET);
   pid = fork();
   if (pid == 0) {
+    chdir(this->req.scriptPath.substr(0, req.scriptPath.rfind('/')).c_str());
     dup2(this->cgiInput, STDIN_FILENO);
     dup2(this->fd[1], STDOUT_FILENO);
 
@@ -189,8 +190,8 @@ libcgi::Cgi::Error libcgi::Cgi::exec(const std::string &interpreter) {
     close(fd[1]);
     close(cgiInput);
 
-    interpreter.empty() ? argv = getScriptArgs(req.scriptPath)
-                        : argv = getScriptArgs(interpreter, req.scriptPath);
+    interpreter.empty() ? argv = getScriptArgs(req.env[Request::SCRIPT_FILENAME])
+                        : argv = getScriptArgs(interpreter, req.env[Request::SCRIPT_FILENAME]);
     env = headersAsEnv(req.env);
     ::execve(argv[0], argv, env);
     exit(1);
