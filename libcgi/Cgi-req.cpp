@@ -66,7 +66,7 @@ void libcgi::Request::addCgiStandardHeaders(libhttp::Request *httpReq) {
   env[REMOTE_IDENT] = "";
   env[REQUEST_METHOD] = httpReq->method;
   env[SCRIPT_NAME] = ctx.scriptName;
-  env[SCRIPT_FILENAME] = this->scriptPath;
+  env[SCRIPT_FILENAME] = ctx.scriptName;
   env[SERVER_NAME] = ctx.serverName;
   env[SERVER_PORT] = ctx.serverPort;
   env[SERVER_PROTOCOL] = ctx.protocol;
