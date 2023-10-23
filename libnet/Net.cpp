@@ -214,7 +214,7 @@ void extractReadySessions(libnet::Sessions &src, libnet::Sessions &dst, fd_set *
         session->permitedIo |= libnet::Session::SOCK_WRITE;
 
       // Check if writer allowed to read from response fd
-      if (response->fd != -1 && FD_ISSET(response->fd, fdReadSet))
+      if (response->fd > 0 && FD_ISSET(response->fd, fdReadSet))
         session->permitedIo |= libnet::Session::WRITER_READ;
     }
 
