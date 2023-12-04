@@ -10,7 +10,6 @@ This project is an exploration of the HTTP protocol by building a custom HTTP se
 - [Mandatory Part](#mandatory-part)
 - [Configuration File](#configuration-file)
 - [Bonus Part](#bonus-part)
-- [Submission and Peer-Evaluation](#submission-and-peer-evaluation)
 
 ## Introduction
 
