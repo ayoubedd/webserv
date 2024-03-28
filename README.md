@@ -14,8 +14,6 @@
 
 This project is an exploration of the HTTP protocol by building a custom HTTP server in C++98. It provides a hands-on experience in understanding the intricacies of web communication, allowing users to test the server with a browser. The project covers both mandatory and bonus features, emphasizing non-blocking operations, configuration files, and CGI support.
 
-For more informations. Refer to subject file included in the subject directory.
-
 ## Features
 
 This is a list of features suported in this implementation.
@@ -80,7 +78,7 @@ This is a simple config file which will server static files from `./static` dire
 
 ## Notes
 
-- The example directory a example file containing the full configurations supported.
+- `config.conf` in the root directory contains the full configuration options.
 
 ## Lisence
 
